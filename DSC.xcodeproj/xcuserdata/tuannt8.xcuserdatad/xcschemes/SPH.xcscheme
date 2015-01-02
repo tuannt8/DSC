@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7AE27B0417675CDA000F8238"
-               BuildableName = "DEMO"
-               BlueprintName = "DEMO"
+               BlueprintIdentifier = "A631D3141A56F78300155C61"
+               BuildableName = "SPH"
+               BlueprintName = "SPH"
                ReferencedContainer = "container:DSC.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -32,9 +32,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7AE27B0417675CDA000F8238"
-            BuildableName = "DEMO"
-            BlueprintName = "DEMO"
+            BlueprintIdentifier = "A631D3141A56F78300155C61"
+            BuildableName = "SPH"
+            BlueprintName = "SPH"
             ReferencedContainer = "container:DSC.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -43,18 +43,17 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "YES"
-      customWorkingDirectory = "/Users/tuannt8/Documents/Github/Git"
-      buildConfiguration = "Release"
+      useCustomWorkingDirectory = "NO"
+      buildConfiguration = "Debug"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       allowLocationSimulation = "YES">
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7AE27B0417675CDA000F8238"
-            BuildableName = "DEMO"
-            BlueprintName = "DEMO"
+            BlueprintIdentifier = "A631D3141A56F78300155C61"
+            BuildableName = "SPH"
+            BlueprintName = "SPH"
             ReferencedContainer = "container:DSC.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -70,9 +69,9 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7AE27B0417675CDA000F8238"
-            BuildableName = "DEMO"
-            BlueprintName = "DEMO"
+            BlueprintIdentifier = "A631D3141A56F78300155C61"
+            BuildableName = "SPH"
+            BlueprintName = "SPH"
             ReferencedContainer = "container:DSC.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

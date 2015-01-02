@@ -115,6 +115,7 @@
 		7AF7E9BD176B412900F43714 /* draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AF7E9BB176B412900F43714 /* draw.cpp */; };
 		7AF7E9BF176B4FE400F43714 /* DSC.h in Headers */ = {isa = PBXBuildFile; fileRef = 7AF7E9BE176B4FE400F43714 /* DSC.h */; };
 		7AF7E9C1176B524700F43714 /* is_mesh.h in Headers */ = {isa = PBXBuildFile; fileRef = 7AF7E9C0176B524700F43714 /* is_mesh.h */; };
+		A67AF1AA1A488B0400E864BC /* fluid_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A67AF1A81A488B0400E864BC /* fluid_function.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -128,6 +129,15 @@
 			runOnlyForDeploymentPostprocessing = 1;
 		};
 		7AE27B0317675CDA000F8238 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		A631D3131A56F78300155C61 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -259,6 +269,10 @@
 		7AF7E9BC176B412900F43714 /* draw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = draw.h; sourceTree = "<group>"; };
 		7AF7E9BE176B4FE400F43714 /* DSC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DSC.h; path = src/DSC.h; sourceTree = SOURCE_ROOT; };
 		7AF7E9C0176B524700F43714 /* is_mesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = is_mesh.h; path = is_mesh/is_mesh.h; sourceTree = "<group>"; };
+		A631D3151A56F78300155C61 /* SPH */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SPH; sourceTree = BUILT_PRODUCTS_DIR; };
+		A67AF1A81A488B0400E864BC /* fluid_function.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fluid_function.cpp; path = fluidSimulation/fluid_function.cpp; sourceTree = SOURCE_ROOT; };
+		A67AF1A91A488B0400E864BC /* fluid_function.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fluid_function.h; path = fluidSimulation/fluid_function.h; sourceTree = SOURCE_ROOT; };
+		A67AF1AB1A488FB700E864BC /* define_fluid.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = define_fluid.h; path = fluidSimulation/define_fluid.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -309,6 +323,13 @@
 				7AE27B1717675D34000F8238 /* libDSC.a in Frameworks */,
 				7AE27B1A17675DA6000F8238 /* OpenGL.framework in Frameworks */,
 				7AE27B1917675DA2000F8238 /* GLUT.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A631D3121A56F78300155C61 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -483,6 +504,7 @@
 				7A9C205917DFB4CB0064171E /* libCGLA.a */,
 				7A3438C9183C7A8700829EEB /* libTetGen.a */,
 				7A3438DA183C7B2E00829EEB /* SCGenerator */,
+				A631D3151A56F78300155C61 /* SPH */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -499,6 +521,7 @@
 		7AE27B0E17675CEA000F8238 /* DEMO */ = {
 			isa = PBXGroup;
 			children = (
+				A67AF1A71A488AAC00E864BC /* FluidSimulation */,
 				7A470AE117F51DC3001FC0CB /* log.cpp */,
 				7A470AE217F51DC3001FC0CB /* log.h */,
 				7AE27B1117675CEA000F8238 /* demo.cpp */,
@@ -511,6 +534,16 @@
 				7AE27B1417675CEA000F8238 /* rotate_function.h */,
 			);
 			path = DEMO;
+			sourceTree = "<group>";
+		};
+		A67AF1A71A488AAC00E864BC /* FluidSimulation */ = {
+			isa = PBXGroup;
+			children = (
+				A67AF1A81A488B0400E864BC /* fluid_function.cpp */,
+				A67AF1A91A488B0400E864BC /* fluid_function.h */,
+				A67AF1AB1A488FB700E864BC /* define_fluid.h */,
+			);
+			name = FluidSimulation;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -716,6 +749,23 @@
 			productReference = 7AE27B0517675CDA000F8238 /* DEMO */;
 			productType = "com.apple.product-type.tool";
 		};
+		A631D3141A56F78300155C61 /* SPH */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A631D3191A56F78300155C61 /* Build configuration list for PBXNativeTarget "SPH" */;
+			buildPhases = (
+				A631D3111A56F78300155C61 /* Sources */,
+				A631D3121A56F78300155C61 /* Frameworks */,
+				A631D3131A56F78300155C61 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SPH;
+			productName = SPH;
+			productReference = A631D3151A56F78300155C61 /* SPH */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -724,6 +774,11 @@
 			attributes = {
 				LastUpgradeCheck = 0500;
 				ORGANIZATIONNAME = "Asger Nyman Christiansen";
+				TargetAttributes = {
+					A631D3141A56F78300155C61 = {
+						CreatedOnToolsVersion = 6.1.1;
+					};
+				};
 			};
 			buildConfigurationList = 7AE27AB217675A1E000F8238 /* Build configuration list for PBXProject "DSC" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -743,6 +798,7 @@
 				7AE27B0417675CDA000F8238 /* DEMO */,
 				7A3438C8183C7A8700829EEB /* TetGen */,
 				7A3438D9183C7B2E00829EEB /* SCGenerator */,
+				A631D3141A56F78300155C61 /* SPH */,
 			);
 		};
 /* End PBXProject section */
@@ -819,7 +875,15 @@
 				7AE27B1517675CEA000F8238 /* demo.cpp in Sources */,
 				7AF7E9BA176B402200F43714 /* user_interface.cpp in Sources */,
 				7A470AE317F51DC3001FC0CB /* log.cpp in Sources */,
+				A67AF1AA1A488B0400E864BC /* fluid_function.cpp in Sources */,
 				7AF7E9BD176B412900F43714 /* draw.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A631D3111A56F78300155C61 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1051,6 +1115,49 @@
 			};
 			name = Release;
 		};
+		A631D31A1A56F78300155C61 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A631D31B1A56F78300155C61 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1116,6 +1223,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		A631D3191A56F78300155C61 /* Build configuration list for PBXNativeTarget "SPH" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A631D31A1A56F78300155C61 /* Debug */,
+				A631D31B1A56F78300155C61 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 /* End XCConfigurationList section */
 	};

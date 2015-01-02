@@ -29,6 +29,11 @@
 			<key>orderHint</key>
 			<integer>2</integer>
 		</dict>
+		<key>SPH.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>6</integer>
+		</dict>
 		<key>TetGen.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
@@ -63,6 +68,11 @@
 			<true/>
 		</dict>
 		<key>7AE27B0417675CDA000F8238</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>A631D3141A56F78300155C61</key>
 		<dict>
 			<key>primary</key>
 			<true/>

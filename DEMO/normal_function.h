@@ -26,7 +26,8 @@ class NormalFunc: public DSC::VelocityFunc<> {
     
 public:
     /**
-     Creates a velocity function which moves the interface vertices in the normal direction.
+     Creates a velocity function which moves the interface vertices 
+     in the normal direction.
      */
     NormalFunc(real velocity, real accuracy, int max_time_steps = 200):
         VelocityFunc<>(velocity, accuracy, max_time_steps)
@@ -43,7 +44,8 @@ public:
     }
     
     /**
-     Computes the motion of each interface vertex and stores the new position in new_pos in the simplicial complex class.
+     Computes the motion of each interface vertex and stores the new position 
+     in new_pos in the simplicial complex class.
      */
     virtual void deform(DSC::DeformableSimplicialComplex<>& dsc)
     {
