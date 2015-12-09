@@ -18,6 +18,10 @@
 #include "rotate_function.h"
 #include "average_function.h"
 #include "normal_function.h"
+#include "draw_helper.h"
+
+
+#include <math.h>       /* for cos(), sin(), and sqrt() */
 
 #include <iostream>
 #include <iomanip>
@@ -46,6 +50,40 @@ void animate_(){
     UI::get_instance()->animate();
 }
 
+void motion_(int x, int y)
+{
+    UI::get_instance()->motion(x, y);
+}
+
+void mouse_(int button, int state, int x, int y){
+    UI::get_instance()->mouse(button, state, x, y);
+}
+
+void UI::mouse(int button, int state, int x, int y)
+{
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            moving = 1;
+            startx = x;
+            starty = y;
+        }
+        if (state == GLUT_UP) {
+            moving = 0;
+        }
+    }
+}
+
+void UI::motion(int x, int y)
+{
+    if (moving) {
+        angle = angle + (x - startx);
+        angle2 = angle2 + (y - starty);
+        startx = x;
+        starty = y;
+        glutPostRedisplay();
+    }
+}
+
 UI* UI::instance = NULL;
 
 UI::UI(int &argc, char** argv)
@@ -53,28 +91,45 @@ UI::UI(int &argc, char** argv)
     instance = this;
 
     glutInit(&argc, argv);
-#ifdef _WIN32
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
-#else
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
-#endif
-    glutCreateWindow("");
+    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL | GLUT_MULTISAMPLE);
+    
+    glutCreateWindow("Shadowy Leapin' Lizards");
     
     glutDisplayFunc(display_);
     glutKeyboardFunc(keyboard_);
 	glutIgnoreKeyRepeat(true);
     glutVisibilityFunc(visible_);
     glutReshapeFunc(reshape_);
-	glutIdleFunc(animate_);
+//	glutIdleFunc(animate_);
+    glutMotionFunc(motion_);
+    glutMouseFunc(mouse_);
 
-#ifndef __APPLE__
-	glewExperimental = GL_TRUE;  // See http://www.opengl.org/wiki/OpenGL_Loading_Library
-	GLint GlewInitResult = glewInit();
-	if (GlewInitResult != GLEW_OK) {
-		printf("ERROR: %s\n", glewGetErrorString(GlewInitResult));
-	}
-    check_gl_error(); // Catches a GL_INVALID_ENUM error. See http://www.opengl.org/wiki/OpenGL_Loading_Library
-#endif
+
+    
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glLineWidth(3.0);
+    
+    glMatrixMode(GL_PROJECTION);
+    gluPerspective( /* field of view in degree */ 40.0,
+                   /* aspect ratio */ 1.0,
+                   /* Z near */ 20.0, /* Z far */ 100.0);
+    glMatrixMode(GL_MODELVIEW);
+    gluLookAt(0.0, 8.0, 60.0,  /* eye is at (0,8,60) */
+              0.0, 8.0, 0.0,      /* center is at (0,8,0) */
+              0.0, 1.0, 0.);      /* up is in postivie Y direction */
+    
+    GLfloat lightColor[] = {0.8, 1.0, 0.8, 1.0};
+    GLfloat lightPosition[4];
+    
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+    glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, 1);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
+    glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.1);
+    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.05);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHTING);
     
     // Read input
     std::string motion = "";
@@ -108,20 +163,14 @@ UI::UI(int &argc, char** argv)
             }
         }
     }
-    painter = std::unique_ptr<Painter>(new Painter(light_pos));
-    load_model(model_file_name, discretization);
+//    painter = std::unique_ptr<Painter>(new Painter(light_pos));
+//    load_model(model_file_name, discretization);
     
-    if(motion.empty())
-    {
-        vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
-        start("");
-    }
-    else {
-        keyboard(*motion.data(), 0, 0);
-    }
     
 	glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
     check_gl_error();
+    
+    _seg.init();
 }
 
 void UI::load_model(const std::string& file_name, real discretization)
@@ -150,7 +199,7 @@ void UI::load_model(const std::string& file_name, real discretization)
     camera_pos = {var, var, -dist};
     light_pos = {0., 0., dist};
     
-    painter->update(*dsc);
+//    painter->update(*dsc);
     std::cout << "Loading done" << std::endl << std::endl;
 }
 
@@ -165,15 +214,31 @@ void UI::update_title()
 
 void UI::display()
 {
-    if (glutGet(GLUT_WINDOW_WIDTH) != WIN_SIZE_X || glutGet(GLUT_WINDOW_HEIGHT) != WIN_SIZE_Y) {
-        return;
-    }
-    GLfloat timeValue = glutGet(GLUT_ELAPSED_TIME)*0.0002;
-    vec3 ep( eye_pos[0] * sinf(timeValue), eye_pos[1] * cosf(timeValue) , eye_pos[2] * cosf(timeValue));
-    painter->set_view_position(ep);
-    painter->draw();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    glPushMatrix();
+    /* Perform scene rotations based on user mouse input. */
+    glRotatef(angle2, 1.0, 0.0, 0.0);
+    glRotatef(angle, 0.0, 1.0, 0.0);
+    
+    glutSolidTeapot(10.0);
+    
+    glPopMatrix();
+    
     glutSwapBuffers();
-    update_title();
+    
+//    if (glutGet(GLUT_WINDOW_WIDTH) != WIN_SIZE_X || glutGet(GLUT_WINDOW_HEIGHT) != WIN_SIZE_Y) {
+//        return;
+//    }
+//    GLfloat timeValue = glutGet(GLUT_ELAPSED_TIME)*0.0002;
+//    vec3 ep( eye_pos[0] * sinf(timeValue), eye_pos[1] * cosf(timeValue) , eye_pos[2] * cosf(timeValue));
+////    painter->set_view_position(ep);
+////   painter->draw();
+//    
+//    glutSolidTeapot(10.0);
+//    
+//    glutSwapBuffers();
+////    update_title();
     check_gl_error();
 }
 
@@ -181,32 +246,42 @@ void UI::reshape(int width, int height)
 {
     WIN_SIZE_X = width;
     WIN_SIZE_Y = height;
-    painter->reshape(width, height);
+    
+    glViewport(0, 0, WIN_SIZE_X, WIN_SIZE_Y);
+//    painter->reshape(width, height);
 }
 
 void UI::animate()
 {
-    if(CONTINUOUS)
-    {
-        std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() + 1 <<  " START*************\n" << std::endl;
-        vel_fun->take_time_step(*dsc);
-        painter->update(*dsc);
-        if(RECORD && basic_log)
-        {
-            painter->set_view_position(camera_pos);
-            painter->save_painting(basic_log->get_path(), vel_fun->get_time_step());
-            basic_log->write_timestep(*vel_fun, *dsc);
-        }
-        if (vel_fun->is_motion_finished(*dsc))
-        {
-            stop();
-            if (QUIT_ON_COMPLETION) {
-                exit(0);
-            }
-        }
-        std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() <<  " STOP*************\n" << std::endl;
-    }
-    glutPostRedisplay();
+//    if (moving) {
+//        angle = angle + (x - startx);
+//        angle2 = angle2 + (y - starty);
+//        startx = x;
+//        starty = y;
+//        glutPostRedisplay();
+//    }
+    
+//    if(CONTINUOUS)
+//    {
+//        std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() + 1 <<  " START*************\n" << std::endl;
+//        vel_fun->take_time_step(*dsc);
+//        painter->update(*dsc);
+//        if(RECORD && basic_log)
+//        {
+//            painter->set_view_position(camera_pos);
+//            painter->save_painting(basic_log->get_path(), vel_fun->get_time_step());
+//            basic_log->write_timestep(*vel_fun, *dsc);
+//        }
+//        if (vel_fun->is_motion_finished(*dsc))
+//        {
+//            stop();
+//            if (QUIT_ON_COMPLETION) {
+//                exit(0);
+//            }
+//        }
+//        std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() <<  " STOP*************\n" << std::endl;
+//    }
+//    glutPostRedisplay();
 }
 
 void UI::keyboard(unsigned char key, int x, int y) {
@@ -347,12 +422,20 @@ void UI::keyboard(unsigned char key, int x, int y) {
     }
 }
 
+void idle(void)
+{
+    glutPostRedisplay();
+}
+
 void UI::visible(int v)
 {
-    if(v==GLUT_VISIBLE)
-        glutIdleFunc(animate_);
-    else
-        glutIdleFunc(0);
+    if (v == GLUT_VISIBLE) {
+        if (animation)
+            glutIdleFunc(idle);
+    } else {
+        if (!animation)
+            glutIdleFunc(NULL);
+    }
 }
 
 void UI::stop()
@@ -377,7 +460,7 @@ void UI::stop()
     }
     
     CONTINUOUS = false;
-    painter->update(*dsc);
+//    painter->update(*dsc);
     update_title();
     glutPostRedisplay();
 }
@@ -386,15 +469,11 @@ void UI::start(const std::string& log_folder_name)
 {
     if(RECORD)
     {
-        basic_log = std::unique_ptr<Log>(new Log(log_path + log_folder_name));
-        painter->set_view_position(camera_pos);
-        painter->save_painting(log_path, vel_fun->get_time_step());
-        basic_log->write_message(vel_fun->get_name().c_str());
-        basic_log->write_log(*vel_fun);
-        basic_log->write_log(*dsc);
+//        painter->set_view_position(camera_pos);
+
     }
     
-    painter->update(*dsc);
-    update_title();
+//    painter->update(*dsc);
+//    update_title();
     glutPostRedisplay();
 }

@@ -32,6 +32,7 @@
 #include <CGLA/Mat4x4f.h>
 
 #include "DSC.h"
+#include "image3d.h"
 
 inline void _check_gl_error(const char *file, int line)
 {
