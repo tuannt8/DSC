@@ -19,6 +19,7 @@ public:
     ~segment_function(){};
     
     void init();
+    image3d & get_image(){return _img;};
 private:
     image3d _img;
 };

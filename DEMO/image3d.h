@@ -45,7 +45,7 @@ public:
     }
     
     int* dimension(){return _dim;}
-    vec3 dimension_v(){return vec3(_dim[X], _dim[Y], _dim[Z]);}
+    const vec3 dimension_v() const{return vec3(_dim[X], _dim[Y], _dim[Z]);}
 private:
     // Currently hold all images.
     int _dim[3]; // x - y - z

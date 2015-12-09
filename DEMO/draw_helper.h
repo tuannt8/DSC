@@ -21,7 +21,9 @@ namespace draw_helper
     /*
      Draw the 3d image
      */
-    void draw_image_slice(image3d & im);
+    void draw_image_slice(const image3d & im);
+    
+    void draw_coord(float length);
 }
 
 #endif /* draw_helper_hpp */

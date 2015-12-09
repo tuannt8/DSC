@@ -100,13 +100,11 @@ UI::UI(int &argc, char** argv)
 	glutIgnoreKeyRepeat(true);
     glutVisibilityFunc(visible_);
     glutReshapeFunc(reshape_);
-//	glutIdleFunc(animate_);
     glutMotionFunc(motion_);
     glutMouseFunc(mouse_);
 
 
-    
-    glEnable(GL_CULL_FACE);
+//    glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
     glLineWidth(3.0);
@@ -117,18 +115,30 @@ UI::UI(int &argc, char** argv)
                    /* Z near */ 20.0, /* Z far */ 100.0);
     glMatrixMode(GL_MODELVIEW);
     gluLookAt(0.0, 8.0, 60.0,  /* eye is at (0,8,60) */
-              0.0, 8.0, 0.0,      /* center is at (0,8,0) */
+              0.0, 0.0, 0.0,      /* center is at (0,8,0) */
               0.0, 1.0, 0.);      /* up is in postivie Y direction */
     
-    GLfloat lightColor[] = {0.8, 1.0, 0.8, 1.0};
-    GLfloat lightPosition[4];
+    // Lighting
+    const float amb = 2.0;
+    const float LightAmbient[][4]  = {  { amb, amb, amb, 1.0f },
+        { amb, amb, amb, 1.0f }
+    };
+    const float LightDiffuse[] [4] = {  { 1.0f, 1.0f, 1.0f, 1.0f },
+        { 1.0f, 1.0f, 1.0f, 1.0f }
+    };
+    const float LightPosition[][4] = {  { 1.0f,  4.0f, 2.0f, 0.0f },
+        { 0.0f, 10.0f, 0.0f, 1.0f }
+    };
     
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-    glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, 1);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
-    glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.1);
-    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.05);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, LightAmbient[0]);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, LightDiffuse[0]);
+    glLightfv(GL_LIGHT0, GL_POSITION, LightPosition[0]);
+    
+    glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient[1]);
+    // etc., snip -- no LIGHT1 for this round
+    glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
     glEnable(GL_LIGHT0);
+    //glEnable(GL_LIGHT1);
     glEnable(GL_LIGHTING);
     
     // Read input
@@ -171,6 +181,10 @@ UI::UI(int &argc, char** argv)
     check_gl_error();
     
     _seg.init();
+    auto dims = _seg.get_image().dimension_v();
+    gl_dis_max = fmax(dims[0], fmax(dims[1], dims[2]));
+    // Update view
+    
 }
 
 void UI::load_model(const std::string& file_name, real discretization)
@@ -212,33 +226,65 @@ void UI::update_title()
     glutSetWindowTitle(str.c_str());
 }
 
+void UI::update_gl()
+{
+//    glLoadIdentity();
+//
+    
+//    glMatrixMode(GL_PROJECTION);
+//    gluPerspective( /* field of view in degree */ 40.0,
+//                   /* aspect ratio */ 1.0,
+//                   /* Z near */ 0.0, /* Z far */ gl_dis_max*10);
+//    glMatrixMode(GL_MODELVIEW);
+//    gluLookAt(0.0, 0.0, gl_dis_max,  /* eye is at (0,8,60) */
+//              0.0, 0.0, 0.0,      /* center is at (0,8,0) */
+//              0.0, 1.0, 0.);      /* up is in postivie Y direction */
+    
+    glViewport(0, 0, WIN_SIZE_X, WIN_SIZE_Y);
+    
+//    // Lighting
+//    const float amb = 2.0;
+//    const float LightAmbient[][4]  = {  { amb, amb, amb, 1.0f },
+//        { amb, amb, amb, 1.0f }
+//    };
+//    const float LightDiffuse[] [4] = {  { 1.0f, 1.0f, 1.0f, 1.0f },
+//        { 1.0f, 1.0f, 1.0f, 1.0f }
+//    };
+//    const float LightPosition[][4] = {  { 1.0f,  4.0f, 2.0f, 0.0f },
+//        { 0.0f, 10.0f, 0.0f, 1.0f }
+//    };
+//    
+//    glLightfv(GL_LIGHT0, GL_AMBIENT, LightAmbient[0]);
+//    glLightfv(GL_LIGHT0, GL_DIFFUSE, LightDiffuse[0]);
+//    glLightfv(GL_LIGHT0, GL_POSITION, LightPosition[0]);
+//    
+//    glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient[1]);
+//    // etc., snip -- no LIGHT1 for this round
+//    glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+//    glEnable(GL_LIGHT0);
+//    //glEnable(GL_LIGHT1);
+//    glEnable(GL_LIGHTING);
+}
+
 void UI::display()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+ //   update_gl();
     
     glPushMatrix();
     /* Perform scene rotations based on user mouse input. */
     glRotatef(angle2, 1.0, 0.0, 0.0);
     glRotatef(angle, 0.0, 1.0, 0.0);
     
-    glutSolidTeapot(10.0);
+    glutSolidTeapot(gl_dis_max/10.0);
+//    draw_helper::draw_image_slice(_seg.get_image());
+    draw_helper::draw_coord(gl_dis_max);
     
     glPopMatrix();
     
     glutSwapBuffers();
-    
-//    if (glutGet(GLUT_WINDOW_WIDTH) != WIN_SIZE_X || glutGet(GLUT_WINDOW_HEIGHT) != WIN_SIZE_Y) {
-//        return;
-//    }
-//    GLfloat timeValue = glutGet(GLUT_ELAPSED_TIME)*0.0002;
-//    vec3 ep( eye_pos[0] * sinf(timeValue), eye_pos[1] * cosf(timeValue) , eye_pos[2] * cosf(timeValue));
-////    painter->set_view_position(ep);
-////   painter->draw();
-//    
-//    glutSolidTeapot(10.0);
-//    
-//    glutSwapBuffers();
-////    update_title();
+
     check_gl_error();
 }
 
@@ -247,178 +293,19 @@ void UI::reshape(int width, int height)
     WIN_SIZE_X = width;
     WIN_SIZE_Y = height;
     
-    glViewport(0, 0, WIN_SIZE_X, WIN_SIZE_Y);
+    update_gl();
+    
 //    painter->reshape(width, height);
+    glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
 }
 
 void UI::animate()
 {
-//    if (moving) {
-//        angle = angle + (x - startx);
-//        angle2 = angle2 + (y - starty);
-//        startx = x;
-//        starty = y;
-//        glutPostRedisplay();
-//    }
-    
-//    if(CONTINUOUS)
-//    {
-//        std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() + 1 <<  " START*************\n" << std::endl;
-//        vel_fun->take_time_step(*dsc);
-//        painter->update(*dsc);
-//        if(RECORD && basic_log)
-//        {
-//            painter->set_view_position(camera_pos);
-//            painter->save_painting(basic_log->get_path(), vel_fun->get_time_step());
-//            basic_log->write_timestep(*vel_fun, *dsc);
-//        }
-//        if (vel_fun->is_motion_finished(*dsc))
-//        {
-//            stop();
-//            if (QUIT_ON_COMPLETION) {
-//                exit(0);
-//            }
-//        }
-//        std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() <<  " STOP*************\n" << std::endl;
-//    }
-//    glutPostRedisplay();
 }
 
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
-        case '\033':
-            stop();
-            exit(0);
-            break;
-        case '0':
-            stop();
-            QUIT_ON_COMPLETION = false;
-            RECORD = false;
-            vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(vel_fun->get_velocity(), vel_fun->get_accuracy(), 500));
-            start("");
-            break;
-        case '1':
-            stop();
-            QUIT_ON_COMPLETION = true;
-            RECORD = true;
-            vel_fun = std::unique_ptr<VelocityFunc<>>(new RotateFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
-            start("rotate");
-            break;
-        case '2':
-            stop();
-            QUIT_ON_COMPLETION = true;
-            RECORD = true;
-            vel_fun = std::unique_ptr<VelocityFunc<>>(new AverageFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
-            start("smooth");
-            break;
-        case '3':
-            stop();
-            QUIT_ON_COMPLETION = true;
-            RECORD = true;
-            vel_fun = std::unique_ptr<VelocityFunc<>>(new NormalFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
-            start("expand");
-            break;
-        case ' ':
-            if(!CONTINUOUS)
-            {
-                std::cout << "MOTION STARTED" << std::endl;
-                if(RECORD && basic_log)
-                {
-                    painter->set_view_position(camera_pos);
-                    painter->save_painting(basic_log->get_path(), vel_fun->get_time_step());
-                }
-            }
-            else {
-                std::cout << "MOTION PAUSED" << std::endl;
-            }
-            CONTINUOUS = !CONTINUOUS;
-            break;
-        case 'm':
-            std::cout << "MOVE" << std::endl;
-            vel_fun->take_time_step(*dsc);
-            painter->update(*dsc);
-            break;
-        case 'r':
-            std::cout << "RELOAD MODEL" << std::endl;
-            load_model(model_file_name, dsc->get_avg_edge_length());
-            break;
-        case 't':
-            std::cout << "TEST VELOCITY FUNCTION" << std::endl;
-            vel_fun->test(*dsc);
-            painter->update(*dsc);
-            break;
-        case '\t':
-            painter->switch_display_type();
-            painter->update(*dsc);
-            break;
-        case 's':
-            std::cout << "TAKING SCREEN SHOT" << std::endl;
-            painter->set_view_position(camera_pos);
-            painter->save_painting("LOG");
-            break;
-        case 'e':
-        {
-            std::cout << "EXPORTING MESH" << std::endl;
-            std::string filename("data/mesh.dsc");
-            std::vector<vec3> points;
-            std::vector<int> tets;
-            std::vector<int> tet_labels;
-            dsc->extract_tet_mesh(points, tets, tet_labels);
-            is_mesh::export_tet_mesh(filename, points, tets, tet_labels);
-        }
-            break;
-        case 'i':
-        {
-            std::cout << "EXPORTING SURFACE MESH" << std::endl;
-            std::string filename("data/mesh.obj");
-            std::vector<vec3> points;
-            std::vector<int> faces;
-            dsc->extract_surface_mesh(points, faces);
-            is_mesh::export_surface_mesh(filename, points, faces);
-        }
-            break;
-        case '+':
-        {
-            real velocity = std::min(vel_fun->get_velocity() + 1., 100.);
-            vel_fun->set_velocity(velocity);
-            update_title();
-        }
-            break;
-        case '-':
-        {
-            real velocity = std::max(vel_fun->get_velocity() - 1., 0.);
-            vel_fun->set_velocity(velocity);
-            update_title();
-        }
-            break;
-        case '.':
-        {
-            real discretization = std::min(dsc->get_avg_edge_length() + 0.5, 100.);
-            dsc->set_avg_edge_length(discretization);
-            update_title();
-        }
-            break;
-        case ',':
-        {
-            real discretization = std::max(dsc->get_avg_edge_length() - 0.5, 1.);
-            dsc->set_avg_edge_length(discretization);
-            update_title();
-        }
-            break;
-        case '<':
-        {
-            real accuracy = std::min(vel_fun->get_accuracy() + 1., 100.);
-            vel_fun->set_accuracy(accuracy);
-            update_title();
-        }
-            break;
-        case '>':
-        {
-            real accuracy = std::max(vel_fun->get_accuracy() - 1., 1.);
-            vel_fun->set_accuracy(accuracy);
-            update_title();
-        }
-            break;
+
     }
 }
 

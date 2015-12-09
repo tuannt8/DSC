@@ -79,12 +79,15 @@ public:
     
     void motion(int x, int y);
     
+    void update_gl();
+    
     /**
      The keyboard is used for all inputs. See https://github.com/asny/DSC/wiki/DEMO-instructions for up-to-date instructions on how to use the DEMO application.
      */
     void keyboard(unsigned char key, int x, int y);
     
 private:
+    float gl_dis_max;
     
     GLfloat angle = -150;   /* in degrees */
     GLfloat angle2 = 30;   /* in degrees */
