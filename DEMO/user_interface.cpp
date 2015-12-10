@@ -38,6 +38,10 @@ void keyboard_(unsigned char key, int x, int y){
     UI::get_instance()->keyboard(key, x, y);
 }
 
+void keyboard_special_(int key, int x, int y){
+    UI::get_instance()->keyboard((unsigned char)key, x, y);
+}
+
 void reshape_(int width, int height){
     UI::get_instance()->reshape(width, height);
 }
@@ -76,8 +80,9 @@ void UI::mouse(int button, int state, int x, int y)
 void UI::motion(int x, int y)
 {
     if (moving) {
-        angle = angle + (x - startx);
-        angle2 = angle2 + (y - starty);
+        angle2= angle2 - (x - startx)*0.03;
+        angle = angle + (y - starty)*0.03;
+
         startx = x;
         starty = y;
         glutPostRedisplay();
@@ -97,7 +102,8 @@ UI::UI(int &argc, char** argv)
     
     glutDisplayFunc(display_);
     glutKeyboardFunc(keyboard_);
-	glutIgnoreKeyRepeat(true);
+    glutSpecialFunc(keyboard_special_);
+    glutSetKeyRepeat(GLUT_KEY_REPEAT_ON);
     glutVisibilityFunc(visible_);
     glutReshapeFunc(reshape_);
     glutMotionFunc(motion_);
@@ -107,7 +113,7 @@ UI::UI(int &argc, char** argv)
 //    glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
-    glLineWidth(3.0);
+    glLineWidth(1.0);
     
     glMatrixMode(GL_PROJECTION);
     gluPerspective( /* field of view in degree */ 40.0,
@@ -118,28 +124,52 @@ UI::UI(int &argc, char** argv)
               0.0, 0.0, 0.0,      /* center is at (0,8,0) */
               0.0, 1.0, 0.);      /* up is in postivie Y direction */
     
-    // Lighting
-    const float amb = 2.0;
-    const float LightAmbient[][4]  = {  { amb, amb, amb, 1.0f },
-        { amb, amb, amb, 1.0f }
-    };
-    const float LightDiffuse[] [4] = {  { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f }
-    };
-    const float LightPosition[][4] = {  { 1.0f,  4.0f, 2.0f, 0.0f },
-        { 0.0f, 10.0f, 0.0f, 1.0f }
-    };
+//    // Lighting
+//    //Add ambient light
+//    GLfloat ambientColor[] = {1.0f, 1.0f, 1.0f, 1.0f}; //Color(0.2, 0.2, 0.2)
+//    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientColor);
+//    
+//    //Add positioned light
+//    GLfloat lightColor0[] = {1.0f, 1.0f, 1.0f, 1.0f}; //Color (0.5, 0.5, 0.5)
+//    GLfloat lightPos0[] = {4.0f, 0.0f, 200.0f, 1.0f}; //Positioned at (4, 0, 8)
+//    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor0);
+//    glLightfv(GL_LIGHT0, GL_POSITION, lightPos0);
+//    
+//    //Add directed light
+//    GLfloat lightColor1[] = {1.0f, 1.0f, 1.0f, 1.0f}; //Color (0.5, 0.2, 0.2)
+//    //Coming from the direction (-1, 0.5, 0.5)
+//    GLfloat lightPos1[] = {-1.0f, 0.5f, 200.5f, 0.0f};
+//    glLightfv(GL_LIGHT1, GL_DIFFUSE, lightColor1);
+//    glLightfv(GL_LIGHT1, GL_POSITION, lightPos1);
+//    
+//    glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+//    
+//    glEnable(GL_LIGHT0);
+//    glEnable(GL_LIGHT1);
+//    glEnable(GL_LIGHTING);
     
-    glLightfv(GL_LIGHT0, GL_AMBIENT, LightAmbient[0]);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, LightDiffuse[0]);
-    glLightfv(GL_LIGHT0, GL_POSITION, LightPosition[0]);
     
-    glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient[1]);
-    // etc., snip -- no LIGHT1 for this round
-    glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-    glEnable(GL_LIGHT0);
-    //glEnable(GL_LIGHT1);
-    glEnable(GL_LIGHTING);
+//    const float amb = 2.0;
+//    const float LightAmbient[][4]  = {  { amb, amb, amb, 1.0f },
+//        { amb, amb, amb, 1.0f }
+//    };
+//    const float LightDiffuse[] [4] = {  { 1.0f, 1.0f, 1.0f, 1.0f },
+//        { 1.0f, 1.0f, 1.0f, 1.0f }
+//    };
+//    const float LightPosition[][4] = {  { 1.0f,  4.0f, 200.0f, 0.0f },
+//        { 0.0f, 10.0f, 0.0f, 1.0f }
+//    };
+//    
+//    glLightfv(GL_LIGHT0, GL_AMBIENT, LightAmbient[0]);
+//    glLightfv(GL_LIGHT0, GL_DIFFUSE, LightDiffuse[0]);
+//    glLightfv(GL_LIGHT0, GL_POSITION, LightPosition[0]);
+//    
+//    glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient[1]);
+//    // etc., snip -- no LIGHT1 for this round
+//    glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+//    glEnable(GL_LIGHT0);
+//    glEnable(GL_LIGHT1);
+//    glEnable(GL_LIGHTING);
     
     // Read input
     std::string motion = "";
@@ -181,8 +211,8 @@ UI::UI(int &argc, char** argv)
     check_gl_error();
     
     _seg.init();
-    auto dims = _seg.get_image().dimension_v();
-    gl_dis_max = fmax(dims[0], fmax(dims[1], dims[2]));
+    _obj_dim = _seg.get_image().dimension_v();
+    gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     // Update view
     
 }
@@ -228,61 +258,38 @@ void UI::update_title()
 
 void UI::update_gl()
 {
-//    glLoadIdentity();
-//
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective( /* field of view in degree */ 40.0,
+                   /* aspect ratio */ 1.0,
+                   /* Z near */ 10.0, /* Z far */ gl_dis_max*5.0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
     
-//    glMatrixMode(GL_PROJECTION);
-//    gluPerspective( /* field of view in degree */ 40.0,
-//                   /* aspect ratio */ 1.0,
-//                   /* Z near */ 0.0, /* Z far */ gl_dis_max*10);
-//    glMatrixMode(GL_MODELVIEW);
-//    gluLookAt(0.0, 0.0, gl_dis_max,  /* eye is at (0,8,60) */
-//              0.0, 0.0, 0.0,      /* center is at (0,8,0) */
-//              0.0, 1.0, 0.);      /* up is in postivie Y direction */
+    vec3 center = _obj_dim/ 2.0;
+    vec3 eye = center + vec3(gl_dis_max*3.0*cos(angle)*cos(angle2),
+                             gl_dis_max*3.0*cos(angle)*sin(angle2),
+                             gl_dis_max*3.0*sin(angle));
+    vec3 head = vec3(-sin(angle)*cos(angle2),
+                     -sin(angle)*sin(angle2),
+                     cos(angle));
+    gluLookAt(eye[0], eye[1], eye[2], /* eye is at (0,8,60) */
+              center[0], center[1], center[2],      /* center is at (0,8,0) */
+              head[0], head[1], head[2]);      /* up is in postivie Y direction */
     
-    glViewport(0, 0, WIN_SIZE_X, WIN_SIZE_Y);
-    
-//    // Lighting
-//    const float amb = 2.0;
-//    const float LightAmbient[][4]  = {  { amb, amb, amb, 1.0f },
-//        { amb, amb, amb, 1.0f }
-//    };
-//    const float LightDiffuse[] [4] = {  { 1.0f, 1.0f, 1.0f, 1.0f },
-//        { 1.0f, 1.0f, 1.0f, 1.0f }
-//    };
-//    const float LightPosition[][4] = {  { 1.0f,  4.0f, 2.0f, 0.0f },
-//        { 0.0f, 10.0f, 0.0f, 1.0f }
-//    };
-//    
-//    glLightfv(GL_LIGHT0, GL_AMBIENT, LightAmbient[0]);
-//    glLightfv(GL_LIGHT0, GL_DIFFUSE, LightDiffuse[0]);
-//    glLightfv(GL_LIGHT0, GL_POSITION, LightPosition[0]);
-//    
-//    glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient[1]);
-//    // etc., snip -- no LIGHT1 for this round
-//    glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-//    glEnable(GL_LIGHT0);
-//    //glEnable(GL_LIGHT1);
-//    glEnable(GL_LIGHTING);
+    int size = std::min(WIN_SIZE_Y, WIN_SIZE_X);
+    glViewport((WIN_SIZE_X-size)/2.0, (WIN_SIZE_Y-size)/2.0, size, size);
 }
 
 void UI::display()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
- //   update_gl();
+    update_gl();
     
-    glPushMatrix();
-    /* Perform scene rotations based on user mouse input. */
-    glRotatef(angle2, 1.0, 0.0, 0.0);
-    glRotatef(angle, 0.0, 1.0, 0.0);
-    
-    glutSolidTeapot(gl_dis_max/10.0);
-//    draw_helper::draw_image_slice(_seg.get_image());
     draw_helper::draw_coord(gl_dis_max);
-    
-    glPopMatrix();
-    
+    draw_helper::draw_image_slice(_seg.get_image());
+
     glutSwapBuffers();
 
     check_gl_error();
@@ -295,7 +302,6 @@ void UI::reshape(int width, int height)
     
     update_gl();
     
-//    painter->reshape(width, height);
     glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
 }
 
@@ -305,7 +311,14 @@ void UI::animate()
 
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
-
+        case GLUT_KEY_UP:
+            draw_helper::update_texture(_seg.get_image(), 0,0,1);
+            break;
+        case GLUT_KEY_DOWN:
+            draw_helper::update_texture(_seg.get_image(), 0,0,-1);
+            break;
+        default:
+            break;
     }
 }
 

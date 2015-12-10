@@ -46,6 +46,14 @@ void image3d::load(std::string path)
         }
     }
     
+    int count = files.size();
+    for (int i = 0; i < count; i++)
+    {
+        ostringstream name;
+        name << path << "/im_" << i << ".png";
+        files[i] = name.str();
+    }
+    
 
     cimg_byte im;
     im.load(files[0].c_str());
@@ -63,10 +71,14 @@ void image3d::load(std::string path)
         cimg_byte im;
         im.load(files[i].c_str());
         
-        float * c = im.channel(0);
-        memcpy(cur, c, _layer_size*sizeof(float));
-        cur += _layer_size;
+        for (int j = 0; j < im.height(); j++)
+            for(int i = 0; i < im.width(); i++)
+            {
+                *(cur++) = (double)im(i,j) / 255.0;
+            }
     }
+    
+
 }
 
 float * image3d::get_layer(const int idx)
@@ -74,7 +86,7 @@ float * image3d::get_layer(const int idx)
     return &_voxels[idx*_dim[X]*_dim[Y]];
 }
 
-float image3d::get_value(const int & x, const int & y, const int & z)
+float image3d::get_value(const int & x, const int & y, const int & z) const
 {
     return _voxels[index(x,y,z)];
 }

@@ -88,6 +88,7 @@ public:
     
 private:
     float gl_dis_max;
+    vec3 _obj_dim;
     
     GLfloat angle = -150;   /* in degrees */
     GLfloat angle2 = 30;   /* in degrees */

@@ -39,8 +39,8 @@ public:
      Get - set voxel
      */
     float * get_layer(const int idx);
-    float get_value(const int & x, const int & y, const int & z);
-    inline int index(int x, int y, int z){
+    float get_value (const int & x, const int & y, const int & z) const;
+    inline int index(int x, int y, int z) const{
         return z*_dim[X]*_dim[Y] + y*_dim[X] + x;
     }
     

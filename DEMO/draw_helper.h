@@ -11,9 +11,11 @@
 
 #include "image3d.h"
 #include <stdio.h>
+#include "DSC.h"
 
-namespace draw_helper
+class draw_helper
 {
+public:
     /*
      GL function
      */
@@ -21,9 +23,35 @@ namespace draw_helper
     /*
      Draw the 3d image
      */
-    void draw_image_slice(const image3d & im);
+    static void draw_image_slice(const image3d & im);
     
-    void draw_coord(float length);
-}
+    
+    static void update_texture(const image3d & im,
+                        int const &off_x, int const & off_y, int const & off_z);
+    
+    /*
+     Draw 3 axis X - Y - Z
+     */
+    static void draw_coord(float length);
+    
+private:
+    CGLA::Vec3i _cur_cross_poss = CGLA::Vec3i(0,0,0);
+    
+    /*
+     For singleton - start
+     */
+public:
+    static draw_helper & get_instance()
+    {
+        static draw_helper instance;
+        return instance;
+    }
+    
+    draw_helper(draw_helper const&) = delete;
+    void operator = (draw_helper const&) = delete;
+private:
+    draw_helper(){};
+    /* For singleton - end */
+};
 
 #endif /* draw_helper_hpp */
