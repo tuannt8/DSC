@@ -74,6 +74,19 @@ void draw_helper::draw_coord(float length)
     glEnd();
 }
 
+void draw_helper::dsc_draw_edge(dsc_class &dsc)
+{
+    glBegin(GL_LINES);
+    for (auto eit = dsc.edges_begin(); eit != dsc.edges_end(); eit++)
+    {
+        auto pos = dsc.get_pos(dsc.get_nodes(eit.key()));
+        glVertex3dv(pos[0].get());
+        glVertex3dv(pos[1].get());
+    }
+    
+    glEnd();
+}
+
 void draw_helper::update_texture(const image3d & im,
                     int const &off_x, int const & off_y, int const & off_z)
 {
@@ -97,7 +110,7 @@ void draw_helper::update_texture(const image3d & im,
     int z = get_instance()._cur_cross_poss[2];
     int width = dim[0];
     int height = dim[1];
-    static uint8_t * data = (uint8_t*)malloc(dim[0] * dim[1] * 3 * sizeof(uint8_t));
+    uint8_t * data = (uint8_t*)malloc(dim[0] * dim[1] * 3 * sizeof(uint8_t));
     
     uint8_t *ptr = data;
     for (int j = 0; j < dim[1]; j++)
@@ -132,5 +145,5 @@ void draw_helper::update_texture(const image3d & im,
     
     glBindTexture(GL_TEXTURE_2D, tex_ID);
     
-//    delete [] data;
+    delete [] data;
 }

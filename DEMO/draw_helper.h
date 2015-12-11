@@ -15,6 +15,7 @@
 
 class draw_helper
 {
+    typedef DSC::DeformableSimplicialComplex<> dsc_class;
 public:
     /*
      GL function
@@ -24,11 +25,13 @@ public:
      Draw the 3d image
      */
     static void draw_image_slice(const image3d & im);
-    
-    
     static void update_texture(const image3d & im,
                         int const &off_x, int const & off_y, int const & off_z);
     
+    /*
+     Draw DSC
+     */
+    static void dsc_draw_edge(dsc_class & dsc);
     /*
      Draw 3 axis X - Y - Z
      */

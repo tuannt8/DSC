@@ -95,6 +95,8 @@ private:
     int moving, startx, starty;
     int animation = 1;
     
+    void init_dsc();
+    
     /**
      Loads the .dsc file specified by the model_file_name variable.
      */

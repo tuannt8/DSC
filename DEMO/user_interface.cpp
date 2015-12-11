@@ -19,6 +19,8 @@
 #include "average_function.h"
 #include "normal_function.h"
 #include "draw_helper.h"
+#include "tetralizer.h"
+#include "glut_menu.h"
 
 
 #include <math.h>       /* for cos(), sin(), and sqrt() */
@@ -29,6 +31,7 @@
 #include <chrono>
 
 using namespace DSC;
+using namespace std;
 
 void display_(){
     UI::get_instance()->display();
@@ -124,127 +127,87 @@ UI::UI(int &argc, char** argv)
               0.0, 0.0, 0.0,      /* center is at (0,8,0) */
               0.0, 1.0, 0.);      /* up is in postivie Y direction */
     
-//    // Lighting
-//    //Add ambient light
-//    GLfloat ambientColor[] = {1.0f, 1.0f, 1.0f, 1.0f}; //Color(0.2, 0.2, 0.2)
-//    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientColor);
-//    
-//    //Add positioned light
-//    GLfloat lightColor0[] = {1.0f, 1.0f, 1.0f, 1.0f}; //Color (0.5, 0.5, 0.5)
-//    GLfloat lightPos0[] = {4.0f, 0.0f, 200.0f, 1.0f}; //Positioned at (4, 0, 8)
-//    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor0);
-//    glLightfv(GL_LIGHT0, GL_POSITION, lightPos0);
-//    
-//    //Add directed light
-//    GLfloat lightColor1[] = {1.0f, 1.0f, 1.0f, 1.0f}; //Color (0.5, 0.2, 0.2)
-//    //Coming from the direction (-1, 0.5, 0.5)
-//    GLfloat lightPos1[] = {-1.0f, 0.5f, 200.5f, 0.0f};
-//    glLightfv(GL_LIGHT1, GL_DIFFUSE, lightColor1);
-//    glLightfv(GL_LIGHT1, GL_POSITION, lightPos1);
-//    
-//    glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-//    
-//    glEnable(GL_LIGHT0);
-//    glEnable(GL_LIGHT1);
-//    glEnable(GL_LIGHTING);
-    
-    
-//    const float amb = 2.0;
-//    const float LightAmbient[][4]  = {  { amb, amb, amb, 1.0f },
-//        { amb, amb, amb, 1.0f }
-//    };
-//    const float LightDiffuse[] [4] = {  { 1.0f, 1.0f, 1.0f, 1.0f },
-//        { 1.0f, 1.0f, 1.0f, 1.0f }
-//    };
-//    const float LightPosition[][4] = {  { 1.0f,  4.0f, 200.0f, 0.0f },
-//        { 0.0f, 10.0f, 0.0f, 1.0f }
-//    };
-//    
-//    glLightfv(GL_LIGHT0, GL_AMBIENT, LightAmbient[0]);
-//    glLightfv(GL_LIGHT0, GL_DIFFUSE, LightDiffuse[0]);
-//    glLightfv(GL_LIGHT0, GL_POSITION, LightPosition[0]);
-//    
-//    glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient[1]);
-//    // etc., snip -- no LIGHT1 for this round
-//    glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-//    glEnable(GL_LIGHT0);
-//    glEnable(GL_LIGHT1);
-//    glEnable(GL_LIGHTING);
-    
-    // Read input
-    std::string motion = "";
-    real discretization = 2.5;
-    real velocity = 5.;
-    real accuracy = 0.25;
-    
-    if(argc == 2)
-    {
-        model_file_name = std::string(argv[1]);
-    }
-    else if(argc > 2)
-    {
-        for(int i = 0; i < argc; ++i)
-        {
-            std::string str(argv[i]);
-            if (str == "nu") {
-                velocity = std::atof(argv[i+1]);
-            }
-            else if (str == "delta") {
-                discretization = std::atof(argv[i+1]);
-            }
-            else if (str == "alpha") {
-                accuracy = std::atof(argv[i+1]);
-            }
-            else if (str == "model") {
-                model_file_name = argv[i+1];
-            }
-            else if (str == "motion") {
-                motion = argv[i+1];
-            }
-        }
-    }
-//    painter = std::unique_ptr<Painter>(new Painter(light_pos));
-//    load_model(model_file_name, discretization);
-    
-    
 	glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
     check_gl_error();
     
+    // Load cross sections
     _seg.init();
     _obj_dim = _seg.get_image().dimension_v();
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
-    // Update view
     
+    // Update texture draw
+    draw_helper::update_texture(_seg.get_image(), 0,0,0);
+    
+    // Generate DSC
+    init_dsc();
 }
 
-void UI::load_model(const std::string& file_name, real discretization)
+#define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
+void UI::init_dsc()
 {
-    std::cout << "\nLoading " << obj_path + file_name + ".dsc" << std::endl;
-    dsc = nullptr;
     std::vector<vec3> points;
-    std::vector<int>  tets;
-    std::vector<int>  tet_labels;
-    is_mesh::import_tet_mesh(obj_path + file_name + ".dsc", points, tets, tet_labels);
+    std::vector<int> tets;
+    std::vector<int> tet_labels;
     
-    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
+    int res = 20;
+    double delta = gl_dis_max / (double)res;
+    int NX = round(_obj_dim[0] / delta) + 1; // number of vertices
+    int NY = round(_obj_dim[1] / delta) + 1;
+    int NZ = round(_obj_dim[2] / delta) + 1;
     
-    vec3 p_min(INFINITY), p_max(-INFINITY);
-    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++) {
-        for (int i = 0; i < 3; i++) {
-            p_min[i] = Util::min(nit->get_pos()[i], p_min[i]);
-            p_max[i] = Util::max(nit->get_pos()[i], p_max[i]);
+    // points
+    for (int iz = 0; iz < NZ; iz++)
+    {
+        for (int iy = 0; iy < NY; iy++)
+        {
+            for (int ix = 0; ix < NX; ix++)
+            {
+                points.push_back(vec3(ix, iy, iz)*delta);
+            }
+        }
+    }
+
+    // tets
+    for (int iz = 0; iz < NZ - 1; iz++)
+    {
+        for (int iy = 0; iy < NY - 1; iy++)
+        {
+            for (int ix = 0; ix < NX - 1; ix++)
+            {
+                // 8 vertices
+                int vertices[] = {
+                    index_cube(ix, iy, iz),
+                    index_cube(ix+1, iy, iz),
+                    index_cube(ix+1, iy+1, iz),
+                    index_cube(ix, iy+1, iz),
+                    index_cube(ix, iy, iz + 1),
+                    index_cube(ix+1, iy, iz + 1),
+                    index_cube(ix+1, iy+1, iz + 1),
+                    index_cube(ix, iy+1, iz + 1)
+                };
+                
+                int tetras[] = {
+                    0, 4, 5, 7,
+                    0, 7, 5, 1,
+                    0, 1, 3, 7,
+                    1, 5, 6, 7,
+                    1, 6, 7, 3,
+                    1, 2, 6, 3
+                };
+                
+                for(int i = 0; i < 6*4; i++)
+                {
+                    tets.push_back(vertices[tetras[i]]);
+                }
+            }
         }
     }
     
-    vec3 size = p_max - p_min;
-    real var = Util::max(Util::max(size[0], size[1]), size[2]);
-    real dist = 1.2*var;
-    eye_pos = {dist, var, dist};
-    camera_pos = {var, var, -dist};
-    light_pos = {0., 0., dist};
+    long nbTet = tets.size()/4;
+    tet_labels = std::vector<int>(nbTet, 0);
     
-//    painter->update(*dsc);
-    std::cout << "Loading done" << std::endl << std::endl;
+    
+    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
 }
 
 void UI::update_title()
@@ -279,6 +242,8 @@ void UI::update_gl()
     
     int size = std::min(WIN_SIZE_Y, WIN_SIZE_X);
     glViewport((WIN_SIZE_X-size)/2.0, (WIN_SIZE_Y-size)/2.0, size, size);
+    
+    glClearColor(0.6, 0.6, 0.6, 1.0);
 }
 
 void UI::display()
@@ -287,9 +252,19 @@ void UI::display()
     
     update_gl();
     
-    draw_helper::draw_coord(gl_dis_max);
-    draw_helper::draw_image_slice(_seg.get_image());
+//    draw_helper::draw_coord(gl_dis_max);
+    if (glut_menu::get_state("Draw Image slide", true))
+    {
+        draw_helper::draw_image_slice(_seg.get_image());
+    }
+    
+    if (glut_menu::get_state("Draw DSC edges"))
+    {
+        glColor3f(0, 0, 1);
+        draw_helper::dsc_draw_edge(*dsc);
+    }
 
+    
     glutSwapBuffers();
 
     check_gl_error();
@@ -360,20 +335,11 @@ void UI::stop()
     }
     
     CONTINUOUS = false;
-//    painter->update(*dsc);
     update_title();
     glutPostRedisplay();
 }
 
 void UI::start(const std::string& log_folder_name)
 {
-    if(RECORD)
-    {
-//        painter->set_view_position(camera_pos);
-
-    }
-    
-//    painter->update(*dsc);
-//    update_title();
     glutPostRedisplay();
 }

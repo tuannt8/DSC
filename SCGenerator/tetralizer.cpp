@@ -17,7 +17,7 @@
 #include "tetralizer.h"
 #include "tetgen.h"
 
-static char* tetgen_flags = "pq1.5Y";
+static char tetgen_flags[] = "pq1.5Y";
 
 int get_index(int i, int j, int k, int Ni, int Nj, int Nk)
 {

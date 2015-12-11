@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <map>
 
 class glut_menu
 {
@@ -20,8 +21,15 @@ public:
     static bool get_state(std::string name, bool default_state = false);
     
     
-    ~glut_menu();
-
+    ~glut_menu(){};
+    
+public:
+    std::map<std::string, bool> _state_map;
+    int menuId = -1;
+    
+public:
+    void update_menu();
+    
     /*
      For singleton - start
      */
