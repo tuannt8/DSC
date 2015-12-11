@@ -12,3 +12,12 @@ void segment_function::init()
 {
     _img.load("data/sphere_drill");
 }
+
+void segment_function::initialze_segmentation()
+{
+    // initialize by thresholding
+    for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
+    {
+        
+    }
+}

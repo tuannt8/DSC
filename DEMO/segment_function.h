@@ -11,17 +11,22 @@
 
 #include <stdio.h>
 #include "image3d.h"
+#include "DSC.h"
 
 class segment_function
 {
+    typedef DSC::DeformableSimplicialComplex<> dsc_class;
+    
 public:
     segment_function(){};
     ~segment_function(){};
     
-    void init();
-    image3d & get_image(){return _img;};
-private:
-    image3d _img;
+    void init(); //
+    void initialze_segmentation();
+    
+public:
+    image3d _img; // Store crossection -> voxel
+    dsc_class *_dsc; // Shared dsc
 };
 
 #endif /* segment_function_hpp */

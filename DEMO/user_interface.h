@@ -80,6 +80,7 @@ public:
     void motion(int x, int y);
     
     void update_gl();
+    void setup_light();
     
     /**
      The keyboard is used for all inputs. See https://github.com/asny/DSC/wiki/DEMO-instructions for up-to-date instructions on how to use the DEMO application.

@@ -35,8 +35,14 @@ public:
      */
     void load(std::string path);
     
+    // return average intensity
+    float get_tetra_intensity(float * total_inten, float * area = nullptr);
+
+    // Interpolation
+    float get_value_f(vec3 pt);
+    
     /**
-     Get - set voxel
+     Get - set voxel; direct
      */
     float * get_layer(const int idx);
     float get_value (const int & x, const int & y, const int & z) const;

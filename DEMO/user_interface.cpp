@@ -94,6 +94,39 @@ void UI::motion(int x, int y)
 
 UI* UI::instance = NULL;
 
+void UI::setup_light()
+{
+    vec3 center = _obj_dim/ 2.0;
+    vec3 eye = center + vec3(gl_dis_max*2.0*cos(angle)*cos(angle2),
+                             gl_dis_max*2.0*cos(angle)*sin(angle2),
+                             gl_dis_max*2.0*sin(angle));
+    GLfloat diffuseLight[] = {1.0f,1.0f,1.0f,1.0f};
+    GLfloat ambientLight[] = {1.0f,1.0f,1.0f,1.0f};
+    GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    
+    GLfloat position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
+
+    
+    
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_DEPTH_TEST);
+    
+    glEnable(GL_COLOR_MATERIAL);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    
+    glEnable(GL_LIGHTING);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+    glLightfv(GL_LIGHT0, GL_POSITION, position);
+    glEnable(GL_LIGHT0);
+    
+    glShadeModel(GL_SMOOTH);
+  //   glShadeModel(GL_FLAT);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
 UI::UI(int &argc, char** argv)
 {
     instance = this;
@@ -113,33 +146,28 @@ UI::UI(int &argc, char** argv)
     glutMouseFunc(mouse_);
 
 
-//    glEnable(GL_CULL_FACE);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_TEXTURE_2D);
     glLineWidth(1.0);
     
-    glMatrixMode(GL_PROJECTION);
-    gluPerspective( /* field of view in degree */ 40.0,
-                   /* aspect ratio */ 1.0,
-                   /* Z near */ 20.0, /* Z far */ 100.0);
-    glMatrixMode(GL_MODELVIEW);
-    gluLookAt(0.0, 8.0, 60.0,  /* eye is at (0,8,60) */
-              0.0, 0.0, 0.0,      /* center is at (0,8,0) */
-              0.0, 1.0, 0.);      /* up is in postivie Y direction */
+    setup_light();
     
 	glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
     check_gl_error();
     
     // Load cross sections
     _seg.init();
-    _obj_dim = _seg.get_image().dimension_v();
+    _obj_dim = _seg._img.dimension_v();
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
     // Update texture draw
-    draw_helper::update_texture(_seg.get_image(), 0,0,0);
+    draw_helper::update_texture(_seg._img, 0,0,0);
     
     // Generate DSC
     init_dsc();
+    
+    _seg._dsc = &*dsc;
+    _seg.initialze_segmentation();
 }
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
@@ -243,7 +271,7 @@ void UI::update_gl()
     int size = std::min(WIN_SIZE_Y, WIN_SIZE_X);
     glViewport((WIN_SIZE_X-size)/2.0, (WIN_SIZE_Y-size)/2.0, size, size);
     
-    glClearColor(0.6, 0.6, 0.6, 1.0);
+    glClearColor(0.1, 0.1, 0.1, 1.0);
 }
 
 void UI::display()
@@ -251,17 +279,25 @@ void UI::display()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     update_gl();
+    setup_light();
     
 //    draw_helper::draw_coord(gl_dis_max);
-    if (glut_menu::get_state("Draw Image slide", true))
-    {
-        draw_helper::draw_image_slice(_seg.get_image());
-    }
-    
-    if (glut_menu::get_state("Draw DSC edges"))
+
+    if (glut_menu::get_state("Draw DSC edges", 0))
     {
         glColor3f(0, 0, 1);
         draw_helper::dsc_draw_edge(*dsc);
+    }
+    
+    if (glut_menu::get_state("Draw DSC domain", 1))
+    {
+        glColor3f(0.3, 0.3, 0.3);
+        draw_helper::dsc_draw_domain(*dsc);
+    }
+    
+    if (glut_menu::get_state("Draw Image slide", 0))
+    {
+        draw_helper::draw_image_slice(_seg._img);
     }
 
     
@@ -287,10 +323,10 @@ void UI::animate()
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
         case GLUT_KEY_UP:
-            draw_helper::update_texture(_seg.get_image(), 0,0,1);
+            draw_helper::update_texture(_seg._img, 0,0,1);
             break;
         case GLUT_KEY_DOWN:
-            draw_helper::update_texture(_seg.get_image(), 0,0,-1);
+            draw_helper::update_texture(_seg._img, 0,0,-1);
             break;
         default:
             break;

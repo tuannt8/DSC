@@ -87,6 +87,29 @@ void draw_helper::dsc_draw_edge(dsc_class &dsc)
     glEnd();
 }
 
+void draw_helper::dsc_draw_domain(dsc_class & dsc)
+{
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glBegin(GL_TRIANGLES);
+    for (auto fit = dsc.faces_begin(); fit != dsc.faces_end(); fit++)
+    {
+        if (fit->is_boundary())
+        {
+            auto verts = dsc.get_pos(dsc.get_sorted_nodes(fit.key()));
+            vec3 normal = Util::normal_direction(verts[0], verts[1], verts[2]);
+            for (auto v : verts)
+            {
+                glNormal3dv(normal.get());
+                glVertex3dv(v.get());
+            }
+            
+        }
+    }
+    glEnd();
+    glDisable(GL_CULL_FACE);
+}
+
 void draw_helper::update_texture(const image3d & im,
                     int const &off_x, int const & off_y, int const & off_z)
 {

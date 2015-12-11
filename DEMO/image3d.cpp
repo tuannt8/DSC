@@ -77,8 +77,21 @@ void image3d::load(std::string path)
                 *(cur++) = (double)im(i,j) / 255.0;
             }
     }
-    
+}
 
+float get_value_f(vec3 pt)
+{
+    CGLA::Vec3i pti(floor(pt[0]), floor(pt[1]), floor(pt[2]));
+    
+    vec3 ptif(pti[0], pti[1], pti[2]);
+    vec3 relative_coord = pt - ptif;
+    
+    // TODO: write interpolate function
+}
+
+float image3d::get_tetra_intensity(float * total_inten, float * area)
+{
+    return 0;
 }
 
 float * image3d::get_layer(const int idx)
@@ -88,6 +101,12 @@ float * image3d::get_layer(const int idx)
 
 float image3d::get_value(const int & x, const int & y, const int & z) const
 {
+    if(x >= 0 and y >= 0 and z >= 0
+           and x < _dim[0] and y < _dim[1] and x < _dim[2])
+    {
+        return 0;
+    }
+
     return _voxels[index(x,y,z)];
 }
 

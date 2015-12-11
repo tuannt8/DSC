@@ -99,7 +99,6 @@ namespace DSC {
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::nodes_end;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::edges_begin;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::edges_end;
-        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::edges;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::faces_begin;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::faces_end;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::tetrahedra_begin;
