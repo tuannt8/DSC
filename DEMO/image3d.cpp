@@ -80,7 +80,7 @@ void image3d::load(std::string path)
     }
 }
 
-float image3d::get_value_f(vec3 pt)
+float image3d::get_value_f(vec3 pt) const
 {
     if (pt[0] < 0 || pt[0] > _dim[0]
         || pt[1] < 0 || pt[1] > _dim[1]

@@ -39,9 +39,9 @@ public:
     float get_tetra_intensity(float * total_inten, float * area = nullptr);
 
     // Interpolation
-    float get_value_f(vec3 pt);
-    float get_value_f(double x, double y, double z){return get_value_f(vec3(x,y,z));};
-    float get_value_f(int x, int y, int z){return get_value_f(vec3(x,y,z));};
+    float get_value_f(vec3 pt) const;
+    float get_value_f(double x, double y, double z) const{return get_value_f(vec3(x,y,z));};
+    float get_value_f(int x, int y, int z) const{return get_value_f(vec3(x,y,z));};
     
     /**
      Get - set voxel; direct

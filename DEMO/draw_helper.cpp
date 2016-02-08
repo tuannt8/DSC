@@ -140,7 +140,7 @@ void draw_helper::update_texture(const image3d & im,
     {
         for (int i = 0; i < dim[0]; i++)
         {
-            uint8_t v = (uint8_t)( im.get_value(i,j,z) * 255 );
+            uint8_t v = (uint8_t)( im.get_value_f(i,j,z) * 255 );
             *(ptr++) = v;
             *(ptr++) = v;
             *(ptr++) = v;
