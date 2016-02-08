@@ -28,8 +28,8 @@ void draw_helper::draw_image_slice(const image3d & im)
     vec3 ld(0,0, get_instance()._cur_cross_poss[2]);
     vec3 ru(dim[0], dim[1], get_instance()._cur_cross_poss[2]);
     
-    glColor3f(1, 1, 1);
     glEnable(GL_TEXTURE_2D);
+    glColor3f(1, 1, 1);
     glBegin(GL_QUADS);
     
     glTexCoord3f(0., 0., 0.);
@@ -133,14 +133,14 @@ void draw_helper::update_texture(const image3d & im,
     int z = get_instance()._cur_cross_poss[2];
     int width = dim[0];
     int height = dim[1];
-    uint8_t * data = (uint8_t*)malloc(dim[0] * dim[1] * 3 * sizeof(uint8_t));
+    uint8_t * data = (uint8_t *)malloc(dim[0] * dim[1] * 3 * sizeof(uint8_t));
     
     uint8_t *ptr = data;
     for (int j = 0; j < dim[1]; j++)
     {
         for (int i = 0; i < dim[0]; i++)
         {
-            uint8_t v = (uint8_t)(im.get_value(i,j,z) * 255);
+            uint8_t v = (uint8_t)( im.get_value(i,j,z) * 255 );
             *(ptr++) = v;
             *(ptr++) = v;
             *(ptr++) = v;
@@ -148,11 +148,12 @@ void draw_helper::update_texture(const image3d & im,
     }
     
     
-    static GLuint tex_ID = 1000;
-    if (tex_ID != 1000)
+    
+    static GLuint tex_ID = 0;
+    if (tex_ID != 0)
     {
         glDeleteTextures(1, &tex_ID);
-        tex_ID = 1000;
+        tex_ID = 0;
     }
     
     glGenTextures(1, &tex_ID);

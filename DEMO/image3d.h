@@ -40,6 +40,8 @@ public:
 
     // Interpolation
     float get_value_f(vec3 pt);
+    float get_value_f(double x, double y, double z){return get_value_f(vec3(x,y,z));};
+    float get_value_f(int x, int y, int z){return get_value_f(vec3(x,y,z));};
     
     /**
      Get - set voxel; direct
@@ -55,7 +57,7 @@ public:
 private:
     // Currently hold all images.
     int _dim[3]; // x - y - z
-    int _layer_size;
+    int _layer_size; // Size of image in 1 layer
     std::vector<float> _voxels;
     
 };

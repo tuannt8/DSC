@@ -66,27 +66,47 @@ void image3d::load(std::string path)
     _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
     
     float * cur = &_voxels[0];
+    unsigned int idx = 0;
     for (int i = 0; i < files.size(); i++)
     {
         cimg_byte im;
         im.load(files[i].c_str());
-        
+
         for (int j = 0; j < im.height(); j++)
             for(int i = 0; i < im.width(); i++)
             {
-                *(cur++) = (double)im(i,j) / 255.0;
+                _voxels[idx++] = (double)im(i,j) / 255.0;
             }
     }
 }
 
-float get_value_f(vec3 pt)
+float image3d::get_value_f(vec3 pt)
 {
+    if (pt[0] < 0 || pt[0] > _dim[0]
+        || pt[1] < 0 || pt[1] > _dim[1]
+        || pt[2] < 0 || pt[2] > _dim[2])
+        return 0;
+    
     CGLA::Vec3i pti(floor(pt[0]), floor(pt[1]), floor(pt[2]));
     
     vec3 ptif(pti[0], pti[1], pti[2]);
     vec3 relative_coord = pt - ptif;
     
     // TODO: write interpolate function
+    float c00 = _voxels[index(pti[0], pti[1], pti[2])] * (1 - relative_coord[0])
+                + _voxels[index(pti[0] + 1, pti[1], pti[2])] * relative_coord[0];
+    float c01 = _voxels[index(pti[0], pti[1], pti[2]+1)] * (1 - relative_coord[0])
+                + _voxels[index(pti[0] + 1, pti[1], pti[2] + 1)] * relative_coord[0];
+    float c10 = _voxels[index(pti[0], pti[1]+1, pti[2])] * (1 - relative_coord[0])
+                + _voxels[index(pti[0] + 1, pti[1] + 1, pti[2])] * relative_coord[0];
+    float c11 = _voxels[index(pti[0], pti[1] + 1, pti[2]  +1)] * (1 - relative_coord[0])
+                + _voxels[index(pti[0] + 1, pti[1]+1, pti[2]+1)] * relative_coord[0];
+    
+    
+    float c0 = c00*(1-relative_coord[1]) + c10*relative_coord[1];
+    float c1 = c01*(1-relative_coord[1]) + c11*relative_coord[1];
+    
+    return c0*(1 - relative_coord[2]) + c1*relative_coord[2];
 }
 
 float image3d::get_tetra_intensity(float * total_inten, float * area)
@@ -104,9 +124,9 @@ float image3d::get_value(const int & x, const int & y, const int & z) const
     if(x >= 0 and y >= 0 and z >= 0
            and x < _dim[0] and y < _dim[1] and x < _dim[2])
     {
-        return 0;
+        return _voxels[index(x,y,z)];
     }
 
-    return _voxels[index(x,y,z)];
+    return 1;
 }
 

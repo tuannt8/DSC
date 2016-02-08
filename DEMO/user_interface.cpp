@@ -281,7 +281,7 @@ void UI::display()
     update_gl();
     setup_light();
     
-//    draw_helper::draw_coord(gl_dis_max);
+    // draw_helper::draw_coord(gl_dis_max);
 
     if (glut_menu::get_state("Draw DSC edges", 0))
     {
@@ -295,7 +295,7 @@ void UI::display()
         draw_helper::dsc_draw_domain(*dsc);
     }
     
-    if (glut_menu::get_state("Draw Image slide", 0))
+    if (glut_menu::get_state("Draw Image slide", 1))
     {
         draw_helper::draw_image_slice(_seg._img);
     }
