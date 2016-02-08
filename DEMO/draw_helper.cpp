@@ -87,6 +87,38 @@ void draw_helper::dsc_draw_edge(dsc_class &dsc)
     glEnd();
 }
 
+void draw_helper::dsc_draw_interface(dsc_class & dsc)
+{
+
+    for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+    {
+        if (f->is_interface())
+        {
+            glColor3f(1.0, 0.0, 0.0);
+            glBegin(GL_TRIANGLES);
+            auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
+            glVertex3dv(pts[0].get());
+            glVertex3dv(pts[1].get());
+            glVertex3dv(pts[2].get());
+            glEnd();
+            
+            glColor3f(0, 0, 1);
+            glBegin(GL_LINES);
+            glVertex3dv(pts[0].get());
+            glVertex3dv(pts[1].get());
+            
+            glVertex3dv(pts[0].get());
+            glVertex3dv(pts[2].get());
+            
+            glVertex3dv(pts[1].get());
+            glVertex3dv(pts[2].get());
+            glEnd();
+        
+        }
+    }
+
+}
+
 void draw_helper::dsc_draw_domain(dsc_class & dsc)
 {
     glEnable(GL_CULL_FACE);

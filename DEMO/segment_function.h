@@ -24,6 +24,8 @@ public:
     void init(); //
     void initialze_segmentation();
     
+    void segment();
+    
 public:
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc

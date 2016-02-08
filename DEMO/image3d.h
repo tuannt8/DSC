@@ -19,7 +19,7 @@
 #include <cstdint>
 #include "util.h"
 
-typedef cimg_library::CImg<float> cimg_byte;
+typedef cimg_library::CImg<double> cimg_byte;
 
 class image3d
 {
@@ -36,18 +36,18 @@ public:
     void load(std::string path);
     
     // return average intensity
-    float get_tetra_intensity(float * total_inten, float * area = nullptr);
+    double get_tetra_intensity(std::vector<vec3> tet_points, double * total_inten, double * volume = nullptr);
 
     // Interpolation
-    float get_value_f(vec3 pt) const;
-    float get_value_f(double x, double y, double z) const{return get_value_f(vec3(x,y,z));};
-    float get_value_f(int x, int y, int z) const{return get_value_f(vec3(x,y,z));};
+    double get_value_f(vec3 pt) const;
+    double get_value_f(double x, double y, double z) const{return get_value_f(vec3(x,y,z));};
+    double get_value_f(int x, int y, int z) const{return get_value_f(vec3(x,y,z));};
     
     /**
      Get - set voxel; direct
      */
-    float * get_layer(const int idx);
-    float get_value (const int & x, const int & y, const int & z) const;
+    double * get_layer(const int idx);
+    double get_value (const int x, const int y, const int z) const;
     inline int index(int x, int y, int z) const{
         return z*_dim[X]*_dim[Y] + y*_dim[X] + x;
     }
@@ -58,8 +58,11 @@ private:
     // Currently hold all images.
     int _dim[3]; // x - y - z
     int _layer_size; // Size of image in 1 layer
-    std::vector<float> _voxels;
+    std::vector<double> _voxels;
     
+private:
+    void get_integral_recur(std::vector<vec3> const & tet_points, int loops, double * total, int deep);
+    std::vector<std::vector<vec3>> subdivide_tet(std::vector<vec3> const & tet_points);
 };
 
 #endif /* image3d_hpp */

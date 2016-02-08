@@ -299,6 +299,11 @@ void UI::display()
     {
         draw_helper::draw_image_slice(_seg._img);
     }
+    
+    if (glut_menu::get_state("Draw DSC interface", 1))
+    {
+        draw_helper::dsc_draw_interface(*dsc);
+    }
 
     
     glutSwapBuffers();
@@ -327,6 +332,9 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case GLUT_KEY_DOWN:
             draw_helper::update_texture(_seg._img, 0,0,-1);
+            break;
+        case ' ':
+            _seg.segment();
             break;
         default:
             break;
