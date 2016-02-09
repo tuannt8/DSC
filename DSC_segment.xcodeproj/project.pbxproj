@@ -125,6 +125,7 @@
 		A6F2930F1C187E2C00ED6916 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F2930E1C187E2C00ED6916 /* Accelerate.framework */; };
 		A6F293111C1884FD00ED6916 /* libpng16.16.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F293101C1884FD00ED6916 /* libpng16.16.dylib */; };
 		A6F293141C1885AC00ED6916 /* draw_helper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6F293121C1885AC00ED6916 /* draw_helper.cpp */; };
+		A6FF2BB91C6A47BC00EDC141 /* tet_dis_coord.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6FF2BB71C6A47BC00EDC141 /* tet_dis_coord.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -275,6 +276,8 @@
 		A6F293101C1884FD00ED6916 /* libpng16.16.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libpng16.16.dylib; path = ../../../../../usr/local/lib/libpng16.16.dylib; sourceTree = "<group>"; };
 		A6F293121C1885AC00ED6916 /* draw_helper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = draw_helper.cpp; sourceTree = "<group>"; };
 		A6F293131C1885AC00ED6916 /* draw_helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = draw_helper.h; sourceTree = "<group>"; };
+		A6FF2BB71C6A47BC00EDC141 /* tet_dis_coord.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tet_dis_coord.cpp; sourceTree = "<group>"; };
+		A6FF2BB81C6A47BC00EDC141 /* tet_dis_coord.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = tet_dis_coord.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -536,6 +539,8 @@
 				A6F2930B1C18738200ED6916 /* glut_menu.h */,
 				A6F293121C1885AC00ED6916 /* draw_helper.cpp */,
 				A6F293131C1885AC00ED6916 /* draw_helper.h */,
+				A6FF2BB71C6A47BC00EDC141 /* tet_dis_coord.cpp */,
+				A6FF2BB81C6A47BC00EDC141 /* tet_dis_coord.hpp */,
 			);
 			path = DEMO;
 			sourceTree = "<group>";
@@ -826,6 +831,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6FF2BB91C6A47BC00EDC141 /* tet_dis_coord.cpp in Sources */,
 				7AE27B1517675CEA000F8238 /* demo.cpp in Sources */,
 				A6F2930C1C18738200ED6916 /* glut_menu.cpp in Sources */,
 				A65A0C2E1C15E018005A8106 /* image3d.cpp in Sources */,

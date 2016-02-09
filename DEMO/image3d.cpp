@@ -12,6 +12,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
 #include "CImg.h"
+#include "tet_dis_coord.hpp"
 
 using namespace std;
 
@@ -46,7 +47,7 @@ void image3d::load(std::string path)
         }
     }
     
-    int count = files.size();
+    size_t count = files.size();
     for (int i = 0; i < count; i++)
     {
         ostringstream name;
@@ -77,6 +78,8 @@ void image3d::load(std::string path)
                 _voxels[idx++] = (double)im(i,j) / 255.0;
             }
     }
+    
+    set_size();
 }
 
 double image3d::get_value_f(vec3 pt) const
@@ -106,30 +109,91 @@ double image3d::get_value_f(vec3 pt) const
     return f;
 }
 
+
+
+
+void image3d::generate_sample_point(int n)
+{
+    double d = 1.0 / (double)n;
+    vector<vec3> pts;
+    pts.push_back(vec3(0,0,0));
+    pts.push_back(vec3(0,1,0));
+    pts.push_back(vec3(1,0,0));
+    pts.push_back(vec3(0,0,1));
+    
+    vector<vector<vec3>> tets;
+    
+    for(int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            for (int k = 0; k < n; k++)
+            {
+                vec3 A1 = vec3(i*d, j*d, k*d);
+                auto A2  = A1 + vec3(d, 0, 0);
+                auto A3  = A1 + vec3(d, d, 0);
+                auto A4  = A1 + vec3(0, d, 0);
+                
+                auto A5  = A1 + vec3(0, 0, d);
+                auto A6  = A1 + vec3(d, 0, d);
+                auto A7  = A1 + vec3(d, d, d);
+                auto A8  = A1 + vec3(0, d, d);
+                
+                tets.push_back({A1,A4,A2,A5});
+                tets.push_back({A5,A4,A2,A6});
+                tets.push_back({A5,A6,A4,A8});
+                tets.push_back({A2,A3,A4,A6});
+                tets.push_back({A3,A4,A6,A8});
+                tets.push_back({A3,A6,A7,A8});
+                
+            }
+        }
+    }
+    std::cout<<"  //n = " << n << endl;
+    cout << "  {" << endl;
+    for(auto t : tets)
+    {
+        auto center = (t[0] + t[1] + t[2] + t[3]) / 4;
+        auto f = center[0] + center[1] + center[2];
+        if (f < 1)
+        {
+            auto coord = Util::barycentric_coords<double>(center, pts[0], pts[1], pts[2], pts[3]);
+            printf("    {%f, %f, %f, %f},\n", coord[0], coord[1], coord[2], coord[3]);
+        }
+    }
+    cout << "  }," << endl;
+}
+
+#define get_coord(a,b) (a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3])
 double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total_inten, double * volume)
 {
     double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);
     
-    int loop = 0;
-    double v1 = v;
-    while (v1 > 1.)
+    size_t dis = 0;
+    auto itd = std::find(dis_coord_size.begin(), dis_coord_size.end(), v);
+    if (itd!= dis_coord_size.end())
     {
-        loop ++;
-        v1 = v1/8.0;
+        dis = itd - dis_coord_size.begin();
+    }else{
+        dis = dis_coord_size.size() - 1;
     }
     
-    *total_inten = 0;
-    int deep = 0;
-    get_integral_recur(tet_points, loop, total_inten, deep);
+    double total = 0;
+    auto const & a = tet_dis_coord[dis];
+    for (auto & tb : a)
+    {
+        auto pt = get_coord(tet_points, tb);
+        total += get_value(pt[0], pt[1], pt[2]);
+    }
     
-    *total_inten = *total_inten / pow(8, loop) * v;
-    assert(*total_inten < 1000);
+    total = total * v / a.size();
+    
+    *total_inten = total;
     
     if (volume)
     {
         *volume = v;
     }
-
     
     return *total_inten / v;
 }

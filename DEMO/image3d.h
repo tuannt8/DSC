@@ -21,6 +21,7 @@
 
 typedef cimg_library::CImg<double> cimg_byte;
 
+
 class image3d
 {
     enum{X,Y,Z};
@@ -63,6 +64,9 @@ private:
 private:
     void get_integral_recur(std::vector<vec3> const & tet_points, int loops, double * total, int deep);
     std::vector<std::vector<vec3>> subdivide_tet(std::vector<vec3> const & tet_points);
+    
+public:
+    void generate_sample_point(int n);
 };
 
 #endif /* image3d_hpp */

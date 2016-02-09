@@ -177,7 +177,7 @@ void UI::init_dsc()
     std::vector<int> tets;
     std::vector<int> tet_labels;
     
-    int res = 20;
+    int res = 10;
     double delta = gl_dis_max / (double)res;
     int NX = round(_obj_dim[0] / delta) + 1; // number of vertices
     int NY = round(_obj_dim[1] / delta) + 1;
@@ -236,6 +236,7 @@ void UI::init_dsc()
     
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
+    dsc->set_avg_edge_length(delta);
 }
 
 void UI::update_title()
@@ -280,6 +281,11 @@ void UI::display()
     
     update_gl();
     setup_light();
+    
+    if (CONTINUOUS)
+    {
+        _seg.segment();
+    }
     
     // draw_helper::draw_coord(gl_dis_max);
 
@@ -334,7 +340,8 @@ void UI::keyboard(unsigned char key, int x, int y) {
             draw_helper::update_texture(_seg._img, 0,0,-1);
             break;
         case ' ':
-            _seg.segment();
+            //_seg.segment();
+            CONTINUOUS = !CONTINUOUS;
             break;
         default:
             break;
