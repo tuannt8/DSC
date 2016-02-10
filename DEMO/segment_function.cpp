@@ -7,6 +7,9 @@
 //
 
 #include "segment_function.h"
+#include "tet_dis_coord.hpp"
+
+#include <GLUT/GLUT.h>
 
 using namespace std;
 
@@ -17,6 +20,16 @@ void segment_function::init()
 
 void segment_function::initialze_segmentation()
 {
+//    printf(" { \n");
+//    for (int i = 0; i < 15; i++)
+//    {
+//        _img.generate_sample_point_tri(i);
+//    }
+//    printf("};\n");
+//    
+//    
+//    return;
+    
     // Initilization by thresholding
     double thres = 0.6;
     // initialize by thresholding
@@ -61,31 +74,88 @@ void segment_function::segment()
         c[i] = c[i] / vols[i];
     }
     
-    // Compute force
-    for (auto vit = _dsc->nodes_begin(); vit != _dsc->nodes_end(); vit++)
+//    // Compute force
+//    for (auto vit = _dsc->nodes_begin(); vit != _dsc->nodes_end(); vit++)
+//    {
+//        
+//        if (vit->is_interface()
+//            and !vit->is_crossing())
+//        {
+//            vec3 f = _dsc->get_normal(vit.key());
+//            auto pos = vit->get_pos();
+//            double g = _img.get_value_f(pos);
+//            
+//            f = - f * ((c[0] - c[1])*(2*g - c[0] - c[1])) * 2;
+//            
+//            if (_dsc->is_movable(vit.key()))
+//            {
+//                _dsc->set_destination(vit.key(), vit->get_pos() + f);
+//            }
+//        }
+//    }
+    
+    std::vector<vec3> forces = std::vector<vec3>(10000, vec3(0.0)); // supose we have less than 10000 vertices
+    
+    for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        
-        if (vit->is_interface()
-            and !vit->is_crossing())
+        if (fid->is_interface())
         {
-            vec3 f = _dsc->get_normal(vit.key());
-            auto pos = vit->get_pos();
-            double g = _img.get_value_f(pos);
+            // Normal
+            auto tets = _dsc->get_tets(fid.key());
+            auto verts = _dsc->get_nodes(fid.key());
+            auto pts = _dsc->get_pos(verts);
             
-            f = - f * ((c[0] - c[1])*(2*g - c[0] - c[1])) * 2;
+            double c0 = c[_dsc->get_label(tets[0])];
+            double c1 = c[_dsc->get_label(tets[1])];
             
-        //    std::cout << vit.key() <<  " displace " << f.length() << std::endl;
+            vec3 Norm = _dsc->get_normal(fid.key());
+            auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
+            Norm = Norm*dot(Norm, l01);// modify normal direction
+            Norm.normalize();
             
-            if (_dsc->is_movable(vit.key()))
+//            Norm = Norm * (c0 - c1);
+//            auto center = (pts[0] + pts[1] + pts[2]) / 3.0;
+//            glBegin(GL_LINES);
+//            glVertex3dv(center.get());
+//            glVertex3dv((center + Norm*5).get());
+//            glEnd();
+//            
+//            continue;
+            
+            // Discretize the face
+            double area = Util::area<double>(pts[0], pts[1], pts[2]);
+            
+            size_t n = std::ceil( sqrt(area) );
+            if (n >= tri_coord_size.size())
             {
-                _dsc->set_destination(vit.key(), vit->get_pos() + f);
+                n = tri_coord_size.size() - 1;
+            }
+            
+            auto & a = tri_dis_coord[n - 1];
+            for (auto & coord : a)
+            {
+                auto p = get_coord_tri(pts, coord);
+                auto g = _img.get_value_f(p);
+                
+                auto f = - Norm* ((c1 - c0)*(2*g - c0 - c1) / area);
+                // distribute
+                forces[verts[0]] += f*coord[0];
+                forces[verts[1]] += f*coord[1];
+                forces[verts[2]] += f*coord[2];
             }
         }
-        
-//        if (vit->is_interface())
-//        {
-//            _dsc->set_destination(vit.key(), vit->get_pos());
-//        }
     }
+    
+    for(auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
+    {
+        if ( (nid->is_interface() or nid->is_crossing())
+            and _dsc->is_movable(nid.key()))
+        {
+            auto dis = forces[nid.key()]*0.5;
+            //cout << "Node " << nid.key() << " : " << dis << endl;
+            _dsc->set_destination(nid.key(), nid->get_pos() + dis);
+        }
+    }
+    
     _dsc->deform();
 }

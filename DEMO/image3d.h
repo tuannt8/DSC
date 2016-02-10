@@ -20,7 +20,8 @@
 #include "util.h"
 
 typedef cimg_library::CImg<double> cimg_byte;
-
+#define get_coord(a,b) (a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3])
+#define get_coord_tri(a,b) (a[0]*b[0] + a[1]*b[1] + a[2]*b[2])
 
 class image3d
 {
@@ -67,6 +68,7 @@ private:
     
 public:
     void generate_sample_point(int n);
+    void generate_sample_point_tri(int n);
 };
 
 #endif /* image3d_hpp */

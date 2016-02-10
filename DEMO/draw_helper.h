@@ -34,6 +34,7 @@ public:
     static void dsc_draw_edge(dsc_class & dsc);
     static void dsc_draw_domain(dsc_class & dsc);
     static void dsc_draw_interface(dsc_class & dsc);
+    static void dsc_draw_face_norm(dsc_class & dsc);
     
     /*
      Draw 3 axis X - Y - Z

@@ -12,8 +12,14 @@
 #include <stdio.h>
 #include <vector>
 
+// tetrahedron sample points; upto
 extern std::vector<std::vector<std::vector<double>>> tet_dis_coord;
 extern std::vector<size_t> dis_coord_size;
+
+// face sample points; up to 
+extern std::vector<std::vector<std::vector<double>>> tri_dis_coord;
+extern std::vector<size_t> tri_coord_size;
+
 void set_size();
 
 #endif /* tet_dis_coord_hpp */

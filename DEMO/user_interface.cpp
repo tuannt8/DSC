@@ -177,7 +177,7 @@ void UI::init_dsc()
     std::vector<int> tets;
     std::vector<int> tet_labels;
     
-    int res = 10;
+    int res = 13;
     double delta = gl_dis_max / (double)res;
     int NX = round(_obj_dim[0] / delta) + 1; // number of vertices
     int NY = round(_obj_dim[1] / delta) + 1;
@@ -309,6 +309,12 @@ void UI::display()
     if (glut_menu::get_state("Draw DSC interface", 1))
     {
         draw_helper::dsc_draw_interface(*dsc);
+    }
+    
+    
+    if (glut_menu::get_state("Draw DSC face normal", 0))
+    {
+        draw_helper::dsc_draw_face_norm(*dsc);
     }
 
     

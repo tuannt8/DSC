@@ -164,7 +164,49 @@ void image3d::generate_sample_point(int n)
     cout << "  }," << endl;
 }
 
-#define get_coord(a,b) (a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3])
+void image3d::generate_sample_point_tri(int n) {
+    vector<vec3> tris;
+    tris.push_back(vec3(1, 0, 0));
+    tris.push_back(vec3(0, 1, 0));
+    tris.push_back(vec3(0, 0, 1));
+    
+    int res = n;
+    double step = 1.0/(double)res;
+
+    printf(" { \n");
+    printf(" // n = %d \n", n);
+    
+    for (int i = 0; i < res; i++) {
+        double s1 = i*step;
+        for (int j = res - i; j > 0; j--) {
+            double s2 = j*step;
+            
+            // Triangle 1
+            {
+                double ep1 = s1 + step/3.0;
+                double ep2 = s2 - step*2.0/3.;
+                double ep3 = 1 - ep1 - ep2;
+                auto pt = tris[0]*ep1 + tris[1]*ep2 + tris[2]*ep3;
+                printf("  {%f, %f, %f},\n", pt[0], pt[1], pt[2]);
+            }
+            // Triangle 2
+            {
+                double ep1 = s1 + step*2/3;
+                double ep2 = s2 - step*4/3;
+                if (ep2 > 0) {
+                    double ep3 = 1 - ep1 - ep2;
+                    auto pt = tris[0]*ep1 + tris[1]*ep2 + tris[2]*ep3;
+                    printf("  {%f, %f, %f},\n", pt[0], pt[1], pt[2]);
+                }
+            }
+            
+        }
+    }
+    
+    printf("},\n");
+}
+
+
 double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total_inten, double * volume)
 {
     double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);

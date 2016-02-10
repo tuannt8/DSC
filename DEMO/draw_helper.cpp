@@ -87,6 +87,30 @@ void draw_helper::dsc_draw_edge(dsc_class &dsc)
     glEnd();
 }
 
+void draw_helper::dsc_draw_face_norm(dsc_class & dsc)
+{
+    glColor3f(0, 0, 1);
+    for (auto fid = dsc.faces_begin(); fid != dsc.faces_end(); fid++)
+    {
+        if (fid->is_interface())
+        {
+            auto pts = dsc.get_pos(dsc.get_nodes(fid.key()));
+            auto center = (pts[0] + pts[1] + pts[2]) / 3.0;
+            
+            auto tets = dsc.get_tets(fid.key());
+            vec3 Norm = dsc.get_normal(fid.key());
+            auto l01 = dsc.barycenter(tets[1]) - dsc.barycenter(tets[0]);
+            Norm = Norm*dot(Norm, l01);// modify normal direction
+            Norm.normalize();
+            
+            glBegin(GL_LINES);
+            glVertex3dv(center.get());
+            glVertex3dv((center + Norm*5).get());
+            glEnd();
+        }
+    }
+}
+
 void draw_helper::dsc_draw_interface(dsc_class & dsc)
 {
 
