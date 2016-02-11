@@ -15,7 +15,9 @@ using namespace std;
 
 void segment_function::init()
 {
-    _img.load("data/sphere_drill");
+    //_img.load("data/sphere_drill");
+    _img.load("data/hamster");
+
 }
 
 void segment_function::initialze_segmentation()
@@ -74,27 +76,7 @@ void segment_function::segment()
         c[i] = c[i] / vols[i];
     }
     
-//    // Compute force
-//    for (auto vit = _dsc->nodes_begin(); vit != _dsc->nodes_end(); vit++)
-//    {
-//        
-//        if (vit->is_interface()
-//            and !vit->is_crossing())
-//        {
-//            vec3 f = _dsc->get_normal(vit.key());
-//            auto pos = vit->get_pos();
-//            double g = _img.get_value_f(pos);
-//            
-//            f = - f * ((c[0] - c[1])*(2*g - c[0] - c[1])) * 2;
-//            
-//            if (_dsc->is_movable(vit.key()))
-//            {
-//                _dsc->set_destination(vit.key(), vit->get_pos() + f);
-//            }
-//        }
-//    }
-    
-    std::vector<vec3> forces = std::vector<vec3>(10000, vec3(0.0)); // supose we have less than 10000 vertices
+    std::vector<vec3> forces = std::vector<vec3>(30000, vec3(0.0)); // supose we have less than 10000 vertices
     
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
@@ -112,15 +94,6 @@ void segment_function::segment()
             auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
             Norm = Norm*dot(Norm, l01);// modify normal direction
             Norm.normalize();
-            
-//            Norm = Norm * (c0 - c1);
-//            auto center = (pts[0] + pts[1] + pts[2]) / 3.0;
-//            glBegin(GL_LINES);
-//            glVertex3dv(center.get());
-//            glVertex3dv((center + Norm*5).get());
-//            glEnd();
-//            
-//            continue;
             
             // Discretize the face
             double area = Util::area<double>(pts[0], pts[1], pts[2]);
@@ -146,16 +119,23 @@ void segment_function::segment()
         }
     }
     
+    double largest = 0;
     for(auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
     {
+
         if ( (nid->is_interface() or nid->is_crossing())
             and _dsc->is_movable(nid.key()))
         {
-            auto dis = forces[nid.key()]*0.5;
+            auto dis = forces[nid.key()]*2;
             //cout << "Node " << nid.key() << " : " << dis << endl;
             _dsc->set_destination(nid.key(), nid->get_pos() + dis);
+            if (largest < dis.length())
+            {
+                largest = dis.length();
+            }
         }
     }
-    
+
+    cout << "--------------------------------Max displacement: " << largest << endl;
     _dsc->deform();
 }

@@ -22,12 +22,16 @@
 #include "draw.h"
 #include "segment_function.h"
 #include <GLUT/GLUT.h>
+#include <condition_variable>
+
+#include <thread>
 
 /**
  A default application which utilizes OpenGL, GLEW and GLUT for visualization. Three sample velocity functions (rotation, smoothing and expansion) can be applies to a model specified by the model_file_name variable or as input variable. See https://github.com/asny/DSC/wiki/DEMO-instructions for details on how to use this DEMO application. See https://github.com/asny/DSC/wiki/Instructions for instructions on how to build your own application which uses the implementation of the DSC method.
  */
 class UI
 {
+public:
     std::unique_ptr<DSC::VelocityFunc<>> vel_fun;
     std::unique_ptr<DSC::DeformableSimplicialComplex<>> dsc = nullptr;
     std::unique_ptr<Log> basic_log;
@@ -88,6 +92,8 @@ public:
     void keyboard(unsigned char key, int x, int y);
     
 private:
+public:
+    double m_edge_length = 8;
     float gl_dis_max;
     vec3 _obj_dim;
     
@@ -98,6 +104,11 @@ private:
     
     void init_dsc();
     
+    ///////////// Thread
+    GLuint m_gl_sence;
+    void update_draw_list();
+    std::thread m_th;
+    bool force_render = false;
     /**
      Loads the .dsc file specified by the model_file_name variable.
      */

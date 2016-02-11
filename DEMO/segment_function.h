@@ -27,6 +27,7 @@ public:
     void segment();
     
 public:
+
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
 };

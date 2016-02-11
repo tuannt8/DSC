@@ -29,9 +29,13 @@
 #include <iomanip>
 #include <ctime>
 #include <chrono>
+#include <mutex>
 
 using namespace DSC;
 using namespace std;
+
+std::mutex draw_lock;
+std::atomic<int> m_iters(0);
 
 void display_(){
     UI::get_instance()->display();
@@ -100,31 +104,79 @@ void UI::setup_light()
     vec3 eye = center + vec3(gl_dis_max*2.0*cos(angle)*cos(angle2),
                              gl_dis_max*2.0*cos(angle)*sin(angle2),
                              gl_dis_max*2.0*sin(angle));
-    GLfloat diffuseLight[] = {1.0f,1.0f,1.0f,1.0f};
-    GLfloat ambientLight[] = {1.0f,1.0f,1.0f,1.0f};
-    GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
     
-    GLfloat position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
-
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat mat_shininess[] = { 50.0 };
+    GLfloat light_position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
+    glClearColor (0.0, 0.0, 0.0, 0.0);
+    glShadeModel (GL_SMOOTH);
     
-    
-    glEnable(GL_MULTISAMPLE);
-    glEnable(GL_DEPTH_TEST);
-    
-    glEnable(GL_COLOR_MATERIAL);
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     
     glEnable(GL_LIGHTING);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
-    glLightfv(GL_LIGHT0, GL_POSITION, position);
     glEnable(GL_LIGHT0);
+    glEnable(GL_DEPTH_TEST);
     
-    glShadeModel(GL_SMOOTH);
-  //   glShadeModel(GL_FLAT);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//    vec3 center = _obj_dim/ 2.0;
+//    vec3 eye = center + vec3(gl_dis_max*2.0*cos(angle)*cos(angle2),
+//                             gl_dis_max*2.0*cos(angle)*sin(angle2),
+//                             gl_dis_max*2.0*sin(angle));
+//    GLfloat diffuseLight[] = {1.0f,1.0f,1.0f,1.0f};
+//    GLfloat ambientLight[] = {1.0f,1.0f,1.0f,1.0f};
+//    GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
+////    GLfloat mat_shininess[] = { 10.0 };
+//    
+//    GLfloat position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
+//
+//    
+//    
+//    glEnable(GL_MULTISAMPLE);
+//    glEnable(GL_DEPTH_TEST);
+//    
+//    glEnable(GL_COLOR_MATERIAL);
+//    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+//    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+//    
+//    glEnable(GL_LIGHTING);
+//    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+//    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+//    glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+//    glLightfv(GL_LIGHT0, GL_POSITION, position);
+////    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+//    glEnable(GL_LIGHT0);
+//    
+//    glShadeModel(GL_SMOOTH);
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void UI::update_draw_list()
+{
+    draw_lock.lock();
+    
+
+    
+    draw_lock.unlock();
+}
+
+void worker()
+{
+    auto p = UI::instance;
+    
+    while (1)
+    {
+        if (p->CONTINUOUS)
+        {
+            m_iters++;
+            draw_lock.lock();
+            p->_seg.segment();
+            draw_lock.unlock();
+        }
+        else
+            sleep(1);
+
+    }
 }
 
 UI::UI(int &argc, char** argv)
@@ -157,7 +209,8 @@ UI::UI(int &argc, char** argv)
     
     // Load cross sections
     _seg.init();
-    _obj_dim = _seg._img.dimension_v();
+    _obj_dim = _seg._img.dimension_v() + vec3(2*m_edge_length);
+    
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
     // Update texture draw
@@ -168,6 +221,9 @@ UI::UI(int &argc, char** argv)
     
     _seg._dsc = &*dsc;
     _seg.initialze_segmentation();
+    
+    // Launch worker thread
+    m_th = std::thread(worker);
 }
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
@@ -177,8 +233,8 @@ void UI::init_dsc()
     std::vector<int> tets;
     std::vector<int> tet_labels;
     
-    int res = 13;
-    double delta = gl_dis_max / (double)res;
+
+    double delta = m_edge_length;
     int NX = round(_obj_dim[0] / delta) + 1; // number of vertices
     int NY = round(_obj_dim[1] / delta) + 1;
     int NZ = round(_obj_dim[2] / delta) + 1;
@@ -190,7 +246,7 @@ void UI::init_dsc()
         {
             for (int ix = 0; ix < NX; ix++)
             {
-                points.push_back(vec3(ix, iy, iz)*delta);
+                points.push_back(vec3(ix, iy, iz)*delta - vec3(m_edge_length));
             }
         }
     }
@@ -282,43 +338,73 @@ void UI::display()
     update_gl();
     setup_light();
     
-    if (CONTINUOUS)
-    {
-        _seg.segment();
-    }
+    static double total_time = 100;
+    static auto init_time = std::chrono::system_clock::now();
+    std::chrono::duration<real> t = std::chrono::system_clock::now() - init_time;
+    total_time += t.count();
+    init_time = std::chrono::system_clock::now();
     
-    // draw_helper::draw_coord(gl_dis_max);
+    
+    if (total_time > 0.5
+        or force_render)
+    {
+        force_render = false;
+        total_time = 0;
+        
+        draw_lock.lock();
 
-    if (glut_menu::get_state("Draw DSC edges", 0))
-    {
-        glColor3f(0, 0, 1);
-        draw_helper::dsc_draw_edge(*dsc);
-    }
-    
-    if (glut_menu::get_state("Draw DSC domain", 1))
-    {
-        glColor3f(0.3, 0.3, 0.3);
-        draw_helper::dsc_draw_domain(*dsc);
-    }
-    
-    if (glut_menu::get_state("Draw Image slide", 1))
-    {
-        draw_helper::draw_image_slice(_seg._img);
-    }
-    
-    if (glut_menu::get_state("Draw DSC interface", 1))
-    {
-        draw_helper::dsc_draw_interface(*dsc);
-    }
-    
-    
-    if (glut_menu::get_state("Draw DSC face normal", 0))
-    {
-        draw_helper::dsc_draw_face_norm(*dsc);
-    }
+        m_gl_sence = glGenLists(1);
+        glNewList(m_gl_sence, GL_COMPILE);
+        
 
+        
+        if (glut_menu::get_state("Draw DSC edges", 0))
+        {
+            glColor3f(0, 0, 0);
+            draw_helper::dsc_draw_edge(*dsc);
+        }
+        
+        if (glut_menu::get_state("Draw DSC domain", 1))
+        {
+            glColor3f(0.3, 0.3, 0.3);
+            draw_helper::dsc_draw_domain(*dsc);
+        }
+        
+        if (glut_menu::get_state("Draw DSC interface edge", 0))
+        {
+            draw_helper::dsc_draw_interface_edge(*dsc);
+        }
+        
+        if (glut_menu::get_state("Draw DSC interface", 1))
+        {
+            draw_helper::dsc_draw_interface(*dsc);
+        }
+        
+        
+        if (glut_menu::get_state("Draw DSC face normal", 0))
+        {
+            draw_helper::dsc_draw_face_norm(*dsc);
+        }
+        
+        
+        if (glut_menu::get_state("Draw Image slide", 1))
+        {
+            draw_helper::draw_image_slice(_seg._img);
+        }
+        
+        glEndList();
+        
+        draw_lock.unlock();
+    }
+    
+
+    glCallList(m_gl_sence);
     
     glutSwapBuffers();
+    
+    std::ostringstream os;
+    os << m_iters;
+    glutSetWindowTitle(os.str().c_str());
 
     check_gl_error();
 }
@@ -340,14 +426,19 @@ void UI::animate()
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
         case GLUT_KEY_UP:
+            force_render = true;
             draw_helper::update_texture(_seg._img, 0,0,1);
             break;
         case GLUT_KEY_DOWN:
+            force_render = true;
             draw_helper::update_texture(_seg._img, 0,0,-1);
             break;
         case ' ':
             //_seg.segment();
             CONTINUOUS = !CONTINUOUS;
+            break;
+        case '\t':
+            draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
             break;
         default:
             break;

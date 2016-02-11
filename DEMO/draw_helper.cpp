@@ -8,9 +8,15 @@
 
 #include "draw_helper.h"
 #include <GLUT/GLUT.h>
+#include "DSC.h"
+#include <iostream>
+#include <string>
+#include <SOIL/SOIL.h>
+#include <fstream>
 
 void draw_helper::draw_image_slice(const image3d & im)
 {
+    glDisable(GL_LIGHTING);
     // Draw bounding box
     vec3 dim = im.dimension_v();
     
@@ -76,6 +82,7 @@ void draw_helper::draw_coord(float length)
 
 void draw_helper::dsc_draw_edge(dsc_class &dsc)
 {
+    glDisable(GL_LIGHTING);
     glBegin(GL_LINES);
     for (auto eit = dsc.edges_begin(); eit != dsc.edges_end(); eit++)
     {
@@ -83,8 +90,8 @@ void draw_helper::dsc_draw_edge(dsc_class &dsc)
         glVertex3dv(pos[0].get());
         glVertex3dv(pos[1].get());
     }
-    
     glEnd();
+    glEnable(GL_LIGHTING);
 }
 
 void draw_helper::dsc_draw_face_norm(dsc_class & dsc)
@@ -96,12 +103,9 @@ void draw_helper::dsc_draw_face_norm(dsc_class & dsc)
         {
             auto pts = dsc.get_pos(dsc.get_nodes(fid.key()));
             auto center = (pts[0] + pts[1] + pts[2]) / 3.0;
-            
-            auto tets = dsc.get_tets(fid.key());
+
             vec3 Norm = dsc.get_normal(fid.key());
-            auto l01 = dsc.barycenter(tets[1]) - dsc.barycenter(tets[0]);
-            Norm = Norm*dot(Norm, l01);// modify normal direction
-            Norm.normalize();
+
             
             glBegin(GL_LINES);
             glVertex3dv(center.get());
@@ -111,36 +115,96 @@ void draw_helper::dsc_draw_face_norm(dsc_class & dsc)
     }
 }
 
-void draw_helper::dsc_draw_interface(dsc_class & dsc)
+void draw_helper::dsc_draw_interface_edge(dsc_class & dsc)
 {
 
+    glColor3f(0, 0, 1);
+    glBegin(GL_LINES);
+    for (auto eit = dsc.edges_begin(); eit != dsc.edges_end(); eit++)
+    {
+        if (eit->is_interface())
+        {
+            auto pos = dsc.get_pos(dsc.get_nodes(eit.key()));
+            glVertex3dv(pos[0].get());
+            glVertex3dv(pos[1].get());
+        }
+    }
+    
+    glEnd();
+}
+
+void draw_helper::save_painting(int WIDTH, int HEIGHT, std::string folder)
+{
+    std::ostringstream s;
+    s << folder << "/scr";
+    int i = 0;
+    while (1)
+    {
+        std::ostringstream name;
+        name << s.str() << "_" << i << ".png";
+        std::ifstream file(name.str().c_str());
+        if (!file)
+        {
+            // could not open
+            s << "_" << i << ".png";
+            break;
+        }
+        file.close();
+        i++;
+    }
+    
+    int success = SOIL_save_screenshot(s.str().c_str(), SOIL_SAVE_TYPE_PNG, 0, 0, WIDTH, HEIGHT);
+    if(!success)
+    {
+        std::cout << "ERROR: Failed to take screen shot: " << s.str().c_str() << std::endl;
+        return;
+    }
+    else{
+        std::cout <<"Screen shot: " << s.str().c_str() << std::endl;
+    }
+}
+
+void draw_helper::dsc_draw_interface(dsc_class & dsc)
+{
     for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
     {
         if (f->is_interface())
         {
-            glColor3f(1.0, 0.0, 0.0);
-            glBegin(GL_TRIANGLES);
+
             auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
-            glVertex3dv(pts[0].get());
-            glVertex3dv(pts[1].get());
-            glVertex3dv(pts[2].get());
+            //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
+            auto norm = -dsc.get_normal(f.key());
+            
+            glColor3f(0.7, 0.0, 0);
+            glBegin(GL_TRIANGLES);
+            for (auto v : pts)
+            {
+                glNormal3dv(norm.get());
+                glVertex3dv(v.get());
+            }
             glEnd();
             
-            glColor3f(0, 0, 1);
-            glBegin(GL_LINES);
-            glVertex3dv(pts[0].get());
-            glVertex3dv(pts[1].get());
+//            
+//            glDisable(GL_LIGHTING);
+//            glColor3f(0, 0, 0);
+//            glBegin(GL_LINES);
+//            
+//            auto edges = dsc.get_edges(f.key());
+//            
+//            for (int i = 0; i < 3; i++)
+//            {
+//                
+//             //   glNormal3dv(norm.get());
+//                glVertex3dv(pts[i].get());
+//                
+//             //   glNormal3dv(norm.get());
+//                glVertex3dv(pts[(i+1)%3].get());
+//            }
+//            glEnd();
+//            glEnable(GL_LIGHTING);
             
-            glVertex3dv(pts[0].get());
-            glVertex3dv(pts[2].get());
-            
-            glVertex3dv(pts[1].get());
-            glVertex3dv(pts[2].get());
-            glEnd();
-        
         }
     }
-
 }
 
 void draw_helper::dsc_draw_domain(dsc_class & dsc)
@@ -162,6 +226,8 @@ void draw_helper::dsc_draw_domain(dsc_class & dsc)
             
         }
     }
+    
+    
     glEnd();
     glDisable(GL_CULL_FACE);
 }
