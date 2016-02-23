@@ -106,11 +106,19 @@ namespace is_mesh {
         typedef Tetrahedron<tet_traits>                           tetrahedron_type;
 
         kernel<node_type, NodeKey>* m_node_kernel;
-        kernel<edge_type, EdgeKey>*                  m_edge_kernel;
-        kernel<face_type, FaceKey>*                  m_face_kernel;
-        kernel<tetrahedron_type, TetrahedronKey>*           m_tetrahedron_kernel;
+        kernel<edge_type, EdgeKey>* m_edge_kernel;
+        kernel<face_type, FaceKey>* m_face_kernel;
+        kernel<tetrahedron_type, TetrahedronKey>* m_tetrahedron_kernel;
         
     public:
+//        void booking(int free_cell_want)
+//        {
+//            m_node_kernel->booking(free_cell_want);
+//            m_edge_kernel->booking(free_cell_want);
+//            m_face_kernel->booking(free_cell_want);
+//            m_tetrahedron_kernel->booking(free_cell_want);
+//        }
+        
         ISMesh(std::vector<vec3> & points, std::vector<int> & tets, const std::vector<int>& tet_labels)
         {
             m_node_kernel = new kernel<node_type, NodeKey>();

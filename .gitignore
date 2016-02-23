@@ -35,3 +35,7 @@ Generator.xcodeproj/xcuserdata/asny.xcuserdatad/xcschemes/xcschememanagement.pli
 Generator.xcodeproj/project.xcworkspace/xcuserdata/asny.xcuserdatad/UserInterfaceState.xcuserstate
 
 Generator.xcodeproj/project.xcworkspace/xcshareddata/Generator.xccheckout
+
+LOG/
+Build/
+DerivedData/

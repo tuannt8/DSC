@@ -24,6 +24,8 @@
 #include <ctime>
 #include <chrono>
 
+#include "profile.h"
+
 using namespace DSC;
 
 void display_(){
@@ -51,6 +53,7 @@ UI* UI::instance = NULL;
 UI::UI(int &argc, char** argv)
 {
     instance = this;
+    profile::init();
 
     glutInit(&argc, argv);
 #ifdef _WIN32
@@ -122,6 +125,7 @@ UI::UI(int &argc, char** argv)
     
 	glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
     check_gl_error();
+
 }
 
 void UI::load_model(const std::string& file_name, real discretization)
@@ -168,7 +172,7 @@ void UI::display()
     if (glutGet(GLUT_WINDOW_WIDTH) != WIN_SIZE_X || glutGet(GLUT_WINDOW_HEIGHT) != WIN_SIZE_Y) {
         return;
     }
-    GLfloat timeValue = glutGet(GLUT_ELAPSED_TIME)*0.0002;
+    GLfloat timeValue = 0;//glutGet(GLUT_ELAPSED_TIME)*0.0002;
     vec3 ep( eye_pos[0] * sinf(timeValue), eye_pos[1] * cosf(timeValue) , eye_pos[2] * cosf(timeValue));
     painter->set_view_position(ep);
     painter->draw();
@@ -191,19 +195,19 @@ void UI::animate()
         std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() + 1 <<  " START*************\n" << std::endl;
         vel_fun->take_time_step(*dsc);
         painter->update(*dsc);
-        if(RECORD && basic_log)
-        {
-            painter->set_view_position(camera_pos);
-            painter->save_painting(basic_log->get_path(), vel_fun->get_time_step());
-            basic_log->write_timestep(*vel_fun, *dsc);
-        }
-        if (vel_fun->is_motion_finished(*dsc))
-        {
-            stop();
-            if (QUIT_ON_COMPLETION) {
-                exit(0);
-            }
-        }
+//        if(RECORD && basic_log)
+//        {
+//            painter->set_view_position(camera_pos);
+//            painter->save_painting(basic_log->get_path(), vel_fun->get_time_step());
+//            basic_log->write_timestep(*vel_fun, *dsc);
+//        }
+//        if (vel_fun->is_motion_finished(*dsc))
+//        {
+//            stop();
+//            if (QUIT_ON_COMPLETION) {
+//                exit(0);
+//            }
+//        }
         std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() <<  " STOP*************\n" << std::endl;
     }
     glutPostRedisplay();
@@ -211,6 +215,9 @@ void UI::animate()
 
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
+        case 'p':
+            profile::close();
+            break;
         case '\033':
             stop();
             exit(0);
@@ -224,22 +231,22 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case '1':
             stop();
-            QUIT_ON_COMPLETION = true;
-            RECORD = true;
+            QUIT_ON_COMPLETION = false;
+            RECORD = false;
             vel_fun = std::unique_ptr<VelocityFunc<>>(new RotateFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
             start("rotate");
             break;
         case '2':
             stop();
-            QUIT_ON_COMPLETION = true;
-            RECORD = true;
+            QUIT_ON_COMPLETION = false;
+            RECORD = false;
             vel_fun = std::unique_ptr<VelocityFunc<>>(new AverageFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
             start("smooth");
             break;
         case '3':
             stop();
-            QUIT_ON_COMPLETION = true;
-            RECORD = true;
+            QUIT_ON_COMPLETION = false;
+            RECORD = false;
             vel_fun = std::unique_ptr<VelocityFunc<>>(new NormalFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
             start("expand");
             break;
@@ -247,11 +254,11 @@ void UI::keyboard(unsigned char key, int x, int y) {
             if(!CONTINUOUS)
             {
                 std::cout << "MOTION STARTED" << std::endl;
-                if(RECORD && basic_log)
-                {
-                    painter->set_view_position(camera_pos);
-                    painter->save_painting(basic_log->get_path(), vel_fun->get_time_step());
-                }
+//                if(RECORD && basic_log)
+//                {
+//                    painter->set_view_position(camera_pos);
+//                    painter->save_painting(basic_log->get_path(), vel_fun->get_time_step());
+//                }
             }
             else {
                 std::cout << "MOTION PAUSED" << std::endl;

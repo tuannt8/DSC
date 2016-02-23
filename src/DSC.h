@@ -20,6 +20,30 @@
 #include "attributes.h"
 #include "geometry.h"
 #include "mesh_io.h"
+#include <functional>
+#include <mutex>
+#include <thread>
+#include "profile.h"
+
+class Barrier
+{
+private:
+    std::mutex _mutex;
+    std::condition_variable _cv;
+    std::size_t _count;
+public:
+    explicit Barrier(std::size_t count) : _count{count} { }
+    void Wait()
+    {
+        std::unique_lock<std::mutex> lock{_mutex};
+        if (--_count == 0) {
+            _cv.notify_all();
+        } else {
+            _cv.wait(lock, [this] { return _count == 0; });
+        }
+    }
+};
+
 
 struct parameters {
     
@@ -91,6 +115,8 @@ namespace DSC {
         {
             
         }
+        
+      //  using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::booking;
         
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_label;
@@ -359,6 +385,7 @@ namespace DSC {
         // FIX MESH FUNCTIONS //
         ////////////////////////
     private:
+    public:
         
         //////////////////////////////
         // TOPOLOGICAL EDGE REMOVAL //
@@ -513,7 +540,7 @@ namespace DSC {
         
         /**
          * Attempt to remove edge e by mesh reconnection using the dynamic programming method by Klincsek (see Shewchuk "Two Discrete Optimization Algorithms
-         * for the Topological Improvement of Tetrahedral Meshes" article for details).
+            for the Topological Improvement of Tetrahedral Meshes" article for details).
          */
         bool topological_edge_removal(const edge_key& eid)
         {
@@ -600,6 +627,9 @@ namespace DSC {
             }
             return false;
         }
+        
+        static void topological_edge_removal_worker(DeformableSimplicialComplex<> *dsc, std::vector<tet_key> *tet_list, int start_idx, int stop_idx, Barrier & bar);
+        void topological_edge_removal_parallel();
         
         /**
          * Improve tetrahedra quality by the topological operation (re-connection) edge removal. It do so only for tetrahedra of quality lower than MIN_TET_QUALITY.
@@ -759,6 +789,9 @@ namespace DSC {
             }
             return false;
         }
+        
+        static void topological_face_removal_worker(DeformableSimplicialComplex<>  *dsc, std::vector<tet_key> * tet_list, int start_idx, int stop_idx, Barrier & bar);
+        void topological_face_removal_parallel();
         
         /**
          * Improve tetrahedra quality by the topological operation (re-connection) multi-face removal. It do so only for tetrahedra of quality lower than MIN_TET_QUALITY.
@@ -1391,20 +1424,35 @@ namespace DSC {
 #endif
         }
         
+        static void smooth_worker(DeformableSimplicialComplex<> *dsc, std::vector<node_key> *node_list, int start_idx, int stop_idx, Barrier & bar);
+        void smooth_parallel();
+        
         ///////////////////
         // FIX FUNCTIONS //
         ///////////////////
         
         void fix_complex()
         {
-            smooth();
-            
-            topological_edge_removal();
-            topological_face_removal();
-            
-//            remove_tets();
-//            remove_faces();
-//            remove_edges();
+            {
+        //    profile p("Smooth parallel"); 
+//            smooth_parallel();
+                smooth();
+            }
+            {
+                
+          //  profile p1("edge remove parallel");
+            topological_edge_removal_parallel();
+                topological_edge_removal_parallel();
+                topological_edge_removal_parallel();
+//                 topological_edge_removal();
+            }
+            {
+            //    profile p1("Face parallel");
+                
+//            topological_face_removal_parallel();
+                topological_face_removal() ;
+            }
+        
             
             remove_degenerate_tets();
             remove_degenerate_faces();
@@ -1433,6 +1481,8 @@ namespace DSC {
          */
         void deform(int num_steps = 10)
         {
+       //     booking(1000);
+            
 #ifdef DEBUG
             validity_check();
             std::cout << std::endl << "********************************" << std::endl;
@@ -1443,6 +1493,9 @@ namespace DSC {
                 std::cout << "\n\tMove vertices step " << step << std::endl;
                 missing = 0;
                 int movable = 0;
+                {
+                    
+                profile t("Move");
                 for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
                 {
                     if (is_movable(nit.key()))
@@ -1454,21 +1507,36 @@ namespace DSC {
                         movable++;
                     }
                 }
+                    
+                }
                 std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
+                
+                {
+                    profile t("fix complex");
                 fix_complex();
+                }
 #ifdef DEBUG
                 validity_check();
 #endif
                 ++step;
             } while (missing > 0 && step < num_steps);
             
+            {
+                profile t("Resize");
             resize_complex();
             
+            }
+            {
+                
+                profile t("Garbage collection");
             garbage_collect();
             for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
             {
                 nit->set_destination(nit->get_pos());
             }
+            }
+            
+            
 #ifdef DEBUG
             validity_check();
 #endif

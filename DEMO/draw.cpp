@@ -184,9 +184,9 @@ GLuint Painter::init_shader(const char* vShaderFile, const char* fShaderFile, co
 Painter::Painter(const vec3& light_pos)
 {    
     // Initialize shader
-    wire_shader = init_shader("shaders/gouraud.vert", "shaders/wire.frag", "fragColour", "shaders/wire.geom");
-    line_shader = init_shader("shaders/line.vert", "shaders/line.frag", "fragColour", "shaders/line.geom");
-    gouraud_shader = init_shader("shaders/gouraud.vert",  "shaders/gouraud.frag", "fragColour");
+    wire_shader = init_shader("./shaders/gouraud.vert", "./shaders/wire.frag", "fragColour", "./shaders/wire.geom");
+    line_shader = init_shader("./shaders/line.vert", "./shaders/line.frag", "fragColour", "./shaders/line.geom");
+    gouraud_shader = init_shader("./shaders/gouraud.vert",  "./shaders/gouraud.frag", "fragColour");
     
     // Send light position uniform to the shader
     glUseProgram(gouraud_shader);

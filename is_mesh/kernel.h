@@ -7,6 +7,8 @@
 
 #include <is_mesh/kernel_iterator.h>
 
+#include <mutex>
+
 namespace is_mesh
 {
     
@@ -105,6 +107,7 @@ namespace is_mesh
         {
             key_type key;
             if (m_data_freelist.size()==0){
+                assert(0);
                 key = m_data.size();
                 m_data.emplace_back();
                 kernel_element& element = m_data.back();
@@ -309,5 +312,23 @@ namespace is_mesh
         {
             commit_all();
         }
+        
+        /**
+         TUAN: To perform multi thread, we must avoid changing the container size.
+         We have to book the free list.
+         */
+//        void booking(int free_cell_want)
+//        {
+//            int book_size = free_cell_want - m_data_freelist.size();
+//            for (int i = 0; i < book_size; i++)
+//            {
+//                key_type key = m_data.size();
+//                m_data.emplace_back();
+//                kernel_element& element = m_data.back();
+//                element.key = key;
+//                element.state = kernel_element::EMPTY;
+//                m_data_freelist.push_back(key);
+//            }
+//        }
     };
 }
