@@ -8,6 +8,7 @@
 #include <is_mesh/kernel_iterator.h>
 
 #include <mutex>
+#include <atomic>
 
 namespace is_mesh
 {
@@ -81,6 +82,7 @@ namespace is_mesh
         
         std::vector<kernel_element> m_data;
         std::vector<key_type> m_data_freelist;
+        std::mutex list_lock; // TUAN
         std::vector<key_type> m_data_marked_for_deletion;
     private:
         /**
@@ -107,16 +109,17 @@ namespace is_mesh
         {
             key_type key;
             if (m_data_freelist.size()==0){
-                assert(0);
-                key = m_data.size();
+                key = (unsigned int)m_data.size();
                 m_data.emplace_back();
                 kernel_element& element = m_data.back();
                 element.key = key;
                 element.state = kernel_element::EMPTY;
                 return element;
             } else {
+                list_lock.lock();
                 key = m_data_freelist.back();
                 m_data_freelist.pop_back();
+                list_lock.unlock();
                 assert(m_data[key].key == key);
                 return m_data[key];
             }
@@ -209,7 +212,9 @@ namespace is_mesh
                 return;
             }
             p.state = kernel_element::MARKED;
+            list_lock.lock();//TUAN
             m_data_marked_for_deletion.push_back(k);
+            list_lock.unlock();//TUAN
         }
         
         /**
@@ -281,6 +286,13 @@ namespace is_mesh
          */
         bool is_valid(key_type const & k)
         {
+            // Tuan
+            if ((int)k >= m_data.size())
+            {
+                return false;
+            }
+            //end
+            
             kernel_element& tmp = lookup(k);
             if (tmp.state == kernel_element::VALID) return true;
             return false;
@@ -317,18 +329,20 @@ namespace is_mesh
          TUAN: To perform multi thread, we must avoid changing the container size.
          We have to book the free list.
          */
-//        void booking(int free_cell_want)
-//        {
-//            int book_size = free_cell_want - m_data_freelist.size();
-//            for (int i = 0; i < book_size; i++)
-//            {
-//                key_type key = m_data.size();
-//                m_data.emplace_back();
-//                kernel_element& element = m_data.back();
-//                element.key = key;
-//                element.state = kernel_element::EMPTY;
-//                m_data_freelist.push_back(key);
-//            }
-//        }
+        void booking(int free_cell_want)
+        {
+            
+            long book_size = free_cell_want - m_data_freelist.size();
+            printf("Book %ld items\n", book_size);
+            for (int i = 0; i < book_size; i++)
+            {
+                key_type key = (unsigned int)m_data.size();
+                m_data.emplace_back();
+                kernel_element& element = m_data.back();
+                element.key = key;
+                element.state = kernel_element::EMPTY;
+                m_data_freelist.push_back(key);
+            }
+        }
     };
 }

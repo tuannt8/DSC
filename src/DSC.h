@@ -116,7 +116,7 @@ namespace DSC {
             
         }
         
-      //  using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::booking;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::booking;
         
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_label;
@@ -656,11 +656,12 @@ namespace DSC {
                     {
                         if(is_safe_editable(e))
                         {
-                            if(topological_edge_removal(e))
-                            {
-                                i++;
-                                break;
-                            }
+                            //TUAN
+//                            if(topological_edge_removal(e))
+//                            {
+//                                i++;
+//                                break;
+//                            }
                         }
                         else if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && is_flippable(e))
                         {
@@ -1441,10 +1442,10 @@ namespace DSC {
             {
                 
           //  profile p1("edge remove parallel");
-            topological_edge_removal_parallel();
+//            topological_edge_removal_parallel();
                 topological_edge_removal_parallel();
-                topological_edge_removal_parallel();
-//                 topological_edge_removal();
+//                topological_edge_removal_parallel();
+                 topological_edge_removal();
             }
             {
             //    profile p1("Face parallel");
@@ -1481,7 +1482,7 @@ namespace DSC {
          */
         void deform(int num_steps = 10)
         {
-       //     booking(1000);
+            booking(10000);
             
 #ifdef DEBUG
             validity_check();

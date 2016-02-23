@@ -111,13 +111,18 @@ namespace is_mesh {
         kernel<tetrahedron_type, TetrahedronKey>* m_tetrahedron_kernel;
         
     public:
-//        void booking(int free_cell_want)
-//        {
-//            m_node_kernel->booking(free_cell_want);
-//            m_edge_kernel->booking(free_cell_want);
-//            m_face_kernel->booking(free_cell_want);
-//            m_tetrahedron_kernel->booking(free_cell_want);
-//        }
+        
+        /**
+         TUAN: To perform multi thread, we must avoid changing the container size.
+         We have to book the free list.
+         */
+        void booking(int free_cell_want)
+        {
+            m_node_kernel->booking(free_cell_want);
+            m_edge_kernel->booking(free_cell_want);
+            m_face_kernel->booking(free_cell_want);
+            m_tetrahedron_kernel->booking(free_cell_want);
+        }
         
         ISMesh(std::vector<vec3> & points, std::vector<int> & tets, const std::vector<int>& tet_labels)
         {
@@ -530,10 +535,11 @@ namespace is_mesh {
                     }
                 }
             }
-            if(!get(n).is_crossing() && get(n).is_interface() && crossing(n))
-            {
-                set_crossing(n, true);
-            }
+            //TUAN CRITICAL
+//            if(!get(n).is_crossing() && get(n).is_interface() && crossing(n))
+//            {
+//                set_crossing(n, true);
+//            }
         }
         
         //////////////////////

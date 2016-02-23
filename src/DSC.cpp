@@ -136,6 +136,10 @@ is_mesh::SimplexSet<dsc_class::edge_key> affected_neighbor_topo_edge_remove(dsc_
     nids += dsc->get_polygons(eid).front();
     neighbors += dsc->get_edges(nids);
     
+//    // One more
+//    nids = dsc->get_nodes(neighbors);
+//    neighbors = dsc->get_edges(nids);
+    
     return neighbors;
 }
 
@@ -197,30 +201,31 @@ template<> void dsc_class::topological_edge_removal_worker(dsc_class *dsc, std::
             }
             dsc_lock.unlock();
             
-            dsc->topological_edge_removal(ekey);
+            if (ekey.is_valid())
+                dsc->topological_edge_removal(ekey);
         }
         else
             dsc_lock.unlock();
     }
     
-    for (int i = 0; i < edge_topo_boundary_remove.size(); i++)
-    {
-        auto &ekey = edge_topo_boundary_remove[i];
-        dsc_lock.lock();
-        if (!_dirty[ekey])
-        {
-            auto & ns = edge_topo_boundary_remove_neighbor[i];
-            for (auto ee : ns)
-            {
-                _dirty[ee] = 1;
-            }
-            dsc_lock.unlock();
-            
-            dsc->topological_boundary_edge_removal(ekey);
-        }
-        else
-            dsc_lock.unlock();
-    }
+//    for (int i = 0; i < edge_topo_boundary_remove.size(); i++)
+//    {
+//        auto &ekey = edge_topo_boundary_remove[i];
+//        dsc_lock.lock();
+//        if (!_dirty[ekey])
+//        {
+//            auto & ns = edge_topo_boundary_remove_neighbor[i];
+//            for (auto ee : ns)
+//            {
+//                _dirty[ee] = 1;
+//            }
+//            dsc_lock.unlock();
+//            
+//            dsc->topological_boundary_edge_removal(ekey);
+//        }
+//        else
+//            dsc_lock.unlock();
+//    }
 }
 
 template<> void dsc_class::topological_edge_removal_parallel()
