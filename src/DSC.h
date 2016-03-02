@@ -72,11 +72,17 @@ struct parameters {
     real MAX_VOLUME;
 };
 
+#define dsc_class DSC::DeformableSimplicialComplex<>
+
+
 namespace DSC {
     
     template <typename node_att = is_mesh::NodeAttributes, typename edge_att = is_mesh::EdgeAttributes, typename face_att = is_mesh::FaceAttributes, typename tet_att = is_mesh::TetAttributes>
     class DeformableSimplicialComplex : public is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>
     {
+        
+        
+        
     public:
         
         typedef is_mesh::NodeKey      node_key;
@@ -117,6 +123,17 @@ namespace DSC {
         }
         
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::booking;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_nodes_direct;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::container_no_edges;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::container_no_tets;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::container_no_faces;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::container_no_nodes;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::is_valid_in_kernel;
+        
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_node_by_idx;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_edge_by_idx;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_face_by_idx;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_tet_by_idx;
         
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_label;
@@ -628,6 +645,8 @@ namespace DSC {
             return false;
         }
         
+        static void topological_edge_removal_worker_2(DeformableSimplicialComplex<> *dsc, int start_idx, int stop_idx, Barrier & bar);
+        
         static void topological_edge_removal_worker(DeformableSimplicialComplex<> *dsc, std::vector<tet_key> *tet_list, int start_idx, int stop_idx, Barrier & bar);
         void topological_edge_removal_parallel();
         
@@ -790,7 +809,7 @@ namespace DSC {
             }
             return false;
         }
-        
+        static void topological_face_removal_worker2(dsc_class *dsc, int start_idx, int stop_idx, Barrier & bar);
         static void topological_face_removal_worker(DeformableSimplicialComplex<>  *dsc, std::vector<tet_key> * tet_list, int start_idx, int stop_idx, Barrier & bar);
         void topological_face_removal_parallel();
         
@@ -1435,29 +1454,29 @@ namespace DSC {
         void fix_complex()
         {
             {
-        //    profile p("Smooth parallel"); 
+            profile p("f.....Smooth");
 //            smooth_parallel();
-                smooth();
+//                smooth();
             }
             {
                 
-          //  profile p1("edge remove parallel");
-//            topological_edge_removal_parallel();
+            profile p1("f.....edge remove");
                 topological_edge_removal_parallel();
-//                topological_edge_removal_parallel();
-                 topological_edge_removal();
+//                 topological_edge_removal();
             }
             {
-            //    profile p1("Face parallel");
+                profile p1("f.....Face");
                 
 //            topological_face_removal_parallel();
                 topological_face_removal() ;
             }
         
-            
+            {
+                profile p1("f.....rest");
             remove_degenerate_tets();
             remove_degenerate_faces();
             remove_degenerate_edges();
+            }
         }
         
         void resize_complex()
@@ -1482,7 +1501,17 @@ namespace DSC {
          */
         void deform(int num_steps = 10)
         {
-            booking(10000);
+            booking(2000);
+            
+            auto t = tetrahedra_begin();
+            get_nodes_direct(t.key());
+            
+            {
+                profile t("parallel");
+            topological_edge_removal_parallel();
+            }
+            
+            return;
             
 #ifdef DEBUG
             validity_check();
@@ -1514,7 +1543,7 @@ namespace DSC {
                 
                 {
                     profile t("fix complex");
-                fix_complex();
+                    fix_complex();
                 }
 #ifdef DEBUG
                 validity_check();
@@ -2013,6 +2042,8 @@ namespace DSC {
         real quality(const tet_key& tid)
         {
             is_mesh::SimplexSet<node_key> nids = get_nodes(tid);
+            //TUAN
+//            auto nids = get_nodes_direct(tid);
             return std::abs(Util::quality<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), get_pos(nids[3])));
         }
         
@@ -2651,3 +2682,5 @@ namespace DSC {
     };
     
 }
+
+

@@ -116,10 +116,10 @@ namespace is_mesh
                 element.state = kernel_element::EMPTY;
                 return element;
             } else {
-                list_lock.lock();
+             //   list_lock.lock();
                 key = m_data_freelist.back();
                 m_data_freelist.pop_back();
-                list_lock.unlock();
+             //   list_lock.unlock();
                 assert(m_data[key].key == key);
                 return m_data[key];
             }
@@ -142,6 +142,20 @@ namespace is_mesh
         ~kernel()
         {
         }
+        
+        // TUAN ----- begin
+        /**
+         * The size of the contrainer. That is the number of valid elements in the kernel.
+         */
+        size_t container_size() const     { return m_data.size(); }
+        
+        key_type get_by_idx(int i)
+        {
+            kernel_element& tmp = lookup(i);
+            return tmp.key;
+        }
+        
+        // TUAN ----- end
         
         /**
          * The size of the kernel. That is the number of valid elements in the kernel.
@@ -212,9 +226,9 @@ namespace is_mesh
                 return;
             }
             p.state = kernel_element::MARKED;
-            list_lock.lock();//TUAN
+        //    list_lock.lock();//TUAN
             m_data_marked_for_deletion.push_back(k);
-            list_lock.unlock();//TUAN
+        //    list_lock.unlock();//TUAN
         }
         
         /**

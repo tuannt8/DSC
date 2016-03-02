@@ -124,6 +124,53 @@ namespace is_mesh {
             m_tetrahedron_kernel->booking(free_cell_want);
         }
         
+        bool is_valid_in_kernel(TetrahedronKey tkey){return m_tetrahedron_kernel->is_valid(tkey);}
+        bool is_valid_in_kernel(FaceKey key){return m_face_kernel->is_valid(key);}
+        bool is_valid_in_kernel(EdgeKey tkey){return m_edge_kernel->is_valid(tkey);}
+        bool is_valid_in_kernel(NodeKey tkey){return m_node_kernel->is_valid(tkey);}
+        
+        size_t container_no_edges()
+        {
+            return m_edge_kernel->container_size();
+        }
+        
+        size_t container_no_tets()
+        {
+            return m_tetrahedron_kernel->container_size();
+        }
+        
+        size_t container_no_faces()
+        {
+            return m_face_kernel->container_size();
+        }
+        
+        size_t container_no_nodes()
+        {
+            return m_node_kernel->container_size();
+        }
+        
+        TetrahedronKey get_tet_by_idx(int idx)
+        {
+            return m_tetrahedron_kernel->get_by_idx(idx);
+        }
+        
+        TetrahedronKey get_face_by_idx(int idx)
+        {
+            return m_face_kernel->get_by_idx(idx);
+        }
+        
+        TetrahedronKey get_edge_by_idx(int idx)
+        {
+            return m_edge_kernel->get_by_idx(idx);
+        }
+        
+        TetrahedronKey get_node_by_idx(int idx)
+        {
+            return m_node_kernel->get_by_idx(idx);
+        }
+        
+        // End Tuan
+        
         ISMesh(std::vector<vec3> & points, std::vector<int> & tets, const std::vector<int>& tet_labels)
         {
             m_node_kernel = new kernel<node_type, NodeKey>();
@@ -638,6 +685,29 @@ namespace is_mesh {
             SimplexSet<NodeKey> nids = get_nodes(eids[0]);
             nids += get_nodes(eids[1]);
             return nids;
+        }
+        
+        SimplexSet<NodeKey> get_nodes_direct(const TetrahedronKey& tid)
+        {
+            static bool init = false;
+            static std::vector<SimplexSet<NodeKey>> nodes_tet;
+            
+            
+            if(!init)
+            {
+                nodes_tet.resize(container_no_tets());
+                init = true;
+                for (auto tkey = tetrahedra_begin(); tkey != tetrahedra_end(); tkey++)
+                {
+                    const SimplexSet<FaceKey>& fids = get_faces(tid);
+                    SimplexSet<NodeKey> nids = get_nodes(fids[0]);
+                    nids += get_nodes(fids[1]);
+                    
+                    nodes_tet[(int)tkey.key()] = nids;
+                }
+            }
+            
+            return nodes_tet[tid];
         }
         
         SimplexSet<NodeKey> get_nodes(const TetrahedronKey& tid)

@@ -11,14 +11,14 @@
 
 using namespace std;
 
-#define NUM_THREADS 8
+#define NUM_THREADS 1
 #define p_min(a, b) (a<b?a:b)
 std::bitset<10000000> _dirty;
 std::mutex dsc_lock;
 
 std::atomic<int> total(0), processed(0);
 
-typedef DSC::DeformableSimplicialComplex<> dsc_class;
+
 
 template<> void dsc_class::topological_face_removal_worker(dsc_class *dsc, std::vector<dsc_class::tet_key> *tet_list, int start_idx, int stop_idx, Barrier & bar)
 {
@@ -35,14 +35,6 @@ template<> void dsc_class::topological_face_removal_worker(dsc_class *dsc, std::
             // Neightbor
             auto nids = dsc->get_nodes(cur_tet);
             is_mesh::SimplexSet<dsc_class::tet_key> neighbor_c;
-//            for (auto n : nids)
-//            {
-//                auto tets_n = dsc->get_tets(n);
-//                for (auto tt : tets_n)
-//                {
-//                    neighbor_c.push_back(tt);
-//                }
-//            }
             
             is_mesh::SimplexSet<dsc_class::node_key> neighbor_node;
             for (auto n : nids)
@@ -96,12 +88,96 @@ template<> void dsc_class::topological_face_removal_worker(dsc_class *dsc, std::
     }
 }
 
+is_mesh::SimplexSet<dsc_class::face_key> neighbor_of_tets(dsc_class *dsc, dsc_class::tet_key)
+{
+    is_mesh::SimplexSet<dsc_class::face_key> neighbor;
+    return neighbor;
+}
+
+template<> void dsc_class::topological_face_removal_worker2(dsc_class *dsc, int start_idx, int stop_idx, Barrier & bar)
+{
+    std::vector<face_key> faces_to_opt;
+    for (int i = start_idx; i < stop_idx; i++)
+    {
+        auto cur_tet = dsc->get_tet_by_idx(i);
+        if (!dsc->is_valid_in_kernel(cur_tet))
+        {
+            continue;
+        }
+        
+        
+        if (dsc->is_unsafe_editable(cur_tet)
+            && dsc->quality(cur_tet) < dsc->pars.MIN_TET_QUALITY)
+        {
+            for (auto f : dsc->get_faces(cur_tet))
+            {
+            }
+        }
+    }
+    
+    bar.Wait();
+//    
+//    for (int i = 0; i < tets.size(); i++)
+//    {
+//        auto t = tets[i];
+//        dsc_lock.lock();
+//        if (!_dirty[t])
+//        {
+//            auto & ns = neighbor[i];
+//            for (auto & nn : ns)
+//            {
+//                _dirty[nn] = 1;
+//            }
+//            dsc_lock.unlock();
+//            
+//            for (auto f : dsc->get_faces(t))
+//            {
+//                if (dsc->is_safe_editable(f))
+//                {
+//                    auto apices = dsc->get_nodes(dsc->get_tets(f)) - dsc->get_nodes(f);
+//                    if(dsc->topological_face_removal(apices[0], apices[1]))
+//                    {
+//                        processed ++;
+//                        break;
+//                    }
+//                }
+//            }
+//        }
+//        else
+//            dsc_lock.unlock();
+//    }
+}
+
 
 template<> void DSC::DeformableSimplicialComplex<>:: topological_face_removal_parallel()
 {
-    _dirty.reset();
-    total = 0;
-    processed = 0;
+//    _dirty.reset();
+//    
+////    // Divide the work
+////    std::vector<tet_key> face_list;
+////    for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
+////    {
+////        face_list.push_back(tit.key());
+////    }
+////    auto num_faces = face_list.size();
+//    
+//    auto num_faces = container_no_faces();
+//    
+//    // Launch threads
+//    std::thread ths[NUM_THREADS];
+//    int work_share = (int)(num_faces / NUM_THREADS) + 1;
+//    Barrier bar(NUM_THREADS);
+//    for (int i = 0; i < NUM_THREADS; i++)
+//    {
+//        ths[i] = std::thread(topological_face_removal_worker2, this, i*work_share, p_min(i*work_share+work_share, num_faces), std::ref(bar) );
+//    }
+//    
+//    for (int i = 0; i < NUM_THREADS; i++)
+//    {
+//        ths[i].join();
+//    }
+//    
+//
     
     // Divide the work
     std::vector<tet_key> face_list;
@@ -132,13 +208,9 @@ is_mesh::SimplexSet<dsc_class::edge_key> affected_neighbor_topo_edge_remove(dsc_
 {
     is_mesh::SimplexSet<dsc_class::edge_key> neighbors;
     
-    auto nids = dsc->get_nodes(eid);
-    nids += dsc->get_polygons(eid).front();
-    neighbors += dsc->get_edges(nids);
-    
-//    // One more
-//    nids = dsc->get_nodes(neighbors);
-//    neighbors = dsc->get_edges(nids);
+//    auto nids = dsc->get_nodes(eid);
+//    nids += dsc->get_polygons(eid).front();
+//    neighbors += dsc->get_edges(nids);
     
     return neighbors;
 }
@@ -208,47 +280,134 @@ template<> void dsc_class::topological_edge_removal_worker(dsc_class *dsc, std::
             dsc_lock.unlock();
     }
     
+    for (int i = 0; i < edge_topo_boundary_remove.size(); i++)
+    {
+        auto &ekey = edge_topo_boundary_remove[i];
+        dsc_lock.lock();
+        if (!_dirty[ekey])
+        {
+            auto & ns = edge_topo_boundary_remove_neighbor[i];
+            for (auto ee : ns)
+            {
+                _dirty[ee] = 1;
+            }
+            dsc_lock.unlock();
+            
+            dsc->topological_boundary_edge_removal(ekey);
+        }
+        else
+            dsc_lock.unlock();
+    }
+}
+
+template<> void dsc_class::topological_edge_removal_worker_2(dsc_class *dsc, int start_idx, int stop_idx, Barrier & bar)
+{
+    
+    std::vector<tet_key> tets;
+    for (int i = start_idx; i < stop_idx; i++)
+    {
+        auto cur_tet = dsc->get_tet_by_idx(i);
+        if (dsc->is_valid_in_kernel(cur_tet))
+        {
+            if ( dsc->quality(cur_tet) < dsc->pars.MIN_TET_QUALITY)
+            {
+                tets.push_back(cur_tet);
+            }
+        }
+    }
+    
+    vector<edge_key> edge_topo_remove;
+    vector<is_mesh::SimplexSet<edge_key>> edge_topo_remove_neighbor;
+    vector<edge_key> edge_topo_boundary_remove;
+    vector<is_mesh::SimplexSet<edge_key>> edge_topo_boundary_remove_neighbor;
+    for (auto &t:tets)
+    {
+        if (dsc->is_unsafe_editable(t) && dsc->quality(t) < dsc->pars.MIN_TET_QUALITY)
+        {
+            for (auto e : dsc->get_edges(t))
+            {
+//                dsc_lock.lock();
+//                if (_dirty[e])
+//                {
+//                    dsc_lock.unlock();
+//                    continue;
+//                }
+//                else
+//                    dsc_lock.unlock();
+                
+                if(dsc->is_safe_editable(e))
+                {
+                    edge_topo_remove.push_back(e);
+                    
+//                    is_mesh::SimplexSet<edge_key> neightbor = affected_neighbor_topo_edge_remove(dsc, e);
+                    
+//                    dsc_lock.lock();
+//                    for (auto ee : neightbor)
+//                    {
+//                        _dirty[ee] = 1;
+//                    }
+//                    dsc_lock.unlock();
+                }
+                else if(dsc->exists(e)
+                        && (dsc->get(e).is_interface() || dsc->get(e).is_boundary())
+                        && dsc->is_flippable(e))
+                {
+                    edge_topo_boundary_remove.push_back(e);
+//                    is_mesh::SimplexSet<edge_key> neightbor = affected_neighbor_topo_edge_remove(dsc, e);
+                    
+//                    dsc_lock.lock();
+//                    for (auto ee : neightbor)
+//                    {
+//                        _dirty[ee] = 1;
+//                    }
+//                    dsc_lock.unlock();
+                }
+            }
+        }
+    }
+
+    
+//    bar.Wait();
+//    
+//    for (int i = 0; i < edge_topo_remove.size(); i++)
+//    {
+//        auto &ekey = edge_topo_remove[i];
+//        dsc->topological_edge_removal(ekey);
+//    }
+//    
 //    for (int i = 0; i < edge_topo_boundary_remove.size(); i++)
 //    {
 //        auto &ekey = edge_topo_boundary_remove[i];
-//        dsc_lock.lock();
-//        if (!_dirty[ekey])
-//        {
-//            auto & ns = edge_topo_boundary_remove_neighbor[i];
-//            for (auto ee : ns)
-//            {
-//                _dirty[ee] = 1;
-//            }
-//            dsc_lock.unlock();
-//            
-//            dsc->topological_boundary_edge_removal(ekey);
-//        }
-//        else
-//            dsc_lock.unlock();
+//        dsc->topological_boundary_edge_removal(ekey);
 //    }
+    
 }
 
 template<> void dsc_class::topological_edge_removal_parallel()
 {
     _dirty.reset();
-    total = 0;
-    processed = 0;
     
-    // Divide the work
-    std::vector<tet_key> tetra_list;
-    for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
-    {
-        tetra_list.push_back(tit.key());
-    }
-    auto num_faces = tetra_list.size();
+//    // Divide the work
+//    std::vector<tet_key> tetra_list;
+//    for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
+//    {
+//        tetra_list.push_back(tit.key());
+//    }
+//    auto num_tets = tetra_list.size();
+    
+    
+    auto num_tets =container_no_tets();
     
     // Launch threads
     std::thread ths[NUM_THREADS];
-    int work_share = (int)(num_faces / NUM_THREADS) + 1;
+    int work_share = (int)(num_tets / NUM_THREADS) + 1;
     Barrier bar(NUM_THREADS);
+    
+//    topological_edge_removal_worker_2(this, 0, (int)num_tets, std::ref(bar));
+    
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        ths[i] = std::thread(topological_edge_removal_worker, this, &tetra_list, i*work_share, p_min(i*work_share+work_share, num_faces), std::ref(bar) );
+        ths[i] = std::thread(topological_edge_removal_worker_2, this, i*work_share, p_min(i*work_share+work_share, num_tets), std::ref(bar) );
     }
     
     for (int i = 0; i < NUM_THREADS; i++)
@@ -312,7 +471,7 @@ template<> void dsc_class:: smooth_parallel()
     
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        ths[i] = std::thread(smooth_worker, this, &nids, i*work_share, p_min(i+work_share+work_share, nids.size()), std::ref(bar) );
+        ths[i] = std::thread(smooth_worker, this, &nids, i*work_share, p_min(i*work_share+work_share, nids.size()), std::ref(bar) );
     }
     
     for (int i = 0; i < NUM_THREADS; i++)
