@@ -16,6 +16,17 @@
 
 #include "mesh_io.h"
 #include <fstream>
+#include "simplex.h"
+
+//
+//template<typename boundary_key_type, typename co_boundary_key_type>
+//int is_mesh::Simplex<boundary_key_type, co_boundary_key_type>:: bound_count = 0;
+//
+//template<typename boundary_key_type, typename co_boundary_key_type>
+//int is_mesh::Simplex<boundary_key_type, co_boundary_key_type>:: cobound_count = 0;
+
+int bound_count = 0;
+int cobound_count = 0;
 
 namespace is_mesh {
     

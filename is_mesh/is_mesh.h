@@ -20,6 +20,9 @@
 #include "kernel.h"
 #include "simplex.h"
 #include "simplex_set.h"
+#include "../src/profile.h"
+
+//#define TIME_GET
 
 namespace is_mesh {
 
@@ -656,6 +659,11 @@ namespace is_mesh {
         
         SimplexSet<NodeKey> get_sorted_nodes(const FaceKey& fid)
         {
+#ifdef TIME_GET
+            profile t("node - face");
+#endif
+//            profile t("node - face");
+            
             if (get(fid).is_interface())
             {
                 int label = -100;
@@ -681,6 +689,10 @@ namespace is_mesh {
         
         SimplexSet<NodeKey> get_nodes(const FaceKey& fid)
         {
+#ifdef TIME_GET
+            profile t("node - face");
+#endif
+//            profile t("node - face");
             const SimplexSet<EdgeKey>& eids = get_edges(fid);
             SimplexSet<NodeKey> nids = get_nodes(eids[0]);
             nids += get_nodes(eids[1]);
@@ -712,6 +724,11 @@ namespace is_mesh {
         
         SimplexSet<NodeKey> get_nodes(const TetrahedronKey& tid)
         {
+#ifdef TIME_GET
+            profile t("node - tet");
+#endif
+//            profile t("node - tet");
+            
             const SimplexSet<FaceKey>& fids = get_faces(tid);
             SimplexSet<NodeKey> nids = get_nodes(fids[0]);
             nids += get_nodes(fids[1]);
@@ -720,6 +737,10 @@ namespace is_mesh {
         
         SimplexSet<EdgeKey> get_edges(const TetrahedronKey& tid)
         {
+#ifdef TIME_GET
+            profile t("edge - tet");
+#endif
+            
             SimplexSet<EdgeKey> eids;
             for(const FaceKey& f : get_faces(tid))
             {
@@ -730,6 +751,10 @@ namespace is_mesh {
         
         SimplexSet<FaceKey> get_faces(const NodeKey& nid)
         {
+#ifdef TIME_GET
+            profile t("face - node");
+#endif
+            
             SimplexSet<FaceKey> fids;
             for(const EdgeKey& e : get_edges(nid))
             {
@@ -740,6 +765,11 @@ namespace is_mesh {
         
         SimplexSet<TetrahedronKey> get_tets(const NodeKey& nid)
         {
+#ifdef TIME_GET
+            profile t("tet - node");
+#endif
+//            profile t("tet - node");
+            
             SimplexSet<TetrahedronKey> tids;
             for(const EdgeKey& e : get_edges(nid))
             {
@@ -753,6 +783,9 @@ namespace is_mesh {
         
         SimplexSet<TetrahedronKey> get_tets(const EdgeKey& eid)
         {
+#ifdef TIME_GET
+            profile t("tet - edge");
+#endif
             SimplexSet<TetrahedronKey> tids;
             for(const FaceKey& f : get_faces(eid))
             {

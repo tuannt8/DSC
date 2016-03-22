@@ -213,10 +213,13 @@ void UI::animate()
     glutPostRedisplay();
 }
 
+extern int bound_count, cobound_count;
+
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
         case 'p':
             profile::close();
+            printf("bound: %d; cobound: %d", bound_count, cobound_count);
             break;
         case '\033':
             stop();

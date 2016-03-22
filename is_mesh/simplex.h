@@ -18,6 +18,8 @@
 
 #include "simplex_set.h"
 
+extern int bound_count, cobound_count;
+
 namespace is_mesh
 {
     ///////////////////////////////////////////////////////////////////////////////
@@ -26,6 +28,8 @@ namespace is_mesh
     /**
      * Base class for all simplex classes
      */
+    
+    
     template<typename boundary_key_type, typename co_boundary_key_type>
     class Simplex
     {
@@ -33,6 +37,8 @@ namespace is_mesh
         SimplexSet<co_boundary_key_type>* m_co_boundary = nullptr;
         
     public:
+//        static int bound_count, cobound_count;
+        
         
         Simplex()
         {
@@ -78,10 +84,12 @@ namespace is_mesh
         
         const SimplexSet<co_boundary_key_type>& get_co_boundary() const
         {
+//            cobound_count++;
             return *m_co_boundary;
         }
         const SimplexSet<boundary_key_type>& get_boundary() const
         {
+//            bound_count ++;
             return *m_boundary;
         }
         
@@ -105,6 +113,7 @@ namespace is_mesh
             *m_boundary -= key;
         }
     };
+    
     
     ///////////////////////////////////////////////////////////////////////////////
     ///  N O D E

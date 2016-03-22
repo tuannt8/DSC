@@ -1454,25 +1454,25 @@ namespace DSC {
         void fix_complex()
         {
             {
-            profile p("f.....Smooth");
+//            profile p("f.....Smooth");
 //            smooth_parallel();
-//                smooth();
+                smooth();
             }
             {
                 
-            profile p1("f.....edge remove");
-                topological_edge_removal_parallel();
-//                 topological_edge_removal();
+//            profile p1("f.....edge remove");
+//                topological_edge_removal_parallel();
+                 topological_edge_removal();
             }
             {
-                profile p1("f.....Face");
+//                profile p1("f.....Face");
                 
 //            topological_face_removal_parallel();
                 topological_face_removal() ;
             }
         
             {
-                profile p1("f.....rest");
+//                profile p1("f.....rest");
             remove_degenerate_tets();
             remove_degenerate_faces();
             remove_degenerate_edges();
@@ -1496,22 +1496,26 @@ namespace DSC {
         // MOVE FUNCTIONS //
         ////////////////////
     public:
+        
+//#define TIME_DEFORM
         /**
          * Moves all the vertices to their destination which can be set by the set_destination() function.
          */
         void deform(int num_steps = 10)
         {
-            booking(2000);
             
-            auto t = tetrahedra_begin();
-            get_nodes_direct(t.key());
-            
-            {
-                profile t("parallel");
-            topological_edge_removal_parallel();
-            }
-            
-            return;
+            profile t("Deformation");
+//            booking(2000);
+//            
+//            auto t = tetrahedra_begin();
+//            get_nodes_direct(t.key());
+//            
+//            {
+//                profile t("parallel");
+//            topological_edge_removal_parallel();
+//            }
+//            
+//            return;
             
 #ifdef DEBUG
             validity_check();
@@ -1542,7 +1546,9 @@ namespace DSC {
                 std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
                 
                 {
+#ifdef TIME_DEFORM
                     profile t("fix complex");
+#endif
                     fix_complex();
                 }
 #ifdef DEBUG
@@ -1552,13 +1558,16 @@ namespace DSC {
             } while (missing > 0 && step < num_steps);
             
             {
+#ifdef TIME_DEFORM
                 profile t("Resize");
+#endif
             resize_complex();
             
             }
             {
-                
+#ifdef TIME_DEFORM
                 profile t("Garbage collection");
+#endif
             garbage_collect();
             for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
             {

@@ -13,6 +13,7 @@
 using namespace std;
 
 
+
 std::map<std::string, profile_att> profile::m_objects;
 
 profile::profile(std::string name)
