@@ -118,37 +118,6 @@ void UI::setup_light()
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
-    
-//    vec3 center = _obj_dim/ 2.0;
-//    vec3 eye = center + vec3(gl_dis_max*2.0*cos(angle)*cos(angle2),
-//                             gl_dis_max*2.0*cos(angle)*sin(angle2),
-//                             gl_dis_max*2.0*sin(angle));
-//    GLfloat diffuseLight[] = {1.0f,1.0f,1.0f,1.0f};
-//    GLfloat ambientLight[] = {1.0f,1.0f,1.0f,1.0f};
-//    GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
-////    GLfloat mat_shininess[] = { 10.0 };
-//    
-//    GLfloat position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
-//
-//    
-//    
-//    glEnable(GL_MULTISAMPLE);
-//    glEnable(GL_DEPTH_TEST);
-//    
-//    glEnable(GL_COLOR_MATERIAL);
-//    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-//    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-//    
-//    glEnable(GL_LIGHTING);
-//    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-//    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-//    glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
-//    glLightfv(GL_LIGHT0, GL_POSITION, position);
-////    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-//    glEnable(GL_LIGHT0);
-//    
-//    glShadeModel(GL_SMOOTH);
-//    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void UI::update_draw_list()
