@@ -16,7 +16,7 @@ using namespace std;
 void segment_function::init()
 {
     //_img.load("data/sphere_drill");
-    _img.load("data/hamster");
+    _img.load("../Large_data/hamster");
 
 }
 

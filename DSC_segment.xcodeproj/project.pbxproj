@@ -106,11 +106,13 @@
 		7AE27B1517675CEA000F8238 /* demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AE27B1117675CEA000F8238 /* demo.cpp */; };
 		7AE27B1717675D34000F8238 /* libDSC.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AE27AD617675AE8000F8238 /* libDSC.a */; };
 		7AE27B1917675DA2000F8238 /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AE27AFD17675B78000F8238 /* GLUT.framework */; };
-		7AE27B1A17675DA6000F8238 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AE27AFB17675B70000F8238 /* OpenGL.framework */; };
 		7AF7E9BA176B402200F43714 /* user_interface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AF7E9B8176B402200F43714 /* user_interface.cpp */; };
 		7AF7E9BD176B412900F43714 /* draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7AF7E9BB176B412900F43714 /* draw.cpp */; };
 		7AF7E9BF176B4FE400F43714 /* DSC.h in Headers */ = {isa = PBXBuildFile; fileRef = 7AF7E9BE176B4FE400F43714 /* DSC.h */; };
 		7AF7E9C1176B524700F43714 /* is_mesh.h in Headers */ = {isa = PBXBuildFile; fileRef = 7AF7E9C0176B524700F43714 /* is_mesh.h */; };
+		A62FEA3C1CEAFBC000DF4640 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AE27AFB17675B70000F8238 /* OpenGL.framework */; };
+		A62FEA3E1CEAFBD000DF4640 /* libboost_system.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A62FEA3D1CEAFBD000DF4640 /* libboost_system.dylib */; };
+		A62FEA401CEAFBD800DF4640 /* libboost_filesystem.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A62FEA3F1CEAFBD800DF4640 /* libboost_filesystem.dylib */; };
 		A65A0C2E1C15E018005A8106 /* image3d.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A65A0C2C1C15E018005A8106 /* image3d.cpp */; settings = {COMPILER_FLAGS = "-Wno-c++11-narrowing"; }; };
 		A681F1831C19CF0000831E2E /* tetralizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A3438E6183C7B7800829EEB /* tetralizer.cpp */; };
 		A681F1861C19CFB400831E2E /* tetgen.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1841C19CFB400831E2E /* tetgen.cxx */; };
@@ -118,8 +120,6 @@
 		A681F1881C19CFB400831E2E /* tetgen.h in Headers */ = {isa = PBXBuildFile; fileRef = A681F1851C19CFB400831E2E /* tetgen.h */; };
 		A681F18A1C19D04C00831E2E /* predicates.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1891C19D04C00831E2E /* predicates.cxx */; };
 		A681F18B1C19D04C00831E2E /* predicates.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1891C19D04C00831E2E /* predicates.cxx */; };
-		A6EA334C1C18579500FFA69B /* libboost_filesystem.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6EA334B1C18579500FFA69B /* libboost_filesystem.dylib */; };
-		A6EA334E1C1857AD00FFA69B /* libboost_system.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6EA334D1C1857AD00FFA69B /* libboost_system.dylib */; };
 		A6EA33511C18589300FFA69B /* segment_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6EA334F1C18589300FFA69B /* segment_function.cpp */; };
 		A6F2930C1C18738200ED6916 /* glut_menu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6F2930A1C18738200ED6916 /* glut_menu.cpp */; };
 		A6F2930F1C187E2C00ED6916 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F2930E1C187E2C00ED6916 /* Accelerate.framework */; };
@@ -260,6 +260,8 @@
 		7AF7E9BC176B412900F43714 /* draw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = draw.h; sourceTree = "<group>"; };
 		7AF7E9BE176B4FE400F43714 /* DSC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DSC.h; path = src/DSC.h; sourceTree = SOURCE_ROOT; };
 		7AF7E9C0176B524700F43714 /* is_mesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = is_mesh.h; path = is_mesh/is_mesh.h; sourceTree = "<group>"; };
+		A62FEA3D1CEAFBD000DF4640 /* libboost_system.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_system.dylib; path = ../../../../../usr/local/Cellar/boost/1.59.0/lib/libboost_system.dylib; sourceTree = "<group>"; };
+		A62FEA3F1CEAFBD800DF4640 /* libboost_filesystem.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_filesystem.dylib; path = ../../../../../usr/local/Cellar/boost/1.59.0/lib/libboost_filesystem.dylib; sourceTree = "<group>"; };
 		A65A0C2C1C15E018005A8106 /* image3d.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = image3d.cpp; sourceTree = "<group>"; };
 		A65A0C2D1C15E018005A8106 /* image3d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = image3d.h; sourceTree = "<group>"; };
 		A681F1841C19CFB400831E2E /* tetgen.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tetgen.cxx; path = TetGen/tetgen.cxx; sourceTree = SOURCE_ROOT; };
@@ -314,15 +316,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A62FEA3C1CEAFBC000DF4640 /* OpenGL.framework in Frameworks */,
 				A6F2930F1C187E2C00ED6916 /* Accelerate.framework in Frameworks */,
 				7A4AADFB18459CB3005211B9 /* CoreFoundation.framework in Frameworks */,
 				7A553EBC17DA6BC400125178 /* libSOIL.a in Frameworks */,
 				7AE27B1717675D34000F8238 /* libDSC.a in Frameworks */,
 				7AE27B1917675DA2000F8238 /* GLUT.framework in Frameworks */,
-				7AE27B1A17675DA6000F8238 /* OpenGL.framework in Frameworks */,
-				A6EA334C1C18579500FFA69B /* libboost_filesystem.dylib in Frameworks */,
-				A6EA334E1C1857AD00FFA69B /* libboost_system.dylib in Frameworks */,
 				A6F293111C1884FD00ED6916 /* libpng16.16.dylib in Frameworks */,
+				A62FEA3E1CEAFBD000DF4640 /* libboost_system.dylib in Frameworks */,
+				A62FEA401CEAFBD800DF4640 /* libboost_filesystem.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -476,6 +478,8 @@
 		7AE27AAE17675A1E000F8238 = {
 			isa = PBXGroup;
 			children = (
+				A62FEA3F1CEAFBD800DF4640 /* libboost_filesystem.dylib */,
+				A62FEA3D1CEAFBD000DF4640 /* libboost_system.dylib */,
 				A6F293101C1884FD00ED6916 /* libpng16.16.dylib */,
 				A6F2930E1C187E2C00ED6916 /* Accelerate.framework */,
 				A6F293081C186AF900ED6916 /* libpng15.15.dylib */,
@@ -1011,10 +1015,12 @@
 					/usr/local/include/,
 					/usr/local/include/libpng16,
 					/opt/X11/include/,
+					/usr/local/Cellar/boost/1.59.0/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib/,
 					/opt/X11/lib,
+					/usr/local/Cellar/boost/1.59.0/lib,
 				);
 				MTL_ENABLE_DEBUG_INFO = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1035,10 +1041,12 @@
 					/usr/local/include/,
 					/usr/local/include/libpng16,
 					/opt/X11/include/,
+					/usr/local/Cellar/boost/1.59.0/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib/,
 					/opt/X11/lib,
+					/usr/local/Cellar/boost/1.59.0/lib,
 				);
 				MTL_ENABLE_DEBUG_INFO = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
