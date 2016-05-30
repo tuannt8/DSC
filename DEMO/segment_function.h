@@ -13,6 +13,22 @@
 #include "image3d.h"
 #include "DSC.h"
 
+struct intersect_pt
+{
+    intersect_pt(int z_, bool b_in_z_){
+        z = z_;
+        b_in = b_in_z_;
+    }
+    int z;
+    bool b_in;
+};
+
+struct ray_z
+{
+    int x, y;
+    std::vector<intersect_pt> intersects;
+};
+
 class segment_function
 {
     typedef DSC::DeformableSimplicialComplex<> dsc_class;
@@ -30,6 +46,13 @@ public:
 
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
+    
+private:
+    std::vector<double> _mean_intensities;
+    void update_average_intensity();
+    
+public:
+    std::vector<ray_z> _d_rayz;
 };
 
 #endif /* segment_function_hpp */

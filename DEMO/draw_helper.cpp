@@ -277,12 +277,14 @@ void draw_helper::update_texture(const image3d & im,
         glDeleteTextures(1, &tex_ID);
         tex_ID = 0;
     }
+
     
     glGenTextures(1, &tex_ID);
     
     // "Bind" the newly created texture : all future texture functions will modify this texture
     glBindTexture(GL_TEXTURE_2D, tex_ID);
     
+    glPixelStorei ( GL_UNPACK_ALIGNMENT,   1 );
     // Give the image to OpenGL
     glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     

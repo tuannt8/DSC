@@ -56,30 +56,83 @@ void image3d::load(std::string path)
     }
     
 
-    cimg_byte im;
-    im.load(files[0].c_str());
-    
-    _dim[Z] = (int)files.size();
-    _dim[X] = im.width();
-    _dim[Y] = im.height();
-    _layer_size = _dim[X]*_dim[Y];
-    
-    _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
-    
-    unsigned int idx = 0;
-    for (int i = 0; i < files.size(); i++)
-    {
+    try{
         cimg_byte im;
-        im.load(files[i].c_str());
-
-        for (int j = 0; j < im.height(); j++)
-            for(int i = 0; i < im.width(); i++)
-            {
-                _voxels[idx++] = (double)im(i,j) / 255.0;
-            }
+        im.load(files[0].c_str());
+        
+        _dim[Z] = (int)files.size();
+        _dim[X] = im.width();
+        _dim[Y] = im.height();
+        _layer_size = _dim[X]*_dim[Y];
+        
+        _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
+        
+        unsigned int idx = 0;
+        for (int i = 0; i < files.size(); i++)
+        {
+            cimg_byte im;
+            im.load(files[i].c_str());
+            
+            for (int j = 0; j < im.height(); j++)
+                for(int i = 0; i < im.width(); i++)
+                {
+                    _voxels[idx++] = (double)im(i,j) / 255.0;
+                }
+        }
+        
+        set_size();
+    }
+    catch (exception e)
+    {
+        std::cout << "CImg: " << e.what() << endl;
     }
     
-    set_size();
+    build_sum_table();
+}
+
+void image3d::build_sum_table()
+{
+    _sum_table.resize(_voxels.size());
+    
+    for (int z = 0; z < _dim[2]; z++)
+    {
+        for (int y = 0; y < _dim[1]; y++)
+        {
+            for (int x = 0; x < _dim[0]; x++)
+            {
+                auto vv = _voxels[index(x, y, z)];
+                double v = _voxels[index(x, y, z)]
+                    + sum_area(x, y, z-1)
+                    + sum_area(x-1, y, z) - sum_area(x-1, y, z-1)
+                    + sum_area(x, y-1, z) - sum_area(x, y-1, z - 1)
+                    - (sum_area(x-1, y-1, z) - sum_area(x-1, y-1, z-1));
+                _sum_table[index(x, y, z)] = v;
+                assert(v >= 0);
+            }
+        }
+    }
+}
+
+double image3d::sum_line_z(int x, int y, int z1, int z2)
+{
+    double l2 = sum_area(x, y, z2) - sum_area(x-1, y, z2) - sum_area(x, y - 1, z2) + sum_area(x-1, y - 1, z2);
+    double l1 = sum_area(x, y, z1) - sum_area(x-1, y, z1) - sum_area(x, y - 1, z1) + sum_area(x-1, y - 1, z1);
+    
+    return l2 - l1;
+}
+
+double image3d::sum_area(int x, int y, int z)
+{
+    if(x < 0 or y < 0 or z < 0)
+    {
+        return 0;
+    }
+    
+    // Make sure the function does not access out of range
+#ifdef DEBUG
+    assert(x < _dim[0] and y < _dim[1] and z < _dim[2]);
+#endif
+    return _sum_table[index(x, y, z)];
 }
 
 double image3d::get_value_f(vec3 pt) const
@@ -219,6 +272,7 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
     }else{
         dis = dis_coord_size.size() - 1;
     }
+    
     
     double total = 0;
     auto const & a = tet_dis_coord[dis];

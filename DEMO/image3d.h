@@ -14,7 +14,6 @@
 #define cimg_use_png
 #define cimg_display 0
 #include <CImg.h>
-// #include <../Cellar/cimg/1.6.3/include/CImg.h>
 #include <vector>
 #include <cstdint>
 #include "util.h"
@@ -39,6 +38,9 @@ public:
     
     // return average intensity
     double get_tetra_intensity(std::vector<vec3> tet_points, double * total_inten, double * volume = nullptr);
+    
+    double sum_area(int x, int y, int z);
+    double sum_line_z(int x, int y, int z1, int z2);
 
     // Interpolation
     double get_value_f(vec3 pt) const;
@@ -61,11 +63,12 @@ private:
     int _dim[3]; // x - y - z
     int _layer_size; // Size of image in 1 layer
     std::vector<double> _voxels;
-    
+    std::vector<double> _sum_table;
 private:
     void get_integral_recur(std::vector<vec3> const & tet_points, int loops, double * total, int deep);
     std::vector<std::vector<vec3>> subdivide_tet(std::vector<vec3> const & tet_points);
     
+    void build_sum_table();
 public:
     void generate_sample_point(int n);
     void generate_sample_point_tri(int n);

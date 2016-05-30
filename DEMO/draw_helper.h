@@ -44,7 +44,7 @@ public:
      */
     static void draw_coord(float length);
     
-private:
+public:
     CGLA::Vec3i _cur_cross_poss = CGLA::Vec3i(0,0,0);
     
     /*

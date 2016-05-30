@@ -120,6 +120,7 @@
 		A681F1881C19CFB400831E2E /* tetgen.h in Headers */ = {isa = PBXBuildFile; fileRef = A681F1851C19CFB400831E2E /* tetgen.h */; };
 		A681F18A1C19D04C00831E2E /* predicates.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1891C19D04C00831E2E /* predicates.cxx */; };
 		A681F18B1C19D04C00831E2E /* predicates.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1891C19D04C00831E2E /* predicates.cxx */; };
+		A6822D721CEDF7380081B941 /* profile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6822D711CEDF7380081B941 /* profile.cpp */; };
 		A6EA33511C18589300FFA69B /* segment_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6EA334F1C18589300FFA69B /* segment_function.cpp */; };
 		A6F2930C1C18738200ED6916 /* glut_menu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6F2930A1C18738200ED6916 /* glut_menu.cpp */; };
 		A6F2930F1C187E2C00ED6916 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F2930E1C187E2C00ED6916 /* Accelerate.framework */; };
@@ -127,6 +128,30 @@
 		A6F293141C1885AC00ED6916 /* draw_helper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6F293121C1885AC00ED6916 /* draw_helper.cpp */; };
 		A6FF2BB91C6A47BC00EDC141 /* tet_dis_coord.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6FF2BB71C6A47BC00EDC141 /* tet_dis_coord.cpp */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A6075B081CF3067600FB8CEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7AE27AAF17675A1E000F8238 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7A9C205817DFB4CB0064171E;
+			remoteInfo = CGLA;
+		};
+		A6075B0A1CF3067900FB8CEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7AE27AAF17675A1E000F8238 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7AE27AD517675AE8000F8238;
+			remoteInfo = DSC;
+		};
+		A6075B0C1CF3067C00FB8CEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7AE27AAF17675A1E000F8238 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7A0AB5A417D906AD0058910E;
+			remoteInfo = SOIL;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		7AE27B0317675CDA000F8238 /* CopyFiles */ = {
@@ -267,6 +292,8 @@
 		A681F1841C19CFB400831E2E /* tetgen.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tetgen.cxx; path = TetGen/tetgen.cxx; sourceTree = SOURCE_ROOT; };
 		A681F1851C19CFB400831E2E /* tetgen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tetgen.h; path = TetGen/tetgen.h; sourceTree = SOURCE_ROOT; };
 		A681F1891C19D04C00831E2E /* predicates.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = predicates.cxx; path = TetGen/predicates.cxx; sourceTree = SOURCE_ROOT; };
+		A6822D701CEDF7380081B941 /* profile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = profile.h; sourceTree = "<group>"; };
+		A6822D711CEDF7380081B941 /* profile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = profile.cpp; sourceTree = "<group>"; };
 		A6EA334B1C18579500FFA69B /* libboost_filesystem.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_filesystem.dylib; path = ../../../../../usr/local/lib/libboost_filesystem.dylib; sourceTree = "<group>"; };
 		A6EA334D1C1857AD00FFA69B /* libboost_system.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_system.dylib; path = ../../../../../usr/local/lib/libboost_system.dylib; sourceTree = "<group>"; };
 		A6EA334F1C18589300FFA69B /* segment_function.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = segment_function.cpp; sourceTree = "<group>"; };
@@ -552,6 +579,8 @@
 		A65A0C2F1C15E0DB005A8106 /* Lib */ = {
 			isa = PBXGroup;
 			children = (
+				A6822D701CEDF7380081B941 /* profile.h */,
+				A6822D711CEDF7380081B941 /* profile.cpp */,
 			);
 			name = Lib;
 			sourceTree = "<group>";
@@ -737,6 +766,9 @@
 			buildRules = (
 			);
 			dependencies = (
+				A6075B0D1CF3067C00FB8CEF /* PBXTargetDependency */,
+				A6075B0B1CF3067900FB8CEF /* PBXTargetDependency */,
+				A6075B091CF3067600FB8CEF /* PBXTargetDependency */,
 			);
 			name = DEMO;
 			productName = DEMO;
@@ -846,11 +878,30 @@
 				7A470AE317F51DC3001FC0CB /* log.cpp in Sources */,
 				A681F1831C19CF0000831E2E /* tetralizer.cpp in Sources */,
 				A681F1871C19CFB400831E2E /* tetgen.cxx in Sources */,
+				A6822D721CEDF7380081B941 /* profile.cpp in Sources */,
 				7AF7E9BD176B412900F43714 /* draw.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A6075B091CF3067600FB8CEF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7A9C205817DFB4CB0064171E /* CGLA */;
+			targetProxy = A6075B081CF3067600FB8CEF /* PBXContainerItemProxy */;
+		};
+		A6075B0B1CF3067900FB8CEF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7AE27AD517675AE8000F8238 /* DSC */;
+			targetProxy = A6075B0A1CF3067900FB8CEF /* PBXContainerItemProxy */;
+		};
+		A6075B0D1CF3067C00FB8CEF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7A0AB5A417D906AD0058910E /* SOIL */;
+			targetProxy = A6075B0C1CF3067C00FB8CEF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		7A0AB5A617D906AD0058910E /* Debug */ = {

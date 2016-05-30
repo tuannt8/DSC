@@ -31,6 +31,8 @@
 #include <chrono>
 #include <mutex>
 
+#include "profile.h"
+
 using namespace DSC;
 using namespace std;
 
@@ -191,8 +193,6 @@ UI::UI(int &argc, char** argv)
     _seg._dsc = &*dsc;
     _seg.initialze_segmentation();
     
-    // Launch worker thread
-    m_th = std::thread(worker);
 }
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
@@ -302,6 +302,12 @@ void UI::update_gl()
 
 void UI::display()
 {
+    if (CONTINUOUS)
+    {
+        _seg.segment();
+        m_iters++;
+    }
+    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     update_gl();
@@ -313,18 +319,50 @@ void UI::display()
     total_time += t.count();
     init_time = std::chrono::system_clock::now();
     
-    
-    if (total_time > 0.5
-        or force_render)
+    //
+    if (glut_menu::get_state("Ray line", 0))
     {
-        force_render = false;
-        total_time = 0;
-        
-        draw_lock.lock();
-
-        m_gl_sence = glGenLists(1);
-        glNewList(m_gl_sence, GL_COMPILE);
-        
+        glDisable(GL_LIGHTING);
+        glPointSize(2.0);
+        glBegin(GL_POINTS);
+        glColor3f(1, 0, 0);
+        for (auto r : _seg._d_rayz)
+        {
+            for (int i = 0; i < r.intersects.size()/2; i++)
+            {
+                for (int j = r.intersects[2*i].z; j < r.intersects[2*i + 1].z; j++)
+                {
+                    glVertex3f(r.x, r.y, j);
+                }
+            }
+            
+        }
+        glEnd();
+        glEnable(GL_LIGHTING);
+    }
+    
+    if (glut_menu::get_state("Ray cross section", 0))
+    {
+        glDisable(GL_LIGHTING);
+        glPointSize(2.0);
+        glBegin(GL_POINTS);
+        glColor3f(1, 0, 0);
+        auto zz = draw_helper::get_instance()._cur_cross_poss[2];
+        for (auto r : _seg._d_rayz)
+        {
+            for (int i = 0; i < r.intersects.size()/2; i++)
+            {
+                if (zz > r.intersects[2*i].z and zz < r.intersects[2*i + 1].z)
+                {
+                    glVertex3f(r.x, r.y, zz);
+                }
+            }
+            
+        } 
+        glEnd();
+        glEnable(GL_LIGHTING);
+    }
+    
 
         
         if (glut_menu::get_state("Draw DSC edges", 0))
@@ -360,14 +398,7 @@ void UI::display()
         {
             draw_helper::draw_image_slice(_seg._img);
         }
-        
-        glEndList();
-        
-        draw_lock.unlock();
-    }
     
-
-    glCallList(m_gl_sence);
     
     glutSwapBuffers();
     
@@ -395,11 +426,9 @@ void UI::animate()
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
         case GLUT_KEY_UP:
-            force_render = true;
             draw_helper::update_texture(_seg._img, 0,0,1);
             break;
         case GLUT_KEY_DOWN:
-            force_render = true;
             draw_helper::update_texture(_seg._img, 0,0,-1);
             break;
         case ' ':
@@ -408,6 +437,9 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case '\t':
             draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
+            break;
+        case 'p':
+            profile::close();
             break;
         default:
             break;
