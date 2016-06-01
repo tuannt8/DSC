@@ -58,6 +58,12 @@ void segment_function::initialze_segmentation()
         double total, volume;
         auto pts = _dsc->get_pos(_dsc->get_nodes(tit.key()));
         double avgI = _img.get_tetra_intensity(pts, &total, &volume);
+        
+        double var = _img.get_variation(pts, avgI);
+        if (var > 0.1)
+        {
+            continue;
+        }
 
         assert(avgI < 1.01);
         
@@ -78,6 +84,133 @@ void segment_function::initialze_segmentation()
     }
 }
 
+void segment_function::update_vertex_stability()
+{
+    _vertex_stability_map = std::vector<int>(30000, 0); // suppose we have less than 10000 vertices
+    
+    for (auto vid = _dsc->nodes_begin(); vid != _dsc->nodes_end(); vid++)
+    {
+        if (_forces[(long)vid.key()].length() < 0.1) // stable
+        {
+            _vertex_stability_map[vid.key()] = 1;
+        }
+    }
+}
+
+void segment_function::compute_external_force()
+{
+    auto c = _mean_intensities;
+    // Compute forces
+    std::vector<vec3> forces = std::vector<vec3>(30000, vec3(0.0)); // suppose we have less than 10000 vertices
+    for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
+    {
+        if (fid->is_interface())
+        {
+            // Normal
+            auto tets = _dsc->get_tets(fid.key());
+            auto verts = _dsc->get_nodes(fid.key());
+            auto pts = _dsc->get_pos(verts);
+            
+            double c0 = c[_dsc->get_label(tets[0])];
+            double c1 = c[_dsc->get_label(tets[1])];
+            
+            vec3 Norm = _dsc->get_normal(fid.key());
+            auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
+            Norm = Norm*dot(Norm, l01);// modify normal direction
+            Norm.normalize();
+            
+            // Discretize the face
+            double area = Util::area<double>(pts[0], pts[1], pts[2]);
+            
+            size_t n = std::ceil( sqrt(area) );
+            if (n >= tri_coord_size.size())
+            {
+                n = tri_coord_size.size() - 1;
+            }
+            
+            auto a = tri_dis_coord[n - 1];
+            for (auto coord : a)
+            {
+                auto p = get_coord_tri(pts, coord);
+                auto g = _img.get_value_f(p);
+                
+                //                auto f = - Norm* ((c1 - c0)*(2*g - c0 - c1) / area);
+                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area);
+                
+                // distribute
+                forces[verts[0]] += f*coord[0];
+                forces[verts[1]] += f*coord[1];
+                forces[verts[2]] += f*coord[2];
+            }
+        }
+    }
+
+    _forces = forces;
+}
+
+void segment_function::face_split()
+{
+    auto c = _mean_intensities;
+    for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
+    {
+        if (fid->is_interface())
+        {
+            // check if it is stable first
+            auto nodes = _dsc->get_nodes(fid.key());
+            if (!(_vertex_stability_map[nodes[0]] == 1
+                and _vertex_stability_map[nodes[1]] == 1
+              and _vertex_stability_map[nodes[2]] == 1))
+            {
+                continue;
+            }
+            
+            double var = 0.0;
+            // Normal
+            auto tets = _dsc->get_tets(fid.key());
+            auto verts = _dsc->get_nodes(fid.key());
+            auto pts = _dsc->get_pos(verts);
+            
+            double c0 = c[_dsc->get_label(tets[0])];
+            double c1 = c[_dsc->get_label(tets[1])];
+            
+            vec3 Norm = _dsc->get_normal(fid.key());
+            auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
+            Norm = Norm*dot(Norm, l01);// modify normal direction
+            Norm.normalize();
+            
+            // Discretize the face
+            double area = Util::area<double>(pts[0], pts[1], pts[2]);
+            
+            size_t n = std::ceil( sqrt(area) );
+            if (n >= tri_coord_size.size())
+            {
+                n = tri_coord_size.size() - 1;
+            }
+            
+            auto a = tri_dis_coord[n - 1];
+            for (auto coord : a)
+            {
+                auto p = get_coord_tri(pts, coord);
+                auto g = _img.get_value_f(p);
+                
+                //                auto f = - Norm* ((c1 - c0)*(2*g - c0 - c1) / area);
+                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area);
+                
+                // add
+                var += f.length();
+            }
+            
+            var = var / a.size();
+            
+            if (var > 0.1) // The face want to move
+            {
+                cout << "Split face " << fid.key() << ", var = " << var << endl;
+                _dsc->split(fid.key());
+            }
+        }
+    }
+
+}
 
 
 /**
@@ -287,63 +420,59 @@ void segment_function::segment()
     // Need further investigation
     update_average_intensity();
     
+    /**
+     RELABEL TETRAHEDRAL
+     */
     static int mesh_opt_counter = 0;
     if (mesh_opt_counter > 20)
     {
         // Perform relabeling
         for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
         {
+            // Evaluate the tetrahedral
+            auto pts = _dsc->get_pos(_dsc->get_nodes(tid.key()));
+            double meanc = _img.get_tetra_intensity(pts);
             
-        }
-    }
-    
-
-    auto c = _mean_intensities;
-    
-    // Compute forces
-    std::vector<vec3> forces = std::vector<vec3>(30000, vec3(0.0)); // suppose we have less than 10000 vertices
-    for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
-    {
-        if (fid->is_interface())
-        {
-            // Normal
-            auto tets = _dsc->get_tets(fid.key());
-            auto verts = _dsc->get_nodes(fid.key());
-            auto pts = _dsc->get_pos(verts);
-            
-            double c0 = c[_dsc->get_label(tets[0])];
-            double c1 = c[_dsc->get_label(tets[1])];
-            
-            vec3 Norm = _dsc->get_normal(fid.key());
-            auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
-            Norm = Norm*dot(Norm, l01);// modify normal direction
-            Norm.normalize();
-            
-            // Discretize the face
-            double area = Util::area<double>(pts[0], pts[1], pts[2]);
-            
-            size_t n = std::ceil( sqrt(area) );
-            if (n >= tri_coord_size.size())
+            // Find new phase
+            int phase = -1;
+            double min_dis = INFINITY;
+            for (int i = 0; i < _mean_intensities.size(); i++)
             {
-                n = tri_coord_size.size() - 1;
+                if (min_dis > std::abs(_mean_intensities[i] - meanc))
+                {
+                    min_dis = std::abs(_mean_intensities[i] - meanc);
+                    phase = i;
+                }
             }
             
-            auto a = tri_dis_coord[n - 1];
-            for (auto coord : a)
+            if (phase != _dsc->get_label(tid.key()))
             {
-                auto p = get_coord_tri(pts, coord);
-                auto g = _img.get_value_f(p);
+                double var = _img.get_variation(pts, meanc);
+                double thres = 0.2*std::abs(_mean_intensities[_dsc->get_label(tid.key())]
+                                            - _mean_intensities[phase]);
                 
-//                auto f = - Norm* ((c1 - c0)*(2*g - c0 - c1) / area);
-                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area);
-                
-                // distribute
-                forces[verts[0]] += f*coord[0];
-                forces[verts[1]] += f*coord[1];
-                forces[verts[2]] += f*coord[2];
+                cout << "thres hold: " << thres << endl;
+                if (var > thres) // Large variation, split
+                {
+                    cout << "Relabel " << tid.key() << " from " << _dsc->get_label(tid.key())
+                    << "to" << phase << endl;
+                    _dsc->set_label(tid.key(), phase);
+                }
+                else // If they are stable, split the tetrahedral
+                {
+                    
+                }
             }
         }
+        
+        // Face spliting
+        compute_external_force();
+        update_vertex_stability();
+        face_split();
     }
+    
+    compute_external_force();
+    
     
     t.done();
     t = profile("Apply force");
@@ -355,7 +484,7 @@ void segment_function::segment()
         if ( (nid->is_interface() or nid->is_crossing())
             and _dsc->is_movable(nid.key()))
         {
-            auto dis = forces[nid.key()]*_dt;
+            auto dis = _forces[nid.key()]*_dt;
             //cout << "Node " << nid.key() << " : " << dis << endl;
             _dsc->set_destination(nid.key(), nid->get_pos() + dis);
             if (largest < dis.length())

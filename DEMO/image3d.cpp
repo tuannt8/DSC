@@ -287,14 +287,41 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
     
     total = total * v / a.size();
     
-    *total_inten = total;
+    if(total_inten)
+        *total_inten = total;
     
     if (volume)
     {
         *volume = v;
     }
     
-    return *total_inten / v;
+    return total / v;
+}
+
+double image3d::get_variation(std::vector<vec3> tet_points, double c)
+{
+    double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);
+    
+    size_t dis = 0;
+    auto itd = std::find(dis_coord_size.begin(), dis_coord_size.end(), v);
+    if (itd!= dis_coord_size.end())
+    {
+        dis = itd - dis_coord_size.begin();
+    }else{
+        dis = dis_coord_size.size() - 1;
+    }
+    
+    
+    double total = 0;
+    auto const a = tet_dis_coord[dis];
+    for (auto tb : a)
+    {
+        auto pt = get_coord(tet_points, tb);
+        total += std::abs(get_value(pt[0], pt[1], pt[2]) - c);
+    }
+    
+    total = total * v / a.size();
+    return total / v;
 }
 
 void image3d::get_integral_recur(std::vector<vec3> const & tet_points, int loops, double * total, int deep)

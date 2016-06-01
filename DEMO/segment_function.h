@@ -51,6 +51,11 @@ private:
     std::vector<double> _mean_intensities;
     void update_average_intensity();
     
+    std::vector<int> _vertex_stability_map;
+    std::vector<vec3> _forces;
+    void compute_external_force();
+    void update_vertex_stability();
+    void face_split();
 public:
     std::vector<ray_z> _d_rayz;
 };

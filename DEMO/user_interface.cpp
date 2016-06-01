@@ -116,6 +116,8 @@ void UI::setup_light()
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     
+    glEnable(GL_COLOR_MATERIAL);
+    
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
@@ -338,7 +340,7 @@ void UI::display()
         glEnable(GL_LIGHTING);
     }
     
-    if (glut_menu::get_state("Draw DSC single interface", 0))
+    if (glut_menu::get_state("Draw DSC single interface", 1))
     {
         glDisable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
@@ -373,7 +375,7 @@ void UI::display()
         draw_helper::dsc_draw_interface_edge(*dsc);
     }
     
-    if (glut_menu::get_state("Draw DSC interface", 1))
+    if (glut_menu::get_state("Draw DSC interface", 0))
     {
         glDisable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);

@@ -37,7 +37,11 @@ public:
     void load(std::string path);
     
     // return average intensity
-    double get_tetra_intensity(std::vector<vec3> tet_points, double * total_inten, double * volume = nullptr);
+    // ouput intensity sum and volume optional
+    double get_tetra_intensity(std::vector<vec3> tet_points, double * total_inten = nullptr, double * volume = nullptr);
+    
+    // Return variation to intensity c
+    double get_variation(std::vector<vec3> tet_points, double c);
     
     double sum_area(int x, int y, int z);
     double sum_line_z(int x, int y, int z1, int z2);
