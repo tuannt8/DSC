@@ -1435,10 +1435,10 @@ namespace DSC {
          */
         void deform(int num_steps = 10)
         {
-#ifdef DEBUG
-            validity_check();
-            std::cout << std::endl << "********************************" << std::endl;
-#endif
+//#ifdef DEBUG
+//            validity_check();
+//            std::cout << std::endl << "********************************" << std::endl;
+//#endif
             int missing;
             int step = 0;
             do {
@@ -1458,9 +1458,9 @@ namespace DSC {
                 }
                 std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
                 fix_complex();
-#ifdef DEBUG
-                validity_check();
-#endif
+//#ifdef DEBUG
+//                validity_check();
+//#endif
                 ++step;
             } while (missing > 0 && step < num_steps);
             
@@ -1471,9 +1471,9 @@ namespace DSC {
             {
                 nit->set_destination(nit->get_pos());
             }
-#ifdef DEBUG
-            validity_check();
-#endif
+//#ifdef DEBUG
+//            validity_check();
+//#endif
         }
         
     private:
@@ -1809,6 +1809,17 @@ namespace DSC {
                 }
             }
             return verts;
+        }
+        
+        /**
+         For multi phase
+         The normal of the phase that contains the tetrahedral
+         Will go out the tetrahedral
+         */
+        vec3 get_normal(const face_key& fid, const tet_key &tid)
+        {
+            auto pos = get_pos(this->get_sorted_nodes(fid, tid));
+            return Util::normal_direction(pos[0], pos[1], pos[2]);
         }
         
         /**

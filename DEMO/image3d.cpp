@@ -76,7 +76,10 @@ void image3d::load(std::string path)
             for (int j = 0; j < im.height(); j++)
                 for(int i = 0; i < im.width(); i++)
                 {
-                    _voxels[idx++] = (double)im(i,j) / 255.0;
+                    double aa = (double)im(i,j);
+                    _voxels[idx++] = (double)im(i,j)/255.0;
+                    assert(_voxels[idx-1] < 1.1 and _voxels[idx-1] >= 0);
+                    
                 }
         }
         
@@ -85,8 +88,8 @@ void image3d::load(std::string path)
     catch (exception e)
     {
         std::cout << "CImg: " << e.what() << endl;
+        exit(9);
     }
-    
     build_sum_table();
 }
 
@@ -275,8 +278,8 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
     
     
     double total = 0;
-    auto const & a = tet_dis_coord[dis];
-    for (auto & tb : a)
+    auto const a = tet_dis_coord[dis];
+    for (auto tb : a)
     {
         auto pt = get_coord(tet_points, tb);
         total += get_value(pt[0], pt[1], pt[2]);

@@ -113,6 +113,7 @@
 		A62FEA3C1CEAFBC000DF4640 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AE27AFB17675B70000F8238 /* OpenGL.framework */; };
 		A62FEA3E1CEAFBD000DF4640 /* libboost_system.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A62FEA3D1CEAFBD000DF4640 /* libboost_system.dylib */; };
 		A62FEA401CEAFBD800DF4640 /* libboost_filesystem.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A62FEA3F1CEAFBD800DF4640 /* libboost_filesystem.dylib */; };
+		A65022771CFC8A2A00F3FF76 /* libX11.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A65022761CFC8A2A00F3FF76 /* libX11.dylib */; };
 		A65A0C2E1C15E018005A8106 /* image3d.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A65A0C2C1C15E018005A8106 /* image3d.cpp */; settings = {COMPILER_FLAGS = "-Wno-c++11-narrowing"; }; };
 		A681F1831C19CF0000831E2E /* tetralizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A3438E6183C7B7800829EEB /* tetralizer.cpp */; };
 		A681F1861C19CFB400831E2E /* tetgen.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1841C19CFB400831E2E /* tetgen.cxx */; };
@@ -287,6 +288,7 @@
 		7AF7E9C0176B524700F43714 /* is_mesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = is_mesh.h; path = is_mesh/is_mesh.h; sourceTree = "<group>"; };
 		A62FEA3D1CEAFBD000DF4640 /* libboost_system.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_system.dylib; path = ../../../../../usr/local/Cellar/boost/1.59.0/lib/libboost_system.dylib; sourceTree = "<group>"; };
 		A62FEA3F1CEAFBD800DF4640 /* libboost_filesystem.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_filesystem.dylib; path = ../../../../../usr/local/Cellar/boost/1.59.0/lib/libboost_filesystem.dylib; sourceTree = "<group>"; };
+		A65022761CFC8A2A00F3FF76 /* libX11.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libX11.dylib; path = ../../../../../opt/X11/lib/libX11.dylib; sourceTree = "<group>"; };
 		A65A0C2C1C15E018005A8106 /* image3d.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = image3d.cpp; sourceTree = "<group>"; };
 		A65A0C2D1C15E018005A8106 /* image3d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = image3d.h; sourceTree = "<group>"; };
 		A681F1841C19CFB400831E2E /* tetgen.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tetgen.cxx; path = TetGen/tetgen.cxx; sourceTree = SOURCE_ROOT; };
@@ -352,6 +354,7 @@
 				A6F293111C1884FD00ED6916 /* libpng16.16.dylib in Frameworks */,
 				A62FEA3E1CEAFBD000DF4640 /* libboost_system.dylib in Frameworks */,
 				A62FEA401CEAFBD800DF4640 /* libboost_filesystem.dylib in Frameworks */,
+				A65022771CFC8A2A00F3FF76 /* libX11.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -505,6 +508,7 @@
 		7AE27AAE17675A1E000F8238 = {
 			isa = PBXGroup;
 			children = (
+				A65022761CFC8A2A00F3FF76 /* libX11.dylib */,
 				A62FEA3F1CEAFBD800DF4640 /* libboost_filesystem.dylib */,
 				A62FEA3D1CEAFBD000DF4640 /* libboost_system.dylib */,
 				A6F293101C1884FD00ED6916 /* libpng16.16.dylib */,

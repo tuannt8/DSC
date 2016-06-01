@@ -93,7 +93,7 @@ public:
     
 private:
 public:
-    double m_edge_length = 8;
+    double m_edge_length = 10;
     float gl_dis_max;
     vec3 _obj_dim;
     
@@ -102,6 +102,7 @@ public:
     int moving, startx, starty;
     int animation = 1;
     
+    int phase_draw = 0;//Which phase to draw the interface
     void init_dsc();
     
     ///////////// Thread

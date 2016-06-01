@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string>
 #define cimg_use_png
-#define cimg_display 0
+#define cimg_display 1
 #include <CImg.h>
 #include <vector>
 #include <cstdint>

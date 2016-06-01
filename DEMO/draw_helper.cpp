@@ -164,6 +164,56 @@ void draw_helper::save_painting(int WIDTH, int HEIGHT, std::string folder)
     }
 }
 
+void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
+{
+    for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+    {
+        if (f->is_interface())
+        {
+            auto tets = dsc.get_tets(f.key());
+            if (!(dsc.get_label(tets[0]) == phase
+                  or dsc.get_label(tets[1]) == phase))
+            {
+                continue;
+            }
+            
+            
+            auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
+            //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
+            auto norm = -dsc.get_normal(f.key());
+            
+            glColor3f(0.7, 0.0, 0);
+            glBegin(GL_TRIANGLES);
+            for (auto v : pts)
+            {
+                glNormal3dv(norm.get());
+                glVertex3dv(v.get());
+            }
+            glEnd();
+            
+            //
+            //            glDisable(GL_LIGHTING);
+            //            glColor3f(0, 0, 0);
+            //            glBegin(GL_LINES);
+            //
+            //            auto edges = dsc.get_edges(f.key());
+            //
+            //            for (int i = 0; i < 3; i++)
+            //            {
+            //
+            //             //   glNormal3dv(norm.get());
+            //                glVertex3dv(pts[i].get());
+            //
+            //             //   glNormal3dv(norm.get());
+            //                glVertex3dv(pts[(i+1)%3].get());
+            //            }
+            //            glEnd();
+            //            glEnable(GL_LIGHTING);
+            
+        }
+    }
+}
+
 void draw_helper::dsc_draw_interface(dsc_class & dsc)
 {
     for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
@@ -205,6 +255,39 @@ void draw_helper::dsc_draw_interface(dsc_class & dsc)
             
         }
     }
+}
+
+#define P_NONE  0x0000
+#define P_ZERO  0x0001
+#define P_ONE   0x0010
+#define P_TWO   0x0100
+
+#define P_ALL   0x0111
+
+void draw_helper::dsc_draw_triple_edge(dsc_class & dsc)
+{
+    glDisable(GL_LIGHTING);
+    glBegin(GL_LINES);
+    for (auto eid = dsc.edges_begin(); eid != dsc.edges_end(); eid++)
+    {
+        auto tets = dsc.get_tets(eid.key());
+        // separate more than 3 phase
+        int p = P_NONE;
+        int pl[] = {P_ZERO, P_ONE, P_TWO};
+        for (auto t : tets)
+        {
+            int label = dsc.get_label(t);
+            p = p & pl[label];
+        }
+        
+        if (p == P_ALL)
+        {
+            auto pts = dsc.get_pos(dsc.get_nodes(eid.key()));
+            glVertex3dv(pts[0].get());
+            glVertex3dv(pts[1].get());
+        }
+    }
+    glEnd();
 }
 
 void draw_helper::dsc_draw_domain(dsc_class & dsc)

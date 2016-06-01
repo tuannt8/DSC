@@ -36,7 +36,6 @@
 using namespace DSC;
 using namespace std;
 
-std::mutex draw_lock;
 std::atomic<int> m_iters(0);
 
 void display_(){
@@ -124,30 +123,6 @@ void UI::setup_light()
 
 void UI::update_draw_list()
 {
-    draw_lock.lock();
-    
-
-    
-    draw_lock.unlock();
-}
-
-void worker()
-{
-    auto p = UI::instance;
-    
-    while (1)
-    {
-        if (p->CONTINUOUS)
-        {
-            m_iters++;
-            draw_lock.lock();
-            p->_seg.segment();
-            draw_lock.unlock();
-        }
-        else
-            sleep(1);
-
-    }
 }
 
 UI::UI(int &argc, char** argv)
@@ -180,7 +155,7 @@ UI::UI(int &argc, char** argv)
     
     // Load cross sections
     _seg.init();
-    _obj_dim = _seg._img.dimension_v() + vec3(2*m_edge_length);
+    _obj_dim = _seg._img.dimension_v();// + vec3(2*m_edge_length);
     
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
@@ -215,7 +190,7 @@ void UI::init_dsc()
         {
             for (int ix = 0; ix < NX; ix++)
             {
-                points.push_back(vec3(ix, iy, iz)*delta - vec3(m_edge_length));
+                points.push_back(vec3(ix, iy, iz)*delta); // - vec3(m_edge_length));
             }
         }
     }
@@ -363,41 +338,59 @@ void UI::display()
         glEnable(GL_LIGHTING);
     }
     
+    if (glut_menu::get_state("Draw DSC single interface", 0))
+    {
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_LIGHTING);
+        draw_helper::dsc_draw_one_interface(*dsc, phase_draw);
+    }
+    
+    if (glut_menu::get_state("Draw tripple edge", 0))
+    {
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_LIGHTING);
+        glColor3f(1, 0, 0);
+        draw_helper::dsc_draw_triple_edge(*dsc);
+    }
 
-        
-        if (glut_menu::get_state("Draw DSC edges", 0))
-        {
-            glColor3f(0, 0, 0);
-            draw_helper::dsc_draw_edge(*dsc);
-        }
-        
-        if (glut_menu::get_state("Draw DSC domain", 1))
-        {
-            glColor3f(0.3, 0.3, 0.3);
-            draw_helper::dsc_draw_domain(*dsc);
-        }
-        
-        if (glut_menu::get_state("Draw DSC interface edge", 0))
-        {
-            draw_helper::dsc_draw_interface_edge(*dsc);
-        }
-        
-        if (glut_menu::get_state("Draw DSC interface", 1))
-        {
-            draw_helper::dsc_draw_interface(*dsc);
-        }
-        
-        
-        if (glut_menu::get_state("Draw DSC face normal", 0))
-        {
-            draw_helper::dsc_draw_face_norm(*dsc);
-        }
-        
-        
-        if (glut_menu::get_state("Draw Image slide", 1))
-        {
-            draw_helper::draw_image_slice(_seg._img);
-        }
+    
+    if (glut_menu::get_state("Draw DSC edges", 0))
+    {
+        glColor3f(0, 0, 0);
+        draw_helper::dsc_draw_edge(*dsc);
+    }
+    
+    if (glut_menu::get_state("Draw DSC domain", 1))
+    {
+        glColor3f(0.3, 0.3, 0.3);
+        draw_helper::dsc_draw_domain(*dsc);
+    }
+    
+    if (glut_menu::get_state("Draw DSC interface edge", 0))
+    {
+        glDisable(GL_LIGHTING);
+        glColor3f(0.0, 0.0, 1.0);
+        draw_helper::dsc_draw_interface_edge(*dsc);
+    }
+    
+    if (glut_menu::get_state("Draw DSC interface", 1))
+    {
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_LIGHTING);
+        draw_helper::dsc_draw_interface(*dsc);
+    }
+    
+    
+    if (glut_menu::get_state("Draw DSC face normal", 0))
+    {
+        draw_helper::dsc_draw_face_norm(*dsc);
+    }
+    
+    
+    if (glut_menu::get_state("Draw Image slide", 1))
+    {
+        draw_helper::draw_image_slice(_seg._img);
+    }
     
     
     glutSwapBuffers();
@@ -441,9 +434,14 @@ void UI::keyboard(unsigned char key, int x, int y) {
         case 'p':
             profile::close();
             break;
+        case 'v':// Change surface type
+            phase_draw = ++phase_draw % 3;
+            break;
         default:
             break;
     }
+    
+    
 }
 
 void idle(void)

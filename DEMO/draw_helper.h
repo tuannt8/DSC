@@ -33,9 +33,11 @@ public:
      */
     static void dsc_draw_edge(dsc_class & dsc);
     static void dsc_draw_domain(dsc_class & dsc);
+    static void dsc_draw_one_interface(dsc_class & dsc, int phase);
     static void dsc_draw_interface(dsc_class & dsc);
     static void dsc_draw_interface_edge(dsc_class & dsc);
     static void dsc_draw_face_norm(dsc_class & dsc);
+    static void dsc_draw_triple_edge(dsc_class & dsc);
     
     static void save_painting(int WIDTH, int HEIGHT, std::string folder = std::string("LOG"));
     

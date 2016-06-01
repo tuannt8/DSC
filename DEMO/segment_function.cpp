@@ -18,38 +18,62 @@ using namespace std;
 void segment_function::init()
 {
     //_img.load("data/sphere_drill");
-    _img.load("../Large_data/hamster");
+//    _img.load("../Large_data/hamster");
+    _img.load("../Large_data/fuel_cells_small");
 
 }
 
 void segment_function::initialze_segmentation()
 {
-//    printf(" { \n");
-//    for (int i = 0; i < 15; i++)
+//    /**
+//     Hamster sample
+//     */
+//    // Initilization by thresholding
+//    double thres = 0.6;
+//    // initialize by thresholding
+//    for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
 //    {
-//        _img.generate_sample_point_tri(i);
+//        // test
+//        double total, volume;
+//        auto pts = _dsc->get_pos(_dsc->get_nodes(tit.key()));
+//        double avgI = _img.get_tetra_intensity(pts, &total, &volume);
+//        
+//        assert(avgI < 1.01);
+//        //assert(total < 1000);
+//        
+//        if (avgI > thres)
+//        {
+//            _dsc->set_label(tit.key(), 1);
+//        }
 //    }
-//    printf("};\n");
-//    
-//    
-//    return;
     
-    // Initilization by thresholding
-    double thres = 0.6;
-    // initialize by thresholding
+    /**
+     Fuel cells
+     */
+    // Initialization by thresholding
+    double thres[] = {0.31, 0.57, 0.7};
     for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
     {
         // test
         double total, volume;
         auto pts = _dsc->get_pos(_dsc->get_nodes(tit.key()));
         double avgI = _img.get_tetra_intensity(pts, &total, &volume);
-        
+
         assert(avgI < 1.01);
-        //assert(total < 1000);
         
-        if (avgI > thres)
+        // find closest
+        int idx = 0;
+        if (std::abs(avgI - thres[1]) < 0.1 )
         {
-            _dsc->set_label(tit.key(), 1);
+            idx = 1;
+        }else if(std::abs(avgI - thres[2]) < 0.1 )
+        {
+            idx = 2;
+        }
+
+        if (idx != 0)
+        {
+            _dsc->set_label(tit.key(), idx);
         }
     }
 }
@@ -77,16 +101,16 @@ void bounding_box(const std::vector<vec3> & pts, vec3 & ld, vec3 & ru)
 
 bool sort_intersect(intersect_pt p1, intersect_pt p2)
 {
-    if (p1.z == p2.z)
     {
-        return p1.b_in;
-    }else
         return p1.z < p2.z;
+    }
 }
 
 void segment_function::update_average_intensity()
 {
-    int nb_phase = 2;
+    cout << "Computing average intensity" << endl;
+    
+    int nb_phase = 3;
     
     // 1. Init the buffer for intersection
     auto dim = _img.dimension();
@@ -104,6 +128,7 @@ void segment_function::update_average_intensity()
     
     vector<std::vector<ray_z>> ray_intersect(nb_phase, init_rayz);
 
+    cout << "Find intersection" << endl;
     // 2. Find intersection with interface
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
@@ -118,8 +143,8 @@ void segment_function::update_average_intensity()
             auto pts = pts3;
             pts[0][2] = 0; pts[1][2] = 0; pts[2][2] = 0;
             
-            auto n = _dsc->get_normal(fid.key());
-            bool in_z = Util::dot(n, vec3(0,0,1)) > 0;
+            auto n = _dsc->get_normal(fid.key(), tet[0]);
+            bool in_1 = Util::dot(n, vec3(0,0,1)) > 0;
             
             vec3 ld, ru;
             bounding_box(pts, ld, ru);
@@ -134,13 +159,11 @@ void segment_function::update_average_intensity()
                         if (bc[0] > -EPSILON && bc[1] > -EPSILON && bc[2] > -EPSILON)
                         { // inside
                             auto p = pts3[0]*bc[0] + pts3[1]*bc[1] + pts3[2]*bc[2];
-//                            ray_intersect[phase0][y*dim[0] + x].intersect.push_back(std::floor(p[2]));
-//                            ray_intersect[phase0][y*dim[0] + x].direction_z.push_back(in_z);
-//                            ray_intersect[phase1][y*dim[0] + x].intersect.push_back(std::floor(p[2]));
-//                            ray_intersect[phase1][y*dim[0] + x].direction_z.push_back(in_z);
                             
-                            ray_intersect[phase0][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), !in_z));
-                            ray_intersect[phase1][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), in_z));
+                            assert(p[2] >= 0 and p[2] < 9999);
+                            
+                            ray_intersect[phase0][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), !in_1));
+                            ray_intersect[phase1][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), in_1));
                         }
                     }
                     catch (std::exception e)
@@ -152,6 +175,7 @@ void segment_function::update_average_intensity()
         }
     }
     
+    cout << "Count intersection" << endl;
     // 3. Compute integral
     _d_rayz.clear();
     
@@ -160,12 +184,13 @@ void segment_function::update_average_intensity()
     for (int i = 1; i < nb_phase; i++) // we dont compute the background
     {
         int count = 0;
-        for (auto & r : ray_intersect[i])
+        for (auto r : ray_intersect[i])
         {
-            auto intersect_ps = r.intersects;
+            std::vector<intersect_pt> intersect_ps = r.intersects;
             if (intersect_ps.size() > 1)
             {
                 std::sort(intersect_ps.begin(), intersect_ps.end(), sort_intersect);
+                
                 // remove identical intersections
                 for (auto p = intersect_ps.begin()+1; p != intersect_ps.end(); p++)
                 {
@@ -203,6 +228,7 @@ void segment_function::update_average_intensity()
         cout << count << "Intersected rays" << endl;
     }
     
+    cout << "Update phase 0" << endl;
     double s0 = _img.sum_area(dim[0]-1, dim[1]-1, dim[2]-1);
     double v0 = dim[0]*dim[1]*dim[2];
     for (int i = 1; i < nb_phase; i++) // we dont compute the background
@@ -218,7 +244,14 @@ void segment_function::update_average_intensity()
         _mean_intensities[i] /= area[i];
     }
     
-    cout << _mean_intensities[0] << " -- " << _mean_intensities[1] << endl;
+    
+    cout << "Done mean intensity" << endl;
+    for (int i = 0; i < nb_phase; i++)
+    {
+        cout << _mean_intensities[i] << " -- ";
+    }
+    cout << endl;
+
 }
 
 void segment_function::segment()
@@ -226,7 +259,7 @@ void segment_function::segment()
     profile t("Average intensity");
     
     // Compute average intensity
-    int num_phases = 2;
+    int num_phases = 3;
 //    std::vector<double> c = {0.0 , 0.0};
 //    std::vector<double> vols = {0, 0};
 //    
@@ -253,6 +286,16 @@ void segment_function::segment()
     // This function does not return correct result (in compare to above algorithm).
     // Need further investigation
     update_average_intensity();
+    
+    static int mesh_opt_counter = 0;
+    if (mesh_opt_counter > 20)
+    {
+        // Perform relabeling
+        for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
+        {
+            
+        }
+    }
     
 
     auto c = _mean_intensities;
@@ -285,13 +328,15 @@ void segment_function::segment()
                 n = tri_coord_size.size() - 1;
             }
             
-            auto & a = tri_dis_coord[n - 1];
-            for (auto & coord : a)
+            auto a = tri_dis_coord[n - 1];
+            for (auto coord : a)
             {
                 auto p = get_coord_tri(pts, coord);
                 auto g = _img.get_value_f(p);
                 
-                auto f = - Norm* ((c1 - c0)*(2*g - c0 - c1) / area);
+//                auto f = - Norm* ((c1 - c0)*(2*g - c0 - c1) / area);
+                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area);
+                
                 // distribute
                 forces[verts[0]] += f*coord[0];
                 forces[verts[1]] += f*coord[1];
@@ -310,7 +355,7 @@ void segment_function::segment()
         if ( (nid->is_interface() or nid->is_crossing())
             and _dsc->is_movable(nid.key()))
         {
-            auto dis = forces[nid.key()]*2;
+            auto dis = forces[nid.key()]*_dt;
             //cout << "Node " << nid.key() << " : " << dis << endl;
             _dsc->set_destination(nid.key(), nid->get_pos() + dis);
             if (largest < dis.length())
