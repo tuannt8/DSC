@@ -25,6 +25,8 @@
 #include <thread>
 #include "profile.h"
 
+#define TUAN_SMOOTH
+
 class Barrier
 {
 private:
@@ -542,7 +544,19 @@ namespace DSC {
                 int k = K[i][j];
                 flip_23_recursively(polygon, n1, n2, K, i, k);
                 flip_23_recursively(polygon, n1, n2, K, k, j);
-                flip_23(get_face(n1, n2, polygon[k]));
+                auto newEid = flip_23(get_face(n1, n2, polygon[k]));
+                
+//#ifdef TUAN_SMOOTH
+//                for(auto t : get_tets(newEid))
+//                {
+//                    get(t).nodes_on_tet = get_nodes(t);
+//                }
+//                
+//                for (auto f : get_faces(newEid))
+//                {
+//                    get(f).nodes_on_face = get_nodes(f);
+//                }
+//#endif
             }
         }
         
@@ -552,7 +566,30 @@ namespace DSC {
             int k = K[0][m-1];
             flip_23_recursively(polygon, n1, n2, K, 0, k);
             flip_23_recursively(polygon, n1, n2, K, k, m-1);
-            flip_32(get_edge(n1, n2));
+            auto newF = flip_32(get_edge(n1, n2));
+            
+#ifdef TUAN_SMOOTH
+            is_mesh::SimplexSet<tet_key> tg;
+            for(auto n : polygon)
+            {
+                tg += get_tets(n);
+            }
+            auto t1 = get_tets(n1);
+            auto t2 = get_tets(n2);
+            
+            auto tt = t1 & tg;
+            tt += t2&tg;
+            
+            for(auto tkey : tt)
+            {
+                get(tkey).nodes_on_tet = get_nodes(tkey);
+            }
+            
+            for(face_key fkey : get_faces(tt))
+            {
+                get(fkey).nodes_on_face = get_nodes(fkey);
+            }
+#endif
         }
         
         /**
@@ -659,36 +696,52 @@ namespace DSC {
             std::vector<tet_key> tets;
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
+#ifdef TUAN_SMOOTH
+                auto nids = tit->nodes_on_tet;
+                auto q = std::abs(Util::quality<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), get_pos(nids[3])));
+                if (q < pars.MIN_TET_QUALITY)
+                {
+                    tets.push_back(tit.key());
+                }
+#else
                 if (quality(tit.key()) < pars.MIN_TET_QUALITY)
                 {
                     tets.push_back(tit.key());
                 }
+#endif
             }
             
             // Attempt to remove each edge of each tetrahedron in tets. Accept if it increases the minimum quality locally.
             int i = 0, j = 0, k = 0;
             for (auto &t : tets)
             {
-                if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
+#ifdef TUAN_SMOOTH
+                auto nids = get(t).nodes_on_tet;
+                auto q = std::abs(Util::quality<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), get_pos(nids[3])));
+#else
+                auto q = quality(t);
+#endif
+                if (is_unsafe_editable(t) && q < pars.MIN_TET_QUALITY)
                 {
                     for (auto e : get_edges(t))
                     {
                         if(is_safe_editable(e))
                         {
-                            //TUAN
-//                            if(topological_edge_removal(e))
-//                            {
-//                                i++;
-//                                break;
-//                            }
+                            
+                            if(topological_edge_removal(e))
+                            {
+                                i++;
+                                break;
+                            }
                         }
                         else if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && is_flippable(e))
                         {
-                            if(topological_boundary_edge_removal(e))
-                            {
-                                k++;
-                                break;
-                            }
+                            // TUAN comment
+//                            if(topological_boundary_edge_removal(e))
+//                            {
+//                                k++;
+//                                break;
+//                            }
                         }
                     }
                     j++;
@@ -713,7 +766,11 @@ namespace DSC {
             if(g_set.size() == 1 && is_safe_editable(e))
             {
                 face_key g = g_set.front();
+#ifdef TUAN_SMOOTH
+                node_key v = (get(g).nodes_on_face - get_nodes(e)).front();
+#else
                 node_key v = (get_nodes(g) - get_nodes(e)).front();
+#endif
                 real V_uv = Util::signed_volume<real>(get_pos(a), get_pos(b), get_pos(v), get_pos(u));
                 real V_vw = Util::signed_volume<real>(get_pos(a), get_pos(b), get_pos(w), get_pos(v));
                 real V_wu = Util::signed_volume<real>(get_pos(a), get_pos(b), get_pos(u), get_pos(w));
@@ -749,6 +806,43 @@ namespace DSC {
          */
         bool topological_face_removal(const face_key& f)
         {
+#ifdef TUAN_SMOOTH
+            is_mesh::SimplexSet<node_key> nids = get(f).nodes_on_face;
+            auto tets = get_tets(f);
+            is_mesh::SimplexSet<node_key> allnids;
+            for(auto t : tets)
+                allnids += get(t).nodes_on_tet;
+            is_mesh::SimplexSet<node_key> apices = allnids - nids;
+            this->orient_cc(apices[0], nids);
+            
+            real q_01_new, q_01_old, q_12_new, q_12_old, q_20_new, q_20_old;
+            is_mesh::SimplexSet<edge_key> e01 = test_neighbour(f, apices[0], apices[1], nids[0], nids[1], q_01_old, q_01_new);
+            is_mesh::SimplexSet<edge_key> e12 = test_neighbour(f, apices[0], apices[1], nids[1], nids[2], q_12_old, q_12_new);
+            is_mesh::SimplexSet<edge_key> e20 = test_neighbour(f, apices[0], apices[1], nids[2], nids[0], q_20_old, q_20_new);
+            
+            real q_old = Util::min(Util::min(Util::min(min_quality(get_tets(f)), q_01_old), q_12_old), q_20_old);
+            real q_new = Util::min(Util::min(q_01_new, q_12_new), q_20_new);
+            
+            if(q_new > q_old)
+            {
+                flip_23(f);
+                for(auto &e : e01)
+                {
+                    flip_32(e);
+                }
+                for(auto &e : e12)
+                {
+                    flip_32(e);
+                }
+                for(auto &e : e20)
+                {
+                    flip_32(e);
+                }
+                
+                return true;
+            }
+            return false;
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(f);
             is_mesh::SimplexSet<node_key> apices = get_nodes(get_tets(f)) - nids;
             this->orient_cc(apices[0], nids);
@@ -776,9 +870,11 @@ namespace DSC {
                 {
                     flip_32(e);
                 }
+                
                 return true;
             }
             return false;
+#endif
         }
         
         /**
@@ -794,7 +890,11 @@ namespace DSC {
             {
                 if(is_safe_editable(f))
                 {
-                    auto nids = get_nodes(f);
+#ifdef TUAN_SMOOTH
+                    auto nids = get(f).nodes_on_face;
+#else
+                    is_mesh::SimplexSet<node_key> nids = get_nodes(f);
+#endif
                     this->orient_cc(apex2, nids);
                     
                     real t = Util::intersection_ray_triangle<real>(p, ray, get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]));
@@ -802,6 +902,22 @@ namespace DSC {
                     {
                         if(topological_face_removal(f))
                         {
+#ifdef TUAN_SMOOTH
+                            is_mesh::SimplexSet<edge_key> e1 = get_edges(apex1);
+                            is_mesh::SimplexSet<edge_key> e2 = get_edges(apex2);
+                            auto es = e1 & e2;
+                            assert(es.size() == 1);
+                            
+                            for (auto f : get_faces(es[0]))
+                            {
+                                get(f).nodes_on_face = get_nodes(f);
+                            }
+                            
+                            for (auto t : get_tets(es[0]))
+                            {
+                                get(t).nodes_on_tet = get_nodes(t);
+                            }
+#endif
                             return true;
                         }
                     }
@@ -839,7 +955,19 @@ namespace DSC {
                     {
                         if (is_safe_editable(f))
                         {
+                            
+#ifdef TUAN_SMOOTH
+                            auto tets = get_tets(f);
+                            is_mesh::SimplexSet<node_key> apices;
+                            for (auto t : tets)
+                            {
+                                apices += get(t).nodes_on_tet;
+                            }
+                            apices -= get(f).nodes_on_face;
+#else
                             auto apices = get_nodes(get_tets(f)) - get_nodes(f);
+#endif
+                            
                             if(topological_face_removal(apices[0], apices[1]))
                             {
                                 i++;
@@ -1097,6 +1225,7 @@ namespace DSC {
                     j++;
                 }
             }
+            std::cout << "Removed " << i <<"/"<< j << " degenerate tets" << std::endl;
 #ifdef DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate tets" << std::endl;
 #endif
@@ -1245,10 +1374,19 @@ namespace DSC {
             face_key fid = largest_face(get_faces(tid));
             
             // Find the apex
+#ifdef TUAN_SMOOTH
+            node_key apex = (get(tid).nodes_on_tet - get(fid).nodes_on_face).front();
+#else
             node_key apex = (get_nodes(tid) - get_nodes(fid)).front();
+#endif
+            
             
             // Project the apex
+#ifdef TUAN_SMOOTH
+            auto verts = get_pos(get(fid).node_on_face);
+#else
             auto verts = get_pos(get_nodes(fid));
+#endif
             vec3 p = Util::project_point_plane(get_pos(apex), verts[0], verts[1], verts[2]);
             
             // Split the face
@@ -1321,10 +1459,17 @@ namespace DSC {
             // Find the largest face
             is_mesh::SimplexSet<face_key> fids = get_faces(tid);
             face_key fid = largest_face(fids);
+#ifdef TUAN_SMOOTH
+            auto nids = get(fid).nodes_on_face;
+            // Find the apex
+            node_key apex = (get(tid).nodes_on_tet - nids).front();
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(fid);
-            
             // Find the apex
             node_key apex = (get_nodes(tid) - nids).front();
+#endif
+            
+
             
             // Project the apex
             auto verts = get_pos(nids);
@@ -1402,27 +1547,76 @@ namespace DSC {
         ///////////////
         // SMOOTHING //
         ///////////////
+
     private:
         /**
          * Performs Laplacian smoothing if it improves the minimum tetrahedron quality locally.
          */
+        
         bool smart_laplacian(const node_key& nid, real alpha = 1.)
         {
+            
+//            profile * t = new profile("Get vertex link");
+#ifdef TUAN_SMOOTH
+            is_mesh::SimplexSet<face_key> fids = get(nid).face_link;
+#else
             is_mesh::SimplexSet<tet_key> tids = get_tets(nid);
             is_mesh::SimplexSet<face_key> fids = get_faces(tids) - get_faces(nid);
+#endif
             
+//            delete  t;
+//            t = new profile("Average pos");
+
+
+            
+#ifdef TUAN_SMOOTH
+            is_mesh::SimplexSet<node_key> link_node;
+            for(auto & f : fids)
+            {
+                link_node += get(f).nodes_on_face;
+            }
+            vec3 old_pos = get_pos(nid);
+            vec3 avg_pos = get_barycenter(link_node);
+            vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
+#else
+            //   Old
             vec3 old_pos = get_pos(nid);
             vec3 avg_pos = get_barycenter(get_nodes(fids));
             vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
+#endif
+            
+//            delete  t;
+//            t = new profile("Min quality");
             
             real q_old, q_new;
             min_quality(fids, old_pos, new_pos, q_old, q_new);
+            
+//            delete  t;
+//            
+//            profile t2("Move if need");
+            
             if(q_new > pars.MIN_TET_QUALITY || q_new > q_old)
             {
                 set_pos(nid, new_pos);
                 return true;
             }
+            
+            
             return false;
+        }
+        
+        
+        void pre_build()
+        {
+            for (auto fit = faces_begin(); fit != faces_end(); fit++)
+            {
+                fit->nodes_on_face = get_nodes(fit.key());
+            }
+            
+            for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
+            {
+                tit->nodes_on_tet = get_nodes(tit.key());
+            }
         }
         
         void smooth()
@@ -1454,25 +1648,25 @@ namespace DSC {
         void fix_complex()
         {
             {
-//            profile p("f.....Smooth");
+            profile p("Smooth");
 //            smooth_parallel();
                 smooth();
             }
             {
                 
-//            profile p1("f.....edge remove");
+            profile p1("f.....edge remove");
 //                topological_edge_removal_parallel();
                  topological_edge_removal();
             }
             {
-//                profile p1("f.....Face");
+                profile p1("f.....Face");
                 
 //            topological_face_removal_parallel();
                 topological_face_removal() ;
             }
         
             {
-//                profile p1("f.....rest");
+                profile p1("f.....rest");
             remove_degenerate_tets();
             remove_degenerate_faces();
             remove_degenerate_edges();
@@ -1501,10 +1695,19 @@ namespace DSC {
         /**
          * Moves all the vertices to their destination which can be set by the set_destination() function.
          */
+        
+        void update_link_of_node()
+        {
+            for(auto nid = nodes_begin(); nid != nodes_end(); nid++)
+            {
+                nid->face_link = get_faces(get_tets(nid.key())) - get_faces(nid.key());
+            }
+        }
+        
         void deform(int num_steps = 10)
         {
             
-            profile t("Deformation");
+////            profile t("Deformation");
 //            booking(2000);
 //            
 //            auto t = tetrahedra_begin();
@@ -1516,6 +1719,9 @@ namespace DSC {
 //            }
 //            
 //            return;
+#ifdef TUAN_SMOOTH
+            pre_build();
+#endif
             
 #ifdef DEBUG
             validity_check();
@@ -1526,21 +1732,25 @@ namespace DSC {
             do {
                 std::cout << "\n\tMove vertices step " << step << std::endl;
                 missing = 0;
+                
                 int movable = 0;
                 {
+#ifdef TUAN_SMOOTH
+                    profile t("Move");
+                    update_link_of_node();
+#endif
                     
-                profile t("Move");
-                for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
-                {
-                    if (is_movable(nit.key()))
+                    for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
                     {
-                        if(!move_vertex(nit.key()))
+                        if (is_movable(nit.key()))
                         {
-                            missing++;
+                            if(!move_vertex(nit.key()))
+                            {
+                                missing++;
+                            }
+                            movable++;
                         }
-                        movable++;
                     }
-                }
                     
                 }
                 std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
@@ -1561,18 +1771,19 @@ namespace DSC {
 #ifdef TIME_DEFORM
                 profile t("Resize");
 #endif
-            resize_complex();
+                resize_complex();
             
             }
+            
             {
 #ifdef TIME_DEFORM
                 profile t("Garbage collection");
 #endif
-            garbage_collect();
-            for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
-            {
-                nit->set_destination(nit->get_pos());
-            }
+                garbage_collect();
+                for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
+                {
+                    nit->set_destination(nit->get_pos());
+                }
             }
             
             
@@ -1620,10 +1831,20 @@ namespace DSC {
             vec3 ray = destination - pos;
 
             real min_t = INFINITY;
+#ifdef TUAN_SMOOTH
+            auto fids = get(n).face_link;
+#else
             auto fids = get_faces(get_tets(n)) - get_faces(n);
+#endif
+            
             for(auto f : fids)
             {
+#ifdef TUAN_SMOOTH
+                auto face_pos = get_pos(get(f).nodes_on_face);
+#else
                 auto face_pos = get_pos(get_nodes(f));
+#endif
+                
                 real t = Util::intersection_ray_plane<real>(pos, ray, face_pos[0], face_pos[1], face_pos[2]);
                 if (0. <= t)
                 {
@@ -1864,6 +2085,18 @@ namespace DSC {
                 if(!safe || q_max > Util::min(min_quality(get_tets(nids[0]) + get_tets(nids[1])), pars.MIN_TET_QUALITY) + EPSILON)
                 {
                     collapse(eid, nids[1], weight);
+                    
+#ifdef TUAN_SMOOTH
+                    for(auto t: get_tets(nids[1]))
+                    {
+                        get(t).nodes_on_tet = get_nodes(t);
+                    }
+                    
+                    for(auto f: get_faces(nids[1]))
+                    {
+                        get(f).nodes_on_face = get_nodes(f);
+                    }
+#endif
                     return true;
                 }
             }
@@ -2050,27 +2283,41 @@ namespace DSC {
         
         real quality(const tet_key& tid)
         {
+#ifdef TUAN_SMOOTH
+            is_mesh::SimplexSet<node_key> nids = get(tid).nodes_on_tet;
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(tid);
-            //TUAN
-//            auto nids = get_nodes_direct(tid);
+#endif
             return std::abs(Util::quality<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), get_pos(nids[3])));
         }
         
         real min_angle(const face_key& fid)
         {
+#ifdef TUAN_SMOOTH
+            auto nids = get(fid).nodes_on_face;
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(fid);
+#endif
             return Util::min_angle<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]));
         }
         
         real max_angle(const face_key& fid)
         {
+#ifdef TUAN_SMOOTH
+            auto nids = get(fid).nodes_on_face;
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(fid);
+#endif
             return Util::max_angle<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]));
         }
         
         real quality(const face_key& fid)
         {
+#ifdef TUAN_SMOOTH
+            auto nids = get(fid).nodes_on_face;
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(fid);
+#endif
             auto angles = Util::cos_angles<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]));
             real worst_a = -INFINITY;
             for(auto a : angles)
@@ -2163,7 +2410,11 @@ namespace DSC {
             real min_q = INFINITY;
             for (auto f : fids)
             {
+#ifdef TUAN_SMOOTH
+                auto nids = get(f).nodes_on_face;
+#else
                 is_mesh::SimplexSet<node_key> nids = get_nodes(f);
+#endif
                 min_q = Util::min(min_q, std::abs(Util::quality<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos)));
             }
             return min_q;
@@ -2177,7 +2428,11 @@ namespace DSC {
             real min_q = INFINITY;
             for (auto f : fids)
             {
+#ifdef TUAN_SMOOTH
+                auto nids = get(f).nodes_on_face;
+#else
                 is_mesh::SimplexSet<node_key> nids = get_nodes(f);
+#endif
                 if(Util::sign(Util::signed_volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos_old)) !=
                    Util::sign(Util::signed_volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos_new)))
                 {
@@ -2197,7 +2452,12 @@ namespace DSC {
             min_q_new = INFINITY;
             for (auto f : fids)
             {
+#ifdef TUAN_SMOOTH
+                auto nids = get(f).nodes_on_face;
+#else
                 is_mesh::SimplexSet<node_key> nids = get_nodes(f);
+#endif
+                
                 if(Util::sign(Util::signed_volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos_old)) !=
                    Util::sign(Util::signed_volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos_new)))
                 {

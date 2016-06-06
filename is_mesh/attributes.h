@@ -28,6 +28,8 @@ namespace is_mesh {
         std::bitset<3> flags;
         
     public:
+        SimplexSet<FaceKey> face_link;
+    public:
 
         NodeAttributes()
         {
@@ -171,6 +173,11 @@ namespace is_mesh {
     {
         std::bitset<2> flags;
         
+
+    public:
+        //TUAN
+        SimplexSet<NodeKey> nodes_on_face;
+        //
     public:
         FaceAttributes() {}
 
@@ -218,6 +225,9 @@ namespace is_mesh {
     class TetAttributes
     {
         unsigned int l = 0;
+        
+    public:
+        SimplexSet<NodeKey> nodes_on_tet;
         
     public:
         TetAttributes() {}

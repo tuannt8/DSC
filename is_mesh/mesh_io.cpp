@@ -55,10 +55,9 @@ namespace is_mesh {
     {
         std::ifstream file(filename.data());
         
-        while (!file.eof())
+        char c;
+        while (file >> c)
         {
-            char c;
-            file >> c;
             if (c == 'v')
             {
                 real x,y,z; // The (x,y,z) coordinates of a vertex.
@@ -84,8 +83,9 @@ namespace is_mesh {
                 
                 tet_labels.push_back(label);
             }
-            c = '\n';
+//            c = '\n';
         }
+        
         file.close();
 //        scale(points, 3.);
     }

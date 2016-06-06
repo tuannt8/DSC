@@ -37,8 +37,6 @@ namespace is_mesh
         SimplexSet<co_boundary_key_type>* m_co_boundary = nullptr;
         
     public:
-//        static int bound_count, cobound_count;
-        
         
         Simplex()
         {

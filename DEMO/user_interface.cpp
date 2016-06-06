@@ -82,7 +82,7 @@ UI::UI(int &argc, char** argv)
     // Read input
     std::string motion = "";
     real discretization = 2.5;
-    real velocity = 5.;
+    real velocity = 15.;
     real accuracy = 0.25;
     
     if(argc == 2)
@@ -114,6 +114,27 @@ UI::UI(int &argc, char** argv)
     painter = std::unique_ptr<Painter>(new Painter(light_pos));
     load_model(model_file_name, discretization);
     
+    //TUAN TEST
+    {
+    double count = 0; int nbNode = 0;
+    for (auto nid = dsc->nodes_begin(); nid != dsc->nodes_end(); nid++)
+    {
+        nbNode++;
+        count += dsc->get_edges(nid.key()).size();
+    }
+    std::cout << "Average edge around node: " << count / nbNode << std::endl;
+    }
+    {
+    double count = 0; int nbNode = 0;
+    for (auto eid = dsc->edges_begin(); eid != dsc->edges_end(); eid++)
+    {
+        nbNode++;
+        count += dsc->get_faces(eid.key()).size();
+    }
+    std::cout << "Average face around edge: " << count / nbNode << std::endl;
+    }
+    // END
+    
     if(motion.empty())
     {
         vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
@@ -136,6 +157,8 @@ void UI::load_model(const std::string& file_name, real discretization)
     std::vector<int>  tets;
     std::vector<int>  tet_labels;
     is_mesh::import_tet_mesh(obj_path + file_name + ".dsc", points, tets, tet_labels);
+    
+    std::cout << tets.size() << " tets" << std::endl;
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
     

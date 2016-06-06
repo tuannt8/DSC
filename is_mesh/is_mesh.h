@@ -23,6 +23,7 @@
 #include "../src/profile.h"
 
 //#define TIME_GET
+//#define TIME_GET_INDIRECT
 
 namespace is_mesh {
 
@@ -598,52 +599,83 @@ namespace is_mesh {
     public:
         node_type & get(const NodeKey& nid)
         {
+#ifdef TIME_GET
+            profile t("node refer");
+#endif
             return m_node_kernel->find(nid);
         }
         
         edge_type & get(const EdgeKey& eid)
         {
+#ifdef TIME_GET
+            profile t("edge refer");
+#endif
             return m_edge_kernel->find(eid);
         }
         
         face_type & get(const FaceKey& fid)
         {
+#ifdef TIME_GET
+            profile t("face refer");
+#endif
             return m_face_kernel->find(fid);
         }
         
         tetrahedron_type & get(const TetrahedronKey& tid)
         {
+#ifdef TIME_GET
+            profile t("tet refer");
+#endif
             return m_tetrahedron_kernel->find(tid);
         }
         
         // Getters for getting the boundary/coboundary of a simplex:
         const SimplexSet<NodeKey>& get_nodes(const EdgeKey& eid)
         {
+#ifdef TIME_GET
+            profile t("node - edge");
+#endif
             return get(eid).get_boundary();
         }
         
         const SimplexSet<EdgeKey>& get_edges(const NodeKey& nid)
         {
+#ifdef TIME_GET
+            profile t("edge - node");
+#endif
+            
             return get(nid).get_co_boundary();
         }
         
         const SimplexSet<EdgeKey>& get_edges(const FaceKey& fid)
         {
+#ifdef TIME_GET
+            profile t("edge - face");
+#endif
             return get(fid).get_boundary();
         }
         
         const SimplexSet<FaceKey>& get_faces(const EdgeKey& eid)
         {
+#ifdef TIME_GET
+            profile t("face - edge");
+#endif
             return get(eid).get_co_boundary();
         }
         
         const SimplexSet<FaceKey>& get_faces(const TetrahedronKey& tid)
         {
+#ifdef TIME_GET
+            profile t("face - tet");
+#endif
             return get(tid).get_boundary();
         }
         
         const SimplexSet<TetrahedronKey>& get_tets(const FaceKey& fid)
         {
+#ifdef TIME_GET
+            profile t("tet - face");
+#endif
             return get(fid).get_co_boundary();
         }
         
@@ -651,6 +683,9 @@ namespace is_mesh {
         
         SimplexSet<NodeKey> get_sorted_nodes(const FaceKey& fid, const TetrahedronKey& tid)
         {
+#ifdef TIME_GET
+            profile t("node - face sorted 1");
+#endif
             SimplexSet<NodeKey> nids = get_nodes(fid);
             NodeKey apex = (get_nodes(tid) - nids).front();
             orient_cc(apex, nids);
@@ -660,9 +695,8 @@ namespace is_mesh {
         SimplexSet<NodeKey> get_sorted_nodes(const FaceKey& fid)
         {
 #ifdef TIME_GET
-            profile t("node - face");
+            profile t("node - face sorted");
 #endif
-//            profile t("node - face");
             
             if (get(fid).is_interface())
             {
@@ -692,7 +726,7 @@ namespace is_mesh {
 #ifdef TIME_GET
             profile t("node - face");
 #endif
-//            profile t("node - face");
+            
             const SimplexSet<EdgeKey>& eids = get_edges(fid);
             SimplexSet<NodeKey> nids = get_nodes(eids[0]);
             nids += get_nodes(eids[1]);
@@ -724,10 +758,9 @@ namespace is_mesh {
         
         SimplexSet<NodeKey> get_nodes(const TetrahedronKey& tid)
         {
-#ifdef TIME_GET
+#ifdef TIME_GET_INDIRECT
             profile t("node - tet");
 #endif
-//            profile t("node - tet");
             
             const SimplexSet<FaceKey>& fids = get_faces(tid);
             SimplexSet<NodeKey> nids = get_nodes(fids[0]);
@@ -737,11 +770,12 @@ namespace is_mesh {
         
         SimplexSet<EdgeKey> get_edges(const TetrahedronKey& tid)
         {
-#ifdef TIME_GET
+#ifdef TIME_GET_INDIRECT
             profile t("edge - tet");
 #endif
             
             SimplexSet<EdgeKey> eids;
+            // Tuan: Redundant loop; we loop on 3 face only
             for(const FaceKey& f : get_faces(tid))
             {
                 eids += get_edges(f);
@@ -751,7 +785,7 @@ namespace is_mesh {
         
         SimplexSet<FaceKey> get_faces(const NodeKey& nid)
         {
-#ifdef TIME_GET
+#ifdef TIME_GET_INDIRECT
             profile t("face - node");
 #endif
             
@@ -765,10 +799,9 @@ namespace is_mesh {
         
         SimplexSet<TetrahedronKey> get_tets(const NodeKey& nid)
         {
-#ifdef TIME_GET
+#ifdef TIME_GET_INDIRECT
             profile t("tet - node");
 #endif
-//            profile t("tet - node");
             
             SimplexSet<TetrahedronKey> tids;
             for(const EdgeKey& e : get_edges(nid))
@@ -783,7 +816,7 @@ namespace is_mesh {
         
         SimplexSet<TetrahedronKey> get_tets(const EdgeKey& eid)
         {
-#ifdef TIME_GET
+#ifdef TIME_GET_INDIRECT
             profile t("tet - edge");
 #endif
             SimplexSet<TetrahedronKey> tids;
@@ -1324,6 +1357,18 @@ namespace is_mesh {
             }
             
             update_split(new_nid, nids[0], nids[1]);
+            
+#ifdef TUAN_SMOOTH
+            for (auto t : get_tets(new_nid))
+            {
+                get(t).nodes_on_tet = get_modes(t);
+            }
+            
+            for (auto f : get_faces(new_nid))
+            {
+                get(f).nodes_on_face = get_modes(f);
+            }
+#endif
         }
         
         virtual void update_collapse(const NodeKey& nid, const NodeKey& nid_removed, real weight)
