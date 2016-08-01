@@ -25,7 +25,7 @@ void printMenu(){
 int main(int argc, char** argv)
 {
     UI ui(argc, argv);
-    printMenu();
+//    printMenu();
     glutMainLoop();
     return 0;
 }

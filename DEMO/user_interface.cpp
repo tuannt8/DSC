@@ -167,6 +167,9 @@ UI::UI(int &argc, char** argv)
     // Generate DSC
     init_dsc();
     
+    std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
+                << dsc->get_no_tets() << " tets" << endl;
+    
     _seg._dsc = &*dsc;
     _seg.initialze_segmentation();
     
