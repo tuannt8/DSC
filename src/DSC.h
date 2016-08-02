@@ -24,6 +24,7 @@
 #include <mutex>
 #include <thread>
 #include "profile.h"
+#include "cache.hpp"
 
 class Barrier
 {
@@ -96,6 +97,10 @@ namespace DSC {
         real FLIP_EDGE_INTERFACE_FLATNESS = 0.995;
         
         parameters pars;
+        
+#ifdef DSC_CACHE // variable
+        dsc_cache cache;
+#endif
         
         //////////////////////////
         // INITIALIZE FUNCTIONS //
@@ -555,6 +560,35 @@ namespace DSC {
             if (q_new > min_quality(get_tets(eid)))
             {
                 const is_mesh::SimplexSet<node_key>& nodes = get_nodes(eid);
+                
+#ifdef DSC_CACHE // edge remove
+                // Should update flag here, instead of inside topological_edge_removal(polygon.front(), nodes[0], nodes[1], K); function
+                
+                auto tets = get_tets(eid);
+                for (auto tkey : tets)
+                {
+                    cache.mark_dirty(tkey, true);
+                }
+                
+                auto faces = get_faces(tets);
+                for (auto fk : faces)
+                {
+                    cache.mark_dirty(fk, true);
+                }
+                
+                auto edges = get_edges(faces);
+                for (auto ek : edges)
+                {
+                    cache.mark_dirty(ek, true);
+                }
+                
+                auto dnodes = get_nodes(edges);
+                for(auto nk : dnodes)
+                {
+                    cache.mark_dirty(nk, true);
+                }
+#endif
+                
                 topological_edge_removal(polygon.front(), nodes[0], nodes[1], K);
                 return true;
             }
@@ -622,6 +656,31 @@ namespace DSC {
             
             if (q_new > min_quality(get_tets(eid)))
             {
+#ifdef DSC_CACHE // Bounadry edge removal
+                auto tets = get_tets(eid);
+                for (auto tkey : tets)
+                {
+                    cache.mark_dirty(tkey, true);
+                }
+                
+                auto faces = get_faces(tets);
+                for (auto fk : faces)
+                {
+                    cache.mark_dirty(fk, true);
+                }
+                
+                auto edges = get_edges(faces);
+                for (auto ek : edges)
+                {
+                    cache.mark_dirty(ek, true);
+                }
+                
+                auto dnodes = get_nodes(edges);
+                for(auto nk : dnodes)
+                {
+                    cache.mark_dirty(nk, true);
+                }
+#endif
                 topological_boundary_edge_removal(polygons[0], polygons[1], eid, K1, K2);
                 return true;
             }
@@ -822,6 +881,9 @@ namespace DSC {
                             auto apices = get_nodes(get_tets(f)) - get_nodes(f);
                             if(topological_face_removal(apices[0], apices[1]))
                             {
+#ifdef DSC_CACHE // face removal
+                                
+#endif
                                 i++;
                                 break;
                             }
@@ -1744,6 +1806,10 @@ namespace DSC {
                 destination = Util::barycenter(get(nids[0]).get_destination(), get(nids[1]).get_destination());
             }
             
+#ifdef DSC_CACHE // Split edge
+            // Should get new node and update here
+#endif
+            
             split(eid, pos, destination);
         }
         
@@ -1824,6 +1890,9 @@ namespace DSC {
             {
                 if(!safe || q_max > Util::min(min_quality(get_tets(nids[0]) + get_tets(nids[1])), pars.MIN_TET_QUALITY) + EPSILON)
                 {
+#ifdef DSC_CACHE // collapse edge
+                    // Update dirty flag here
+#endif
                     collapse(eid, nids[1], weight);
                     return true;
                 }

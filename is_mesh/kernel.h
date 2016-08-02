@@ -107,7 +107,6 @@ namespace is_mesh
         {
             key_type key;
             if (m_data_freelist.size()==0){
-                assert(0);
                 key = m_data.size();
                 m_data.emplace_back();
                 kernel_element& element = m_data.back();
