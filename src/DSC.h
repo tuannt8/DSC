@@ -24,8 +24,10 @@
 #include <mutex>
 #include <thread>
 #include "profile.h"
+#include "cache.hpp"
 
-#define TUAN_SMOOTH
+//#define TUAN_SMOOTH
+//#define DSC_CACHE // define
 
 class Barrier
 {
@@ -77,6 +79,7 @@ struct parameters {
 #define dsc_class DSC::DeformableSimplicialComplex<>
 
 
+
 namespace DSC {
     
     template <typename node_att = is_mesh::NodeAttributes, typename edge_att = is_mesh::EdgeAttributes, typename face_att = is_mesh::FaceAttributes, typename tet_att = is_mesh::TetAttributes>
@@ -104,6 +107,11 @@ namespace DSC {
         real FLIP_EDGE_INTERFACE_FLATNESS = 0.995;
         
         parameters pars;
+        
+#ifdef DSC_CACHE // variable
+        dsc_cache cache;
+#endif
+        
         
         //////////////////////////
         // INITIALIZE FUNCTIONS //
@@ -497,6 +505,7 @@ namespace DSC {
         
         std::vector<is_mesh::SimplexSet<node_key>> get_polygons(const edge_key& eid)
         {
+            // 1. Get neighbor tets of eid, grouped by label
             std::vector<is_mesh::SimplexSet<tet_key>> tid_groups;
             for (auto t : get_tets(eid))
             {
@@ -609,7 +618,38 @@ namespace DSC {
             if (q_new > min_quality(get_tets(eid)))
             {
                 const is_mesh::SimplexSet<node_key>& nodes = get_nodes(eid);
+                
+#ifdef DSC_CACHE // edge remove
+                // Should update flag here, instead of inside topological_edge_removal(polygon.front(), nodes[0], nodes[1], K); function
+                
+                auto tets = get_tets(eid);
+                for (auto tkey : tets)
+                {
+                    cache.mark_dirty(tkey, true);
+                }
+                
+                auto faces = get_faces(tets);
+                for (auto fk : faces)
+                {
+                    cache.mark_dirty(fk, true);
+                }
+                
+                auto edges = get_edges(faces);
+                for (auto ek : edges)
+                {
+                    cache.mark_dirty(ek, true);
+                }
+                
+                auto dnodes = get_nodes(edges);
+                for(auto nk : dnodes)
+                {
+                    cache.mark_dirty(nk, true);
+                }
+#endif
+                
+
                 topological_edge_removal(polygon.front(), nodes[0], nodes[1], K);
+                
                 return true;
             }
             return false;
@@ -676,7 +716,33 @@ namespace DSC {
             
             if (q_new > min_quality(get_tets(eid)))
             {
+#ifdef DSC_CACHE // Bounadry edge removal
+                auto tets = get_tets(eid);
+                for (auto tkey : tets)
+                {
+                    cache.mark_dirty(tkey, true);
+                }
+                
+                auto faces = get_faces(tets);
+                for (auto fk : faces)
+                {
+                    cache.mark_dirty(fk, true);
+                }
+                
+                auto edges = get_edges(faces);
+                for (auto ek : edges)
+                {
+                    cache.mark_dirty(ek, true);
+                }
+                
+                auto dnodes = get_nodes(edges);
+                for(auto nk : dnodes)
+                {
+                    cache.mark_dirty(nk, true);
+                }
+#endif
                 topological_boundary_edge_removal(polygons[0], polygons[1], eid, K1, K2);
+
                 return true;
             }
             return false;
@@ -736,12 +802,11 @@ namespace DSC {
                         }
                         else if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && is_flippable(e))
                         {
-                            // TUAN comment
-//                            if(topological_boundary_edge_removal(e))
-//                            {
-//                                k++;
-//                                break;
-//                            }
+                            if(topological_boundary_edge_removal(e))
+                            {
+                                k++;
+                                break;
+                            }
                         }
                     }
                     j++;
@@ -970,6 +1035,9 @@ namespace DSC {
                             
                             if(topological_face_removal(apices[0], apices[1]))
                             {
+#ifdef DSC_CACHE // face removal
+                                
+#endif
                                 i++;
                                 break;
                             }
@@ -2005,6 +2073,10 @@ namespace DSC {
             }
             
             split(eid, pos, destination);
+            
+#ifdef DSC_CACHE
+            // Should get new node and update here
+#endif
         }
         
         ///////////////
@@ -2085,6 +2157,10 @@ namespace DSC {
                 if(!safe || q_max > Util::min(min_quality(get_tets(nids[0]) + get_tets(nids[1])), pars.MIN_TET_QUALITY) + EPSILON)
                 {
                     collapse(eid, nids[1], weight);
+                    
+#ifdef DSC_CACHE
+                    // Update dirty flag here
+#endif
                     
 #ifdef TUAN_SMOOTH
                     for(auto t: get_tets(nids[1]))
