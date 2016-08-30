@@ -351,6 +351,11 @@ void UI::keyboard(unsigned char key, int x, int y) {
             update_title();
         }
             break;
+        case 'l':
+        {
+            profile::close();
+        }
+            break;
     }
 }
 

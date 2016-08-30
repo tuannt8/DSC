@@ -35,6 +35,8 @@ public:
     
     profile(std::string name);
     
+    void change(std::string name);
+    
     profile();
     ~profile();
 private:

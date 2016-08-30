@@ -662,6 +662,16 @@ namespace is_mesh {
             return fids;
         }
         
+        SimplexSet<FaceKey> * get_faces_ptr(const NodeKey& nid)
+        {
+            auto fids = new SimplexSet<FaceKey>;
+            for(const EdgeKey& e : get_edges(nid))
+            {
+                fids->operator+=(get_faces(e));
+            }
+            return fids;
+        }
+        
         SimplexSet<TetrahedronKey> get_tets(const NodeKey& nid)
         {
             SimplexSet<TetrahedronKey> tids;
@@ -670,6 +680,19 @@ namespace is_mesh {
                 for(const FaceKey& f : get_faces(e))
                 {
                     tids += get_tets(f);
+                }
+            }
+            return tids;
+        }
+        
+        SimplexSet<TetrahedronKey> * get_tets_ptr(const NodeKey& nid)
+        {
+            SimplexSet<TetrahedronKey> * tids = new SimplexSet<TetrahedronKey>;
+            for(const EdgeKey& e : get_edges(nid))
+            {
+                for(const FaceKey& f : get_faces(e))
+                {
+                    tids->operator+=(get_tets(f));
                 }
             }
             return tids;

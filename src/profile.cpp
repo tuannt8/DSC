@@ -31,6 +31,24 @@ profile::~profile()
 
 }
 
+void profile::change(std::string name)
+{
+    {
+    // close
+    profile_att * cur_p = get_object(m_name);
+    p_duration_t t = P_TIME_NOW - cur_p->m_start;
+    cur_p->total_time += t.count();
+    }
+    
+    {
+    // new
+    m_name = name;
+    profile_att * cur_p = get_object(name);
+    cur_p->count ++;
+    cur_p->m_start = P_TIME_NOW;
+    }
+}
+
 profile_att * profile::get_object(const std::string &  name )
 {
     if (m_objects.find(name) == m_objects.end())
