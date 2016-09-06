@@ -71,17 +71,14 @@ void min_quality_parallel(DSC::DeformableSimplicialComplex<> * dsc, const is_mes
 template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
 {
 #ifdef DSC_CACHE // laplacian smooth
-    profile t("smooth get cache 1");
+//    profile t("smooth get cache 1");
     
-    is_mesh::SimplexSet<tet_key> * tids = get_tets_cache(nid);
+//    is_mesh::SimplexSet<tet_key> * tids = get_tets_cache(nid);
 //    is_mesh::SimplexSet<face_key> fids = get_faces(*tids) - *get_faces_cache(nid);
     
-    t.change("smooth get cache 2");
-    auto tt = get_faces_cache(nid);
-    t.change("Smooth get cache 3");
-    is_mesh::SimplexSet<face_key> fids = get_faces(*tids) - *tt;
-    
-    t.change("get pos cache");
+    auto fids = get_link(nid);
+
+//    t.change("get pos cache");
     
     vec3 old_pos = get_pos(nid);
     
@@ -89,29 +86,32 @@ template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
     vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
 
     real q_old, q_new;
-
     
-    t.change("quality cache");
-    
-    min_quality(fids, old_pos, new_pos, q_old, q_new);
+//    t.change("quality");
+    min_quality(*fids, old_pos, new_pos, q_old, q_new);
+       
 #else
-    profile t("smooth get");
-    is_mesh::SimplexSet<tet_key> tids = get_tets(nid);
-    is_mesh::SimplexSet<face_key> fids = get_faces(tids) - get_faces(nid);
+    
+    
+//    profile t("smooth get");
+    is_mesh::SimplexSet<tet_key> tids1 = get_tets(nid);
+    is_mesh::SimplexSet<face_key> fids1 = get_faces(tids1) - get_faces(nid);
 
-    t.change("get pos");
+//    t.change("get pos");
     
     vec3 old_pos = get_pos(nid);
 
-    vec3 avg_pos = get_barycenter(get_nodes(fids));
+    vec3 avg_pos = get_barycenter(get_nodes(fids1));
     vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
     
     
     real q_old, q_new;
     
-    t.change("quality");
+//    t.change("quality");
     
-    min_quality(fids, old_pos, new_pos, q_old, q_new);
+    min_quality(fids1, old_pos, new_pos, q_old, q_new);
+        
+    
 #endif
     
 //    t.change("set pos");

@@ -24,6 +24,8 @@
 class dsc_cache
 {
 public:
+    // Link of node
+    std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*> link_of_node;
     // Neighbor tets of node
     std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>*> tets_neighbor_node;
     std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*> faces_neighbor_node;
@@ -42,6 +44,7 @@ public:
     dsc_cache()
     {
         // Node
+        link_of_node = std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*>(MAX_ELEMENTS, nullptr);
         tets_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>*>(MAX_ELEMENTS, nullptr);
         faces_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*>(MAX_ELEMENTS, nullptr);
         nodes_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*>(MAX_ELEMENTS, nullptr);
@@ -63,6 +66,7 @@ public:
         CLEAN_GARBAGE(tets_neighbor_node, nk);
         CLEAN_GARBAGE(faces_neighbor_node, nk);
         CLEAN_GARBAGE(nodes_neighbor_node, nk);
+        CLEAN_GARBAGE(link_of_node, nk);
     }
     
     void mark_dirty(is_mesh::EdgeKey ek, bool dirty)

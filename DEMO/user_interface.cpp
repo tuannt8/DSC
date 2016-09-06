@@ -50,6 +50,7 @@ void animate_(){
 
 UI* UI::instance = NULL;
 
+
 UI::UI(int &argc, char** argv)
 {
     instance = this;

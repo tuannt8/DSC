@@ -84,6 +84,8 @@ namespace Util
     inline real signed_volume(const vec3& a, const vec3& b, const vec3& c, const vec3& d)
     {
         return dot(a-d, cross(b-d, c-d))/6.;
+//        static real onesixth = 1/6.0;
+//        return dot(a-d, cross(b-d, c-d))*onesixth;
     }
     
     template <typename real, typename vec3>
