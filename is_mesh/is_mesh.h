@@ -1351,6 +1351,76 @@ namespace is_mesh {
             return new_fid;
         }
         
+        void multi_faces_remove(const SimplexSet<NodeKey> & apices,
+                                const is_mesh::SimplexSet<EdgeKey> & edges_to_rm,
+                                const is_mesh::SimplexSet<FaceKey> & faces_to_rm)
+        {
+            // create edge
+            EdgeKey new_eid = insert_edge(apices[0], apices[1]);
+
+            auto label = get_label(get_tets(faces_to_rm[0])[0]);
+            
+            auto tet_to_rm = get_tets(faces_to_rm);
+            
+            auto faces_to_remove = get_faces(edges_to_rm) + faces_to_rm;
+            
+            // create face
+            std::map<int, FaceKey> new_face;
+            SimplexSet<EdgeKey> boundEdge = get_edges(faces_to_rm) - edges_to_rm;
+            SimplexSet<NodeKey> nodes = get_nodes(boundEdge);
+            for (auto nn : nodes)
+            {
+                FaceKey f1 = insert_face(new_eid,
+                                         get_edge(apices[0], nn),
+                                         get_edge(apices[1], nn));
+                
+                new_face.insert(std::make_pair(nn, f1));
+            }
+            
+            // create tetrahedral
+            SimplexSet<TetrahedronKey> newTet;
+            for (auto f : faces_to_rm)
+            {
+                auto otherEdge = get_edges(f) - edges_to_rm;
+                
+                for (auto ee : otherEdge)
+                {
+                    auto enodes = get_nodes(ee);
+                    
+                    
+                    FaceKey f1 = new_face[enodes[0]];
+                    FaceKey f2 = new_face[enodes[1]];
+                    
+                    auto ff = (get_faces(get_tets(f)) & get_faces(ee)) - f;
+                    assert(ff.size() == 2);
+                    TetrahedronKey new_tet = insert_tetrahedron(f1, f2, ff[0], ff[1]);
+                    newTet.push_back(new_tet);
+                }
+            }
+            
+
+            
+            for (auto e : edges_to_rm)
+            {
+                remove(e);
+            }
+            
+            for (auto f : faces_to_remove)
+            {
+                remove(f);
+            }
+            
+            for (auto t : tet_to_rm)
+            {
+                remove(t);
+            }
+            
+            for (auto tt : newTet)
+            {
+                set_label(tt, label);
+            }
+        }
+        
         EdgeKey flip_23(const FaceKey& fid)
         {
             SimplexSet<TetrahedronKey> f_tids = get_tets(fid);

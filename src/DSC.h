@@ -283,6 +283,8 @@ namespace DSC {
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::flip_23;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::flip_32;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::flip_44;
+        
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::multi_faces_remove;
 
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::split;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::collapse;
@@ -627,6 +629,9 @@ namespace DSC {
             // The new algorithm reduce 60% computation time
             //      pp - New polygon: 1.124180 in 174366 iters; avg: 0.000006
             //      pp - Old polygon: 2.543581 in 174366 iters; avg: 0.000015
+            
+
+
             std::vector<is_mesh::SimplexSet<node_key>> outp;
             {
                 auto node_on_edge = get_nodes(eid);
@@ -638,8 +643,8 @@ namespace DSC {
                 real xyr2 = sqrt(z1[0]*z1[0] + z1[1]*z1[1]);
                 if(xyr2 > 0.0001)
                 {
-                    x1 = vec3(-z1[1], z1[0], 0) / xyr2;
-                    y1 = vec3(-z1[0]*z1[2]/xyr2, -z1[1]*z1[2]/xyr2, xyr2);
+                    y1 = vec3(-z1[1], z1[0], 0) / xyr2;
+                    x1 = vec3(-z1[0]*z1[2]/xyr2, -z1[1]*z1[2]/xyr2, xyr2);
                 }else{
                     x1 = vec3(1,0,0);
                     y1 = vec3(0,1,0);
@@ -652,7 +657,7 @@ namespace DSC {
                     node_key nk;
                     real cos_angle;
                     real sin_angle;
-                    
+                    bool is_boundary;
                     bool continuous;
                 };
                 
@@ -669,10 +674,14 @@ namespace DSC {
 
                     __polygon newp;
                     newp.nk = other_node;
-                    vec3 px = get_pos(other_node) - p1; px.normalize();
-                    newp.cos_angle = Util::dot(x1, px);
-                    newp.sin_angle = Util::dot(y1, px);
-                    newp.continuous = !((tids.size()==1) || (get_label(tids[0]) != get_label(tids[1])));
+                    vec3 px = get_pos(other_node) - p1; //px.normalize();
+                    vec2 angle(Util::dot(y1, px), Util::dot(x1, px));angle.normalize();
+                    newp.sin_angle = angle[0];
+                    newp.cos_angle = angle[1];
+//                    newp.cos_angle = Util::dot(x1, px);
+//                    newp.sin_angle = Util::dot(y1, px);
+                    newp.continuous = !(get(f).is_interface() || get(f).is_boundary());// !((tids.size()==1) || (get_label(tids[0]) != get_label(tids[1])));
+                    newp.is_boundary = tids.size() == 1;
                     
                     all_nodes.push_back(newp);
                 }
@@ -699,15 +708,22 @@ namespace DSC {
                 std::sort(all_nodes.begin(), all_nodes.end(), compare1);
                 
                 outp.push_back(is_mesh::SimplexSet<node_key>());
-                outp.back().push_back(all_nodes[0].nk);
+                int i = 0;
                 
-                for (int i = 1; i < all_nodes.size(); i++)
+                if(! (all_nodes[0].is_boundary && all_nodes[1].is_boundary) )
+                {
+                    i = 1;
+                    outp.back().push_back(all_nodes[0].nk);
+                }
+                
+                for (; i < all_nodes.size(); i++)
                 {
                     outp.back().push_back(all_nodes[i].nk);
-                    if (!all_nodes[i].continuous)
+                    if (i < all_nodes.size() -1 && !all_nodes[i].continuous)
                     {
                         outp.push_back(is_mesh::SimplexSet<node_key>());
-                        outp.back().push_back(all_nodes[i].nk);
+                        if(!all_nodes[i].is_boundary)
+                            outp.back().push_back(all_nodes[i].nk);
                     }
                 }
                 
@@ -726,6 +742,11 @@ namespace DSC {
                 {
                     outp.back().push_back(all_nodes[0].nk);
                 }
+                
+#ifdef DEBUG
+                for(auto aa : outp)
+                    assert(aa.size() > 1);
+#endif
             }
             
             struct {
@@ -1039,28 +1060,32 @@ namespace DSC {
         // TOPOLOGICAL FACE REMOVAL //
         //////////////////////////////
         
-        is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& a, const node_key& b, const node_key& u, const node_key& w, real& q_old, real& q_new)
+        is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& a, const node_key& b, const node_key& u, const node_key& w, real& q_old, real& q_new, is_mesh::SimplexSet<face_key> & face_to_rm)
         {
             edge_key e = get_edge(u,w);
             is_mesh::SimplexSet<face_key> g_set = get_faces(e) - get_faces(get_tets(f));
-            real q = Util::quality<real>(get_pos(a), get_pos(b), get_pos(w), get_pos(u));
+            
+            vec3 pa = get_pos(a), pb = get_pos(b), pw = get_pos(w), pu = get_pos(u);
+            
+            real q = Util::quality<real>(pa, pb, pw, pu);
             
             if(g_set.size() == 1 && is_safe_editable(e))
             {
                 face_key g = g_set.front();
                 node_key v = (get_nodes(g) - get_nodes(e)).front();
-                real V_uv = Util::signed_volume<real>(get_pos(a), get_pos(b), get_pos(v), get_pos(u));
-                real V_vw = Util::signed_volume<real>(get_pos(a), get_pos(b), get_pos(w), get_pos(v));
-                real V_wu = Util::signed_volume<real>(get_pos(a), get_pos(b), get_pos(u), get_pos(w));
+                auto pv = get_pos(v);
+                real V_uv = Util::signed_volume<real>(pa, pb, pv, pu);
+                real V_vw = Util::signed_volume<real>(pa, pb, pw, pv);
+                real V_wu = Util::signed_volume<real>(pa, pb, pu, pw);
                 
                 if((V_uv >= EPSILON && V_vw >= EPSILON) || (V_vw >= EPSILON && V_wu >= EPSILON) || (V_wu >= EPSILON && V_uv >= EPSILON))
                 {
-                    q_old = Util::min(Util::quality<real>(get_pos(a), get_pos(u), get_pos(w), get_pos(v)),
-                                     Util::quality<real>(get_pos(u), get_pos(v), get_pos(b), get_pos(w)));
+                    q_old = Util::min(Util::quality<real>(pa, pu, pw, pv),
+                                     Util::quality<real>(pu, pv, pb, pw));
                     
                     real q_uv_old, q_uv_new, q_vw_old, q_vw_new;
-                    is_mesh::SimplexSet<edge_key> uv_edges = test_neighbour(g, a, b, u, v, q_uv_old, q_uv_new);
-                    is_mesh::SimplexSet<edge_key> vw_edges = test_neighbour(g, a, b, v, w, q_vw_old, q_vw_new);
+                    is_mesh::SimplexSet<edge_key> uv_edges = test_neighbour(g, a, b, u, v, q_uv_old, q_uv_new, face_to_rm);
+                    is_mesh::SimplexSet<edge_key> vw_edges = test_neighbour(g, a, b, v, w, q_vw_old, q_vw_new, face_to_rm);
                     
                     q_old = Util::min(Util::min(q_old, q_uv_old), q_vw_old);
                     q_new = Util::min(q_uv_new, q_vw_new);
@@ -1070,6 +1095,8 @@ namespace DSC {
                         is_mesh::SimplexSet<edge_key> edges = {get_edge(f, g)};
                         edges += uv_edges;
                         edges += vw_edges;
+                        
+                        face_to_rm += g;
                         return edges;
                     }
                 }
@@ -1078,6 +1105,8 @@ namespace DSC {
             q_new = q;
             return {};
         }
+        
+
         
         /**
          * Attempt to remove the faces sandwiched between the apices of f using multi-face removal. The face f is used as a starting point.
@@ -1090,10 +1119,16 @@ namespace DSC {
             this->orient_cc(apices[0], nids);
             
             t.change("tpf l - test neighbor");
+            
+            //TUAN
+            is_mesh::SimplexSet<face_key> face_to_rm;
+            face_to_rm += f;
+            //
+            
             real q_01_new, q_01_old, q_12_new, q_12_old, q_20_new, q_20_old;
-            is_mesh::SimplexSet<edge_key> e01 = test_neighbour(f, apices[0], apices[1], nids[0], nids[1], q_01_old, q_01_new);
-            is_mesh::SimplexSet<edge_key> e12 = test_neighbour(f, apices[0], apices[1], nids[1], nids[2], q_12_old, q_12_new);
-            is_mesh::SimplexSet<edge_key> e20 = test_neighbour(f, apices[0], apices[1], nids[2], nids[0], q_20_old, q_20_new);
+            is_mesh::SimplexSet<edge_key> e01 = test_neighbour(f, apices[0], apices[1], nids[0], nids[1], q_01_old, q_01_new, face_to_rm);
+            is_mesh::SimplexSet<edge_key> e12 = test_neighbour(f, apices[0], apices[1], nids[1], nids[2], q_12_old, q_12_new, face_to_rm);
+            is_mesh::SimplexSet<edge_key> e20 = test_neighbour(f, apices[0], apices[1], nids[2], nids[0], q_20_old, q_20_new, face_to_rm);
             
             t.change("tpf l - quality");
             real q_old = Util::min(Util::min(Util::min(min_quality(get_tets(f)), q_01_old), q_12_old), q_20_old);
@@ -1131,20 +1166,27 @@ namespace DSC {
 #endif
                 
                 t.change("tpf l - flip");
-                flip_23(f);
-                for(auto &e : e01)
-                {
-                    flip_32(e);
-                }
-                for(auto &e : e12)
-                {
-                    flip_32(e);
-                }
-                for(auto &e : e20)
-                {
-                    flip_32(e);
-                }
+                // TUAN
+                multi_faces_remove(apices, all_edges, face_to_rm);
+
                 return true;
+                //
+                
+//
+//                flip_23(f);
+//                for(auto &e : e01)
+//                {
+//                    flip_32(e);
+//                }
+//                for(auto &e : e12)
+//                {
+//                    flip_32(e);
+//                }
+//                for(auto &e : e20)
+//                {
+//                    flip_32(e);
+//                }
+//                return true;
             }
             return false;
         }
@@ -1234,6 +1276,7 @@ namespace DSC {
                     j++;
                 }
             }
+
 #ifdef DEBUG
             std::cout << "Topological face removals: " << i << "/" << j << std::endl;
 #endif
@@ -1901,7 +1944,7 @@ namespace DSC {
          */
         void deform(int num_steps = 10)
         {
-            
+            profile t("deform");
 #ifdef DEBUG
             validity_check();
             std::cout << std::endl << "********************************" << std::endl;
@@ -1913,7 +1956,7 @@ namespace DSC {
                 missing = 0;
                 int movable = 0;
                 {
-                    profile t("Move vertices");
+//                    profile t("Move vertices");
                 for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
                 {
                     if (is_movable(nit.key()))
@@ -1933,9 +1976,9 @@ namespace DSC {
                     
                 fix_complex();
                 }
-#ifdef DEBUG
-                validity_check();
-#endif
+//#ifdef DEBUG
+//                validity_check();
+//#endif
                 ++step;
             } while (missing > 0 && step < num_steps);
             
@@ -1943,7 +1986,7 @@ namespace DSC {
             resize_complex();
             
 
-            profile t("Garbage collect");
+//            profile t("Garbage collect");
             garbage_collect();
             for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
             {
@@ -1951,9 +1994,9 @@ namespace DSC {
             }
             
             
-#ifdef DEBUG
-            validity_check();
-#endif
+//#ifdef DEBUG
+//            validity_check();
+//#endif
         }
         
     private:
