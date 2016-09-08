@@ -25,20 +25,20 @@ profile::profile(std::string name)
 
 profile::~profile()
 {
-    profile_att * cur_p = get_object(m_name);
-    p_duration_t t = P_TIME_NOW - cur_p->m_start;
-    cur_p->total_time += t.count();
+        done();
+}
 
+void profile::done()
+{
+        // close
+        profile_att * cur_p = get_object(m_name);
+        p_duration_t t = P_TIME_NOW - cur_p->m_start;
+        cur_p->total_time += t.count();
 }
 
 void profile::change(std::string name)
 {
-    {
-    // close
-    profile_att * cur_p = get_object(m_name);
-    p_duration_t t = P_TIME_NOW - cur_p->m_start;
-    cur_p->total_time += t.count();
-    }
+    done();
     
     {
     // new

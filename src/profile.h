@@ -36,11 +36,12 @@ public:
     profile(std::string name);
     
     void change(std::string name);
+    void done();
     
     profile();
     ~profile();
 private:
-    
+
     static std::map<std::string, profile_att> m_objects;
     static profile_att * get_object(const std::string &  name );
 private:
