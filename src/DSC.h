@@ -1892,8 +1892,6 @@ namespace DSC {
         
         void smooth()
         {
-//            profile t("smooth");
-            
             int i = 0, j = 0;
             for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
             {
@@ -1920,17 +1918,12 @@ namespace DSC {
         
         void fix_complex()
         {
-            profile t("Fix - smooth");
             smooth();
             
-            
-            t.change("Fix - edge rm");
             topological_edge_removal();
 
-            t.change("Fix - face rm");
             topological_face_removal() ;
         
-            t.change("Fix - degenerate rm");
             remove_degenerate_tets();
             remove_degenerate_faces();
             remove_degenerate_edges();
@@ -1939,7 +1932,7 @@ namespace DSC {
         void resize_complex()
         {
             {
-                profile t("Resize");
+//                profile t("Resize");
             thickening_interface();
 
             thinning_interface();
@@ -1972,7 +1965,6 @@ namespace DSC {
                 missing = 0;
                 int movable = 0;
                 {
-//                    profile t("Move vertices");
                 for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
                 {
                     if (is_movable(nit.key()))
@@ -1992,17 +1984,15 @@ namespace DSC {
                     
                 fix_complex();
                 }
-//#ifdef DEBUG
-//                validity_check();
-//#endif
+#ifdef DEBUG
+                validity_check();
+#endif
                 ++step;
             } while (missing > 0 && step < num_steps);
             
 
             resize_complex();
             
-
-//            profile t("Garbage collect");
             garbage_collect();
             for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
             {
@@ -2010,9 +2000,9 @@ namespace DSC {
             }
             
             
-//#ifdef DEBUG
-//            validity_check();
-//#endif
+#ifdef DEBUG
+            validity_check();
+#endif
         }
         
     private:

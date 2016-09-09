@@ -93,11 +93,10 @@ template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
 #else
     
     
-//    profile t("smooth get");
+
     is_mesh::SimplexSet<tet_key> tids1 = get_tets(nid);
     is_mesh::SimplexSet<face_key> fids1 = get_faces(tids1) - get_faces(nid);
 
-//    t.change("get pos");
     
     vec3 old_pos = get_pos(nid);
 
@@ -107,14 +106,9 @@ template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
     
     real q_old, q_new;
     
-//    t.change("quality");
-    
     min_quality(fids1, old_pos, new_pos, q_old, q_new);
-        
-    
 #endif
     
-//    t.change("set pos");
     if(q_new > pars.MIN_TET_QUALITY || q_new > q_old)
     {
         set_pos(nid, new_pos);
