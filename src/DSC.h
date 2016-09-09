@@ -128,7 +128,7 @@ namespace DSC {
 #define CACHE_MISS
 #define CACHE_REFER
 #endif
-        
+
         
         is_mesh::SimplexSet<tet_key> * get_tets_cache(is_mesh::NodeKey nid)
         {
@@ -558,8 +558,6 @@ namespace DSC {
                         real q2 = Util::quality<real>(pt[i], pt[k], pte[0], pt[j]);
                         real q1 = Util::quality<real>(pt[k], pt[i], pte[1], pt[j]);
 
-//                        real q2 = Util::quality<real>(get_pos(polygon[i]), get_pos(polygon[k]), get_pos(nids[0]), get_pos(polygon[j]));
-//                        real q1 = Util::quality<real>(get_pos(polygon[k]), get_pos(polygon[i]), get_pos(nids[1]), get_pos(polygon[j]));
                         real q = Util::min(q1, q2);
 
                         if (k < j-1)
@@ -848,23 +846,19 @@ namespace DSC {
          */
         bool topological_edge_removal(const edge_key& eid)
         {
-            profile t("te - get polygon");
             std::vector<is_mesh::SimplexSet<node_key>> polygon = get_polygons(eid);
-//#ifdef DEBUG
+#ifdef DEBUG
             assert(polygon.size() == 1 && polygon.front().size() > 2);
-//#endif
-            t.change("te - build table");
+#endif
             std::vector<std::vector<int>> K;
             real q_new = build_table(eid, polygon.front(), K);
             
-            t.change("te - condition");
             if (q_new > min_quality(get_tets(eid)))
             {
                 const is_mesh::SimplexSet<node_key>& nodes = get_nodes(eid);
                 
 #ifdef DSC_CACHE // edge remove
                 // Should update flag here, instead of inside topological_edge_removal(polygon.front(), nodes[0], nodes[1], K); function
-                t.change("te - cache over head");
                 
                 auto tets = get_tets(eid);
                 for (auto tkey : tets)
@@ -890,7 +884,6 @@ namespace DSC {
                     cache.mark_dirty(nk, true);
                 }
 #endif
-                t.change("te - remove edge");
                 topological_edge_removal(polygon.front(), nodes[0], nodes[1], K);
                 return true;
             }
@@ -908,8 +901,13 @@ namespace DSC {
             
             if(m2 <= 2) {
                 // Find the faces to flip about.
+#ifdef DSC_CACHE
                 face_key f1 = get_face(nids[0], nids[1], polygon1.front());
                 face_key f2 = get_face(nids[0], nids[1], polygon1.back());
+#else
+                face_key f1 = get_face(nids[0], nids[1], polygon1.front());
+                face_key f2 = get_face(nids[0], nids[1], polygon1.back());
+#endif
 #ifdef DEBUG
                 assert(get(f1).is_boundary() && get(f2).is_boundary());
 #endif
@@ -925,8 +923,13 @@ namespace DSC {
                 flip_23_recursively(polygon2, nids[0], nids[1], K2, k, m2-1);
                 
                 // Find the faces to flip about.
+#ifdef DSC_CACHE
                 face_key f1 = get_face(nids[0], nids[1], polygon1.front());
                 face_key f2 = get_face(nids[0], nids[1], polygon1.back());
+#else
+                face_key f1 = get_face(nids[0], nids[1], polygon1.front());
+                face_key f2 = get_face(nids[0], nids[1], polygon1.back());
+#endif
                 
                 if(precond_flip_edge(get_edge(f1, f2), f1, f2))
                 {
@@ -1000,7 +1003,6 @@ namespace DSC {
          */
         void topological_edge_removal()
         {
-            profile t("Check edge quality");
             std::vector<tet_key> tets;
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
@@ -1010,7 +1012,6 @@ namespace DSC {
                 }
             }
             
-            t.change("Edge removal");
             // Attempt to remove each edge of each tetrahedron in tets. Accept if it increases the minimum quality locally.
             int i = 0, j = 0, k = 0;
             for (auto &t : tets)
@@ -1018,13 +1019,11 @@ namespace DSC {
                 if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
                 {
 #ifdef DSC_CACHE
-                    profile t1("E - get edge");
                     auto ets = get_edges(t);
                     for (auto e : ets)
                     {
                         if(is_safe_editable(e))
                         {
-                            t1.change("E - topo edge");
                             if(topological_edge_removal(e))
                             {
                                 i++;
@@ -1033,9 +1032,7 @@ namespace DSC {
                         }
                         else
                         {
-                            t1.change("E - check flippable");
                             bool bf = is_flippable(e);
-                            t1.change("E - topo - bound - edge");
                             
                             if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && bf)
                             {
@@ -1158,8 +1155,9 @@ namespace DSC {
             
             if(q_new > q_old)
             {
-#ifdef DSC_CACHE // face removal
                 auto all_edges = e01 + e12 + e20;
+#ifdef DSC_CACHE // face removal
+
                 auto tets = get_tets(all_edges) + get_tets(f);
                 
                 for (auto tkey : tets)
@@ -1190,23 +1188,23 @@ namespace DSC {
                 multi_faces_remove(apices, all_edges, face_to_rm);
 
                 return true;
-                //
-                
-
-                flip_23(f);
-                for(auto &e : e01)
-                {
-                    flip_32(e);
-                }
-                for(auto &e : e12)
-                {
-                    flip_32(e);
-                }
-                for(auto &e : e20)
-                {
-                    flip_32(e);
-                }
-                return true;
+//                //
+//                
+//
+//                flip_23(f);
+//                for(auto &e : e01)
+//                {
+//                    flip_32(e);
+//                }
+//                for(auto &e : e12)
+//                {
+//                    flip_32(e);
+//                }
+//                for(auto &e : e20)
+//                {
+//                    flip_32(e);
+//                }
+//                return true;
             }
             return false;
         }
@@ -2122,23 +2120,34 @@ namespace DSC {
             {
                 return false;
             }
-            
+
             is_mesh::SimplexSet<node_key> e_nids = get_nodes(eid);
             is_mesh::SimplexSet<node_key> new_e_nids = (get_nodes(fids[0]) + get_nodes(fids[1])) - e_nids;
 #ifdef DEBUG
             assert(new_e_nids.size() == 2);
 #endif
-            
+
             // Check that there does not already exist an edge.
             if(get_edge(new_e_nids[0], new_e_nids[1]).is_valid())
             {
                 return false;
             }
-            
+
             // Check that the edge is not a feature edge if it is a part of the interface or boundary.
             if(get(eid).is_interface() || get(eid).is_boundary())
             {
-                return is_flat(fids);
+//                return is_flat(fids);
+                // TUAN
+                // The is_flat takes time
+                // Here it is simpler
+                // Check if it is flat
+                vec3 norm = Util::normal_direction(get_pos(e_nids[0]), get_pos(e_nids[1]), get_pos(new_e_nids[0]));
+                vec3 vv = get_pos(new_e_nids[1]) - get_pos(e_nids[0]);
+                vv.normalize();
+                static real thres = sqrt(1 - FLIP_EDGE_INTERFACE_FLATNESS*FLIP_EDGE_INTERFACE_FLATNESS);
+                
+                return dot(norm, vv) < thres;
+                
             }
             
             return true;
