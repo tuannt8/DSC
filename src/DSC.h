@@ -618,7 +618,8 @@ namespace DSC {
             } while(next_nid.is_valid());
             return polygon;
         }
-        
+ 
+//#define USE_NEW_GET_POLYGON
         std::vector<is_mesh::SimplexSet<node_key>> get_polygons(const edge_key& eid)
         {
             struct {
@@ -628,6 +629,7 @@ namespace DSC {
                 }
             } compare;
 
+#ifdef USE_NEW_GET_POLYGON
             // Tuan
             // We propose faster algorithm
             // Find all vertices
@@ -653,8 +655,8 @@ namespace DSC {
                     y1 = vec3(-z1[1], z1[0], 0) / xyr2;
                     x1 = vec3(-z1[0]*z1[2]/xyr2, -z1[1]*z1[2]/xyr2, xyr2);
                 }else{
-                    x1 = vec3(1,0,0);
                     y1 = vec3(0,1,0);
+                    x1 = Util::cross(y1, z1);
                 }
                 
                 
@@ -781,7 +783,7 @@ namespace DSC {
             
             std::sort(outp.begin(), outp.end(), compare);
             return outp;
-            
+#endif
             // The old algorithm
 
             // 1. Separate neighbor tetrahedral to group of different labels
@@ -1188,7 +1190,7 @@ namespace DSC {
                 multi_faces_remove(apices, all_edges, face_to_rm);
 
                 return true;
-//                //
+                //
 //                
 //
 //                flip_23(f);
