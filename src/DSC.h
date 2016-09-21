@@ -28,7 +28,8 @@
 
 
 
-
+#define MAX_COLORS 30
+#define MAX_COLORS_TET 100
 
 class Barrier
 {
@@ -84,6 +85,14 @@ struct parameters {
 namespace DSC {
     
 
+    struct edge_rm
+    {
+        is_mesh::EdgeKey e2rm;
+        is_mesh::TetrahedronKey coresponse_low_quality_tet;
+        bool bBoundary_edge;
+        std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>> polygons;
+        std::vector<std::vector<int>> K1, K2;
+    };
     
     template <typename node_att = is_mesh::NodeAttributes, typename edge_att = is_mesh::EdgeAttributes, typename face_att = is_mesh::FaceAttributes, typename tet_att = is_mesh::TetAttributes>
     class DeformableSimplicialComplex : public is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>
@@ -107,6 +116,69 @@ namespace DSC {
         real FLIP_EDGE_INTERFACE_FLATNESS = 0.995;
         
         parameters pars;
+        
+        
+    private:
+        std::mutex m;
+        
+        int get_free_color(node_key nk);
+        int get_free_color(edge_key nk);
+        int get_free_color(tet_key nk);
+        
+        void init_vertices_color();
+        
+        template<typename keytype>
+        std::vector<int> get_colors(is_mesh::SimplexSet<keytype> nodes)
+        {
+            std::vector<int> colors;
+            for (auto n : nodes)
+            {
+                if(get_color(n) != NO_COLOR)
+                    colors.push_back(get_color(n));
+            }
+            std::sort(colors.begin(), colors.end());
+            return colors;
+        }
+        
+//        std::vector<int> get_colors(is_mesh::SimplexSet<tet_key> tets)
+//        {
+//            std::vector<int> colors;
+//            for (auto n : tets)
+//            {
+//                if(get_color(n) != NO_COLOR)
+//                    colors.push_back(get_color(n));
+//            }
+//            std::sort(colors.begin(), colors.end());
+//            return colors;
+//        }
+    public:
+        // assign a color if not existed
+        int get_color_node(node_key nk)
+        {
+            int vv = get_color(nk);
+            if (get_color(nk) == NO_COLOR)
+            {
+                set_color(nk, get_free_color(nk));
+            }
+            
+            return get_color(nk);
+        }
+        
+        int get_color_tet(tet_key tk)
+        {
+            if(get_color(tk) == NO_COLOR)
+                set_color(tk, get_free_color(tk));
+            
+            return get_color(tk);
+        }
+        
+        int get_color_edge(edge_key ek)
+        {
+            if(get_color(ek) == NO_COLOR)
+                set_color(ek, get_free_color(ek));
+            
+            return get_color(ek);
+        }
         
 #ifdef DSC_CACHE // variable
         dsc_cache cache;
@@ -275,6 +347,10 @@ namespace DSC {
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_face;
 
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::validity_check;
+   
+    private:
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_color;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::set_color;
 
     protected:
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::set_label;
@@ -459,6 +535,8 @@ namespace DSC {
             }
         }
         
+        
+        
     public:
         /**
          * Sets the destination where the node n is moved to when deform() is called.
@@ -639,150 +717,171 @@ namespace DSC {
             //      pp - New polygon: 1.124180 in 174366 iters; avg: 0.000006
             //      pp - Old polygon: 2.543581 in 174366 iters; avg: 0.000015
             
-
-
+            
             std::vector<is_mesh::SimplexSet<node_key>> outp;
+            
+            auto node_on_edge = get_nodes(eid);
+            vec3 p0 = get_pos(node_on_edge[0]);
+            vec3 p1 = get_pos(node_on_edge[1]);
+            
+            vec3 x1, y1, z1;
+            z1 = p0 - p1; z1.normalize();
+            real xyr2 = sqrt(z1[0]*z1[0] + z1[1]*z1[1]);
+            if(xyr2 > 0.0001)
             {
-                auto node_on_edge = get_nodes(eid);
-                vec3 p1 = get_pos(node_on_edge[0]);
-                vec3 p2 = get_pos(node_on_edge[1]);
-                
-                vec3 x1, y1, z1;
-                z1 = p2 - p1; z1.normalize();
-                real xyr2 = sqrt(z1[0]*z1[0] + z1[1]*z1[1]);
-                if(xyr2 > 0.0001)
-                {
-                    y1 = vec3(-z1[1], z1[0], 0) / xyr2;
-                    x1 = vec3(-z1[0]*z1[2]/xyr2, -z1[1]*z1[2]/xyr2, xyr2);
-                }else{
-                    y1 = vec3(0,1,0);
-                    x1 = Util::cross(y1, z1);
-                }
-                
-                
-                auto fids = get_faces(eid);
-                struct __polygon
-                {
-                    node_key nk;
-                    real cos_angle;
-                    real sin_angle;
-                    bool is_boundary;
-                    bool continuous;
-                };
-                
-                std::vector<__polygon> all_nodes;
-                for (auto f : fids)
-                {
-                    auto tids = get_tets(f);
+                y1 = vec3(-z1[1], z1[0], 0) / xyr2;
+                //                    x1 = vec3(-z1[0]*z1[2]/xyr2, -z1[1]*z1[2]/xyr2, xyr2);
+                x1 = Util::cross(y1, z1);
+            }else{
+                y1 = vec3(0,1,0);
+                x1 = Util::cross(y1, z1);
+            }
+            
+            
+            auto fids = get_faces(eid);
+            struct __polygon
+            {
+                node_key nk;
+                real cos_angle;
+                real sin_angle;
+                bool is_boundary;
+                bool continuous;
+                vec3 pos;
+            };
+            
+            std::vector<__polygon> all_nodes;
+            for (auto f : fids)
+            {
+                auto tids = get_tets(f);
 #ifdef DSC_CACHE
-                    auto other_nodes = *get_nodes_cache(f) - node_on_edge;
+                auto other_nodes = *get_nodes_cache(f) - node_on_edge;
 #else
-                    auto other_nodes = get_nodes(f) - node_on_edge;
+                auto other_nodes = get_nodes(f) - node_on_edge;
 #endif
-                    auto other_node = other_nodes[0];
-
-                    __polygon newp;
-                    newp.nk = other_node;
-                    vec3 px = get_pos(other_node) - p1; //px.normalize();
-                    vec2 angle(Util::dot(y1, px), Util::dot(x1, px));angle.normalize();
-                    newp.sin_angle = angle[0];
-                    newp.cos_angle = angle[1];
-//                    newp.cos_angle = Util::dot(x1, px);
-//                    newp.sin_angle = Util::dot(y1, px);
-                    newp.continuous = !((tids.size()==1) || (get_label(tids[0]) != get_label(tids[1])));
-                    newp.is_boundary = tids.size() == 1;
-                    
-                    all_nodes.push_back(newp);
-                }
-
-                struct {
-                    bool operator()(const __polygon& a, const __polygon& b)
+                auto other_node = other_nodes[0];
+                
+                __polygon newp;
+                newp.nk = other_node;
+                vec3 px = get_pos(other_node) - p1; //px.normalize();
+                vec2 angle(Util::dot(y1, px), Util::dot(x1, px));angle.normalize();
+                newp.sin_angle = angle[0];
+                newp.cos_angle = angle[1];
+                
+                newp.continuous = !((tids.size()==1) || (get_label(tids[0]) != get_label(tids[1])));
+                newp.is_boundary = tids.size() == 1;
+                newp.pos = get_pos(other_node);
+                
+                all_nodes.push_back(newp);
+                
+            }
+            
+            struct {
+                bool operator()(const __polygon& a, const __polygon& b)
+                {
+                    // true if a is before b
+                    if (a.sin_angle >= 0)
                     {
-                        if(a.sin_angle*b.sin_angle > 0)
+                        if (b.sin_angle >= 0)
                         {
-                            if (a.sin_angle > 0)
-                            {
-                                return a.cos_angle < b.cos_angle;
-                            }else{
-                                return a.cos_angle > b.cos_angle;
-                            }
+                            return a.cos_angle > b.cos_angle;
+                        }else
+                            return true; // a is before b
+                    }else
+                    {
+                        if (b.sin_angle >= 0)
+                        {
+                            return false;
                         }
                         else
                         {
-                            return a.sin_angle < b.sin_angle;
+                            return a.cos_angle < b.cos_angle;
                         }
                     }
-                } compare1;
-                
-                std::sort(all_nodes.begin(), all_nodes.end(), compare1);
-                
-                // dont start with a boundary
-                int idx_nb = -1;
-                for (int i = 0; i < all_nodes.size(); i++)
-                {
-                    if(!all_nodes[i].is_boundary)
-                    {
-                        idx_nb = i;
-                        break;
-                    }
                 }
-                assert(idx_nb != -1);
-                std::vector<__polygon> new_list;
-                for (int i = 0; i < all_nodes.size(); i++)
+            } compare1;
+            
+            std::sort(all_nodes.begin(), all_nodes.end(), compare1);
+            
+            // dont start with a boundary
+            int idx_nb = -1;
+            for (int i = 0; i < all_nodes.size(); i++)
+            {
+                if(!all_nodes[i].is_boundary)
                 {
-                    int idx = (i+idx_nb)%all_nodes.size();
-
-                    new_list.push_back(all_nodes[idx]);
+                    idx_nb = i;
+                    break;
                 }
-                all_nodes = new_list;
-                
-                outp.push_back(is_mesh::SimplexSet<node_key>());
-                int i = 0;
-                
-                if(! (all_nodes[0].is_boundary && all_nodes[1].is_boundary) )
-                {
-                    i = 1;
-                    outp.back().push_back(all_nodes[0].nk);
-                }
-                
-                for (; i < all_nodes.size(); i++)
-                {
-                    outp.back().push_back(all_nodes[i].nk);
-                    if (!all_nodes[i].continuous)
-                    {
-                        if(!(i == all_nodes.size()-1 && all_nodes[i].is_boundary))
-                            outp.push_back(is_mesh::SimplexSet<node_key>());
-                        if(!all_nodes[i].is_boundary)
-                            outp.back().push_back(all_nodes[i].nk);
-                    }
-                }
-                
-                if (all_nodes[0].continuous
-                    && outp.size() > 1)
-                {
-                    // merge last and first
-                    auto last = outp.back();
-                    auto first = outp.front();
-                    
-                    last += first;
-                    
-                    outp.back() = last;
-                    outp.erase(outp.begin());
-                }
-//                else
-//                {
-//                    outp.back().push_back(all_nodes[0].nk);
-//                }
-                
-#ifdef DEBUG
-                for(auto aa : outp)
-                    assert(aa.size() > 1);
-#endif
             }
-
+            assert(idx_nb != -1);
+            std::vector<__polygon> new_list;
+            for (int i = 0; i < all_nodes.size(); i++)
+            {
+                int idx = (i+idx_nb)%all_nodes.size();
+                
+                new_list.push_back(all_nodes[idx]);
+            }
+            all_nodes = new_list;
+            
+            outp.push_back(is_mesh::SimplexSet<node_key>());
+            int i = 0;
+            
+            if(! (all_nodes[0].is_boundary && all_nodes[1].is_boundary) )
+            {
+                i = 1;
+                outp.back().push_back(all_nodes[0].nk);
+            }
+            
+            for (; i < all_nodes.size(); i++)
+            {
+                outp.back().push_back(all_nodes[i].nk);
+                if (!all_nodes[i].continuous)
+                {
+                    if(all_nodes[i].is_boundary)
+                    {
+                        outp.push_back(is_mesh::SimplexSet<node_key>());
+                        outp.back().push_back(all_nodes[++i].nk);
+                    }
+                    else
+                    {
+                        outp.push_back(is_mesh::SimplexSet<node_key>());
+                        outp.back().push_back(all_nodes[i].nk);
+                    }
+                    
+                }
+            }
+            
+            
+            if (all_nodes[0].continuous
+                && outp.size() > 1)
+            {
+                // merge last and first
+                auto last = outp.back();
+                auto first = outp.front();
+                
+                last += first;
+                
+                outp.back() = last;
+                outp.erase(outp.begin());
+            }
+            if(!all_nodes[0].continuous && !all_nodes[0].is_boundary)
+            {
+                outp.back().push_back(all_nodes[0].nk);
+            }
+            
+            for (int i = 0; i < outp.size(); i++)
+            {
+                check_consistency(get_nodes(eid), outp[i]);
+            }
+            
+#ifdef DEBUG
+            for(auto aa : outp)
+                assert(aa.size() > 1);
+#endif
+            
             
             std::sort(outp.begin(), outp.end(), compare);
             return outp;
+
 #endif
             // The old algorithm
 
@@ -835,11 +934,42 @@ namespace DSC {
         
         void topological_edge_removal(const is_mesh::SimplexSet<node_key>& polygon, const node_key& n1, const node_key& n2, std::vector<std::vector<int>>& K)
         {
+            std::unique_lock<std::mutex> guard(m, std::defer_lock);
+            guard.lock();
+            
             const int m = static_cast<int>(polygon.size());
             int k = K[0][m-1];
             flip_23_recursively(polygon, n1, n2, K, 0, k);
             flip_23_recursively(polygon, n1, n2, K, k, m-1);
             flip_32(get_edge(n1, n2));
+            
+            guard.unlock();
+        }
+        
+        bool topological_edge_removal_test(const edge_key& eid, is_mesh::SimplexSet<edge_rm> &low_qual_edges)
+        {
+            std::vector<is_mesh::SimplexSet<node_key>> polygon = get_polygons(eid);
+#ifdef DEBUG
+            assert(polygon.size() == 1 && polygon.front().size() > 2);
+#endif
+            std::vector<std::vector<int>> K;
+            real q_new = build_table(eid, polygon.front(), K);
+            
+            if (q_new > min_quality(get_tets(eid)))
+            {
+                const is_mesh::SimplexSet<node_key>& nodes = get_nodes(eid);
+                
+                edge_rm newle;
+                newle.e2rm = eid;
+                newle.bBoundary_edge = false;
+                newle.K1 = K;
+                newle.polygons = polygon;
+
+                low_qual_edges.push_back(newle);
+                
+                return true;
+            }
+            return false;
         }
         
         /**
@@ -894,6 +1024,9 @@ namespace DSC {
         
         void topological_boundary_edge_removal(const is_mesh::SimplexSet<node_key>& polygon1, const is_mesh::SimplexSet<node_key>& polygon2, const edge_key& eid, std::vector<std::vector<int>>& K1, std::vector<std::vector<int>>& K2)
         {
+            std::unique_lock<std::mutex> guard(m, std::defer_lock);
+            guard.lock();
+            
             auto nids = get_nodes(eid);
             const int m1 = static_cast<int>(polygon1.size());
             const int m2 = static_cast<int>(polygon2.size());
@@ -938,6 +1071,47 @@ namespace DSC {
                     flip_44(f1, f2);
                 }
             }
+            
+            guard.unlock();
+        }
+        
+        bool topological_boundary_edge_removal_test(const edge_key& eid, is_mesh::SimplexSet<edge_rm>& low_qual_edges)
+        {
+            // 1. Separate opposite vertices to groups of different labels
+            std::vector<is_mesh::SimplexSet<node_key>> polygons = get_polygons(eid);
+            
+            if(polygons.size() > 2 || polygons[0].size() <= 2)
+            {
+                return false;
+            }
+            
+            // 2. Build table
+            std::vector<std::vector<int>> K1, K2;
+            real q_new = build_table(eid, polygons[0], K1);
+            
+            if(polygons.size() == 2 && polygons[1].size() > 2)
+            {
+                q_new = Util::min(q_new, build_table(eid, polygons[1], K2));
+            }
+            else
+            {
+                polygons.push_back({polygons[0].front(), polygons[0].back()});
+            }
+            
+            if (q_new > min_quality(get_tets(eid)))
+            {
+                edge_rm newle;
+                newle.e2rm = eid;
+                newle.bBoundary_edge = true;
+                newle.K1 = K1; // consider swap
+                newle.K2 = K2;
+                newle.polygons = polygons;
+                
+                low_qual_edges.push_back(newle);
+                
+                return true;
+            }
+            return false;
         }
         
         bool topological_boundary_edge_removal(const edge_key& eid)
@@ -996,8 +1170,11 @@ namespace DSC {
             return false;
         }
         
-        static void topological_edge_removal_worker(DeformableSimplicialComplex<> *dsc, std::vector<tet_key> *tet_list, int start_idx, int stop_idx, Barrier & bar);
+        static void topological_edge_removal_worker(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<tet_key> *tet_list, int start_idx, int stop_idx);
         void topological_edge_removal_parallel();
+        
+        static void topological_edge_removal_worker1(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<edge_key> *tet_list, int start_idx, int stop_idx);
+        void topological_edge_removal_parallel1();
         
         /**
          * Improve tetrahedra quality by the topological operation (re-connection) edge removal. It do so only for tetrahedra of quality lower than MIN_TET_QUALITY.
@@ -1186,27 +1363,27 @@ namespace DSC {
                 }
 #endif
                 
-                // TUAN
-                multi_faces_remove(apices, all_edges, face_to_rm);
-
-                return true;
-                //
-//                
+//                // TUAN - Non recursive code
+//                multi_faces_remove(apices, all_edges, face_to_rm);
 //
-//                flip_23(f);
-//                for(auto &e : e01)
-//                {
-//                    flip_32(e);
-//                }
-//                for(auto &e : e12)
-//                {
-//                    flip_32(e);
-//                }
-//                for(auto &e : e20)
-//                {
-//                    flip_32(e);
-//                }
 //                return true;
+                //
+                
+
+                flip_23(f);
+                for(auto &e : e01)
+                {
+                    flip_32(e);
+                }
+                for(auto &e : e12)
+                {
+                    flip_32(e);
+                }
+                for(auto &e : e20)
+                {
+                    flip_32(e);
+                }
+                return true;
             }
             return false;
         }
@@ -1911,7 +2088,7 @@ namespace DSC {
 #endif
         }
         
-        static void smooth_worker(DeformableSimplicialComplex<> *dsc, std::vector<node_key> *node_list, int start_idx, int stop_idx, Barrier & bar);
+        static void smooth_worker(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<node_key> *node_list, int start_idx, int stop_idx);
         void smooth_parallel();
         
         ///////////////////
@@ -1920,9 +2097,14 @@ namespace DSC {
         
         void fix_complex()
         {
-            smooth();
+            {
+                profile t("Smooth");
+//            smooth();
+            smooth_parallel();
+            }
             
-            topological_edge_removal();
+//            topological_edge_removal();
+            topological_edge_removal_parallel1();
 
             topological_face_removal() ;
         
@@ -1986,9 +2168,9 @@ namespace DSC {
                     
                 fix_complex();
                 }
-#ifdef DEBUG
-                validity_check();
-#endif
+//#ifdef DEBUG
+//                validity_check();
+//#endif
                 ++step;
             } while (missing > 0 && step < num_steps);
             
@@ -2002,9 +2184,9 @@ namespace DSC {
             }
             
             
-#ifdef DEBUG
-            validity_check();
-#endif
+//#ifdef DEBUG
+//            validity_check();
+//#endif
         }
         
     private:

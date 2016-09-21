@@ -219,6 +219,7 @@ Painter::Painter(const vec3& light_pos)
     low_quality = std::unique_ptr<GLObject>(new GLObject(gouraud_shader, {0.3f, 0.1f, 0.1f, 0.1f}, {0.6f, 0.4f, 0.4f, 0.2f}, {0.f, 0.f, 0.f, 0.f}));
     edges = std::unique_ptr<GLObject>(new GLObject(line_shader, {0.f,0.f,0.f, 1.f}, {0.f, 0.f, 0.f, 0.f}, {0.f, 0.f, 0.f, 0.f}));
     unmoved = std::unique_ptr<GLObject>(new GLObject(line_shader, {0.2f, 0.2f, 0.7f, 1.f}, {0.f, 0.f, 0.f, 0.f}, {0.f, 0.f, 0.f, 0.f}));
+    color_graph = std::unique_ptr<GLObject>(new GLObject(line_shader, {0.2f, 0.2f, 0.7f, 1.f}, {0.f, 0.f, 0.f, 0.f}, {0.f, 0.f, 0.f, 0.f}));
     
     // Enable states
     glEnable(GL_DEPTH_TEST);
@@ -368,6 +369,7 @@ void Painter::draw()
     glDisable(GL_CULL_FACE);
     edges->draw(GL_POINTS);
     unmoved->draw(GL_POINTS);
+    
     low_quality->draw();
     glEnable(GL_CULL_FACE);
     
@@ -387,6 +389,10 @@ void Painter::update(DSC::DeformableSimplicialComplex<>& dsc)
     domain->clear_data();
     low_quality->clear_data();
     unmoved->clear_data();
+    color_graph->clear_data();
+    
+    update_color_graph(dsc);
+    
     switch (display_type) {
         case INTERFACE:
             update_interface(dsc);
@@ -528,6 +534,23 @@ void Painter::update_low_quality(DSC::DeformableSimplicialComplex<>& dsc)
         }
     }
     low_quality->add_data(data);
+}
+
+void Painter::update_color_graph(DSC::DeformableSimplicialComplex<>& dsc) {
+    std::vector<vec3> data;
+//    data.push_back(vec3(0.));
+//    data.push_back(vec3(20., 0., 0.));
+//    data.push_back(vec3(0.));
+//    data.push_back(vec3(0., 20., 0.));
+//    data.push_back(vec3(0.));
+//    data.push_back(vec3(0., 0., 20.));
+    
+    for (auto & nit : dsc.nodes())
+    {
+        data.push_back(nit.get_pos());
+        data.push_back(vec3(1,0,0));
+    }
+    color_graph->add_data(data);
 }
 
 void Painter::update_unmoved(DSC::DeformableSimplicialComplex<>& dsc) {

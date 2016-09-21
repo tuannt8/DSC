@@ -25,6 +25,7 @@ namespace is_mesh
     template<typename key_type>
     class SimplexSet
     {
+    public: // TUAN. Set public for experimenting
         std::vector<key_type> set;
         
     public:

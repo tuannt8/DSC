@@ -21,6 +21,14 @@
 #include "log.h"
 #include "draw.h"
 
+#include <CGLA/Vec2d.h>
+#include <CGLA/Vec3d.h>
+#include <CGLA/Vec4d.h>
+#include <CGLA/Mat3x3d.h>
+#include <CGLA/Mat4x4d.h>
+
+typedef CGLA::Vec3d vec3;
+
 /**
  A default application which utilizes OpenGL, GLEW and GLUT for visualization. Three sample velocity functions (rotation, smoothing and expansion) can be applies to a model specified by the model_file_name variable or as input variable. See https://github.com/asny/DSC/wiki/DEMO-instructions for details on how to use this DEMO application. See https://github.com/asny/DSC/wiki/Instructions for instructions on how to build your own application which uses the implementation of the DSC method.
  */
@@ -37,8 +45,8 @@ class UI
     vec3 camera_pos = {30., 30., 70.};
     vec3 light_pos = {0., 0., 70.};
     
-    int WIN_SIZE_X = 100;
-    int WIN_SIZE_Y = 100;
+    int WIN_SIZE_X = 1280;
+    int WIN_SIZE_Y = 720;
     
     bool CONTINUOUS = false;
     bool RECORD = false;
@@ -47,7 +55,7 @@ class UI
     static UI* instance;
     
 #ifdef _WIN32
-    const std::string obj_path = "data\\";
+    const std::string obj_path = "..\\..\\data\\";
     const std::string log_path = "LOG\\";
 #else
     const std::string obj_path = "./data/";
@@ -65,6 +73,9 @@ public:
     
     void display();
     
+    void setup_light();
+    void update_gl();
+    
     void animate();
     
     void reshape(int width, int height);
@@ -74,6 +85,11 @@ public:
     void mouse(int button, int state, int x, int y);
     
     void motion(int x, int y);
+    
+    CGLA::Vec3d _obj_dim;
+    double gl_dis_max = 200;
+    GLfloat angle = -150;   /* in degrees */
+    GLfloat angle2 = 30;   /* in degrees */
     
     /**
      The keyboard is used for all inputs. See https://github.com/asny/DSC/wiki/DEMO-instructions for up-to-date instructions on how to use the DEMO application.

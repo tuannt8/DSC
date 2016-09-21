@@ -94,7 +94,7 @@ class Painter {
     int WIDTH, HEIGHT;
     GLuint gouraud_shader, line_shader, wire_shader;
     
-    std::unique_ptr<GLObject> interface, wire_frame, domain, low_quality, edges, unmoved;
+    std::unique_ptr<GLObject> interface, wire_frame, domain, low_quality, edges, unmoved, color_graph;
     
     // Uniform variables
     CGLA::Mat4x4f projectionMatrix, viewMatrix, modelMatrix = CGLA::rotation_Mat4x4f(CGLA::YAXIS, M_PI);
@@ -163,4 +163,7 @@ private:
     void update_low_quality(DSC::DeformableSimplicialComplex<>& dsc);
     
     void update_unmoved(DSC::DeformableSimplicialComplex<>& dsc);
+    
+    void update_color_graph(DSC::DeformableSimplicialComplex<>& dsc);
+
 };

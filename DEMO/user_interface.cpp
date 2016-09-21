@@ -26,6 +26,8 @@
 
 #include "profile.h"
 
+#include "draw_helper.h"
+
 using namespace DSC;
 
 void display_(){
@@ -50,83 +52,119 @@ void animate_(){
 
 UI* UI::instance = NULL;
 
+void UI::setup_light()
+{
+    vec3 center = _obj_dim / 2.0;
+    vec3 eye = center + vec3(gl_dis_max*2.0*cos(angle)*cos(angle2),
+                             gl_dis_max*2.0*cos(angle)*sin(angle2),
+                             gl_dis_max*2.0*sin(angle));
+    
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat mat_shininess[] = { 50.0 };
+    GLfloat light_position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glShadeModel(GL_SMOOTH);
+    
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_DEPTH_TEST);
+}
+inline vec3 min_vec(vec3 v1, vec3 v2)
+{
+    vec3 out;
+    out[0] = std::min(v1[0], v2[0]);
+    out[1] = std::min(v1[1], v2[1]);
+    out[2] = std::min(v1[2], v2[2]);
+    return out;
+}
+
+inline vec3 max_vec(vec3 v1, vec3 v2)
+{
+    vec3 out;
+    out[0] = std::max(v1[0], v2[0]);
+    out[1] = std::max(v1[1], v2[1]);
+    out[2] = std::max(v1[2], v2[2]);
+    return out;
+}
+
+void UI::update_gl()
+{
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective( /* field of view in degree */ 40.0,
+                   /* aspect ratio */ 1.0,
+                   /* Z near */ 10.0, /* Z far */ gl_dis_max*5.0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    
+    vec3 center = _obj_dim / 2.0;
+    double dis = 2.0;
+    vec3 eye = center + vec3(gl_dis_max*dis*cos(angle)*cos(angle2),
+                             gl_dis_max*dis*cos(angle)*sin(angle2),
+                             gl_dis_max*dis*sin(angle));
+    vec3 head = vec3(-sin(angle)*cos(angle2),
+                     -sin(angle)*sin(angle2),
+                     cos(angle));
+    gluLookAt(eye[0], eye[1], eye[2], /* eye is at (0,8,60) */
+              center[0], center[1], center[2],      /* center is at (0,8,0) */
+              head[0], head[1], head[2]);      /* up is in postivie Y direction */
+    
+    int size = std::min(WIN_SIZE_Y, WIN_SIZE_X);
+    glViewport((WIN_SIZE_X - size) / 2.0, (WIN_SIZE_Y - size) / 2.0, size, size);
+    
+    glClearColor(0.1, 0.1, 0.1, 1.0);
+}
 
 UI::UI(int &argc, char** argv)
 {
     instance = this;
-    profile::init();
-
+    
     glutInit(&argc, argv);
-#ifdef _WIN32
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
-#else
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
-#endif
-    glutCreateWindow("");
+    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL | GLUT_MULTISAMPLE);
+    
+    glutCreateWindow("Shadowy Leapin' Lizards");
     
     glutDisplayFunc(display_);
     glutKeyboardFunc(keyboard_);
-	glutIgnoreKeyRepeat(true);
+    glutSetKeyRepeat(GLUT_KEY_REPEAT_ON);
     glutVisibilityFunc(visible_);
     glutReshapeFunc(reshape_);
-	glutIdleFunc(animate_);
-
-#ifndef __APPLE__
-	glewExperimental = GL_TRUE;  // See http://www.opengl.org/wiki/OpenGL_Loading_Library
-	GLint GlewInitResult = glewInit();
-	if (GlewInitResult != GLEW_OK) {
-		printf("ERROR: %s\n", glewGetErrorString(GlewInitResult));
-	}
-    check_gl_error(); // Catches a GL_INVALID_ENUM error. See http://www.opengl.org/wiki/OpenGL_Loading_Library
-#endif
     
-    // Read input
-    std::string motion = "";
-    real discretization = 2.5;
+    
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    glEnable(GL_DEPTH_TEST);
+    glLineWidth(1.0);
+    
+    setup_light();
+    
+    glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
+    check_gl_error();
+    
+    
+    
+    load_model("armadillo", 2.5);
+    
     real velocity = 5.;
     real accuracy = 0.25;
+    vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
+    start("");
     
-    if(argc == 2)
+    //
+    vec3 minc(INFINITY);
+    vec3 maxc(-INFINITY);
+    for (auto vit = dsc->nodes_begin(); vit != dsc->nodes_end(); vit++)
     {
-        model_file_name = std::string(argv[1]);
+        vec3 pt = dsc->get_pos(vit.key());
+        
+        minc = min_vec(minc, pt);
+        maxc = max_vec(maxc, pt);
     }
-    else if(argc > 2)
-    {
-        for(int i = 0; i < argc; ++i)
-        {
-            std::string str(argv[i]);
-            if (str == "nu") {
-                velocity = std::atof(argv[i+1]);
-            }
-            else if (str == "delta") {
-                discretization = std::atof(argv[i+1]);
-            }
-            else if (str == "alpha") {
-                accuracy = std::atof(argv[i+1]);
-            }
-            else if (str == "model") {
-                model_file_name = argv[i+1];
-            }
-            else if (str == "motion") {
-                motion = argv[i+1];
-            }
-        }
-    }
-    painter = std::unique_ptr<Painter>(new Painter(light_pos));
-    load_model(model_file_name, discretization);
-    
-    if(motion.empty())
-    {
-        vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
-        start("");
-    }
-    else {
-        keyboard(*motion.data(), 0, 0);
-    }
-    
-	glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
-    check_gl_error();
-
+    _obj_dim = maxc - minc;
+    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*2;
 }
 
 void UI::load_model(const std::string& file_name, real discretization)
@@ -140,22 +178,22 @@ void UI::load_model(const std::string& file_name, real discretization)
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
     
-    vec3 p_min(INFINITY), p_max(-INFINITY);
-    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++) {
-        for (int i = 0; i < 3; i++) {
-            p_min[i] = Util::min(nit->get_pos()[i], p_min[i]);
-            p_max[i] = Util::max(nit->get_pos()[i], p_max[i]);
-        }
-    }
+//    vec3 p_min(INFINITY), p_max(-INFINITY);
+//    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++) {
+//        for (int i = 0; i < 3; i++) {
+//            p_min[i] = Util::min(nit->get_pos()[i], p_min[i]);
+//            p_max[i] = Util::max(nit->get_pos()[i], p_max[i]);
+//        }
+//    }
+//    
+//    vec3 size = p_max - p_min;
+//    real var = Util::max(Util::max(size[0], size[1]), size[2]);
+//    real dist = 1.2*var;
+//    eye_pos = {dist, var, dist};
+//    camera_pos = {var, var, -dist};
+//    light_pos = {0., 0., dist};
     
-    vec3 size = p_max - p_min;
-    real var = Util::max(Util::max(size[0], size[1]), size[2]);
-    real dist = 1.2*var;
-    eye_pos = {dist, var, dist};
-    camera_pos = {var, var, -dist};
-    light_pos = {0., 0., dist};
-    
-    painter->update(*dsc);
+//    painter->update(*dsc);
     std::cout << "Loading done" << std::endl << std::endl;
 }
 
@@ -170,15 +208,16 @@ void UI::update_title()
 
 void UI::display()
 {
-    if (glutGet(GLUT_WINDOW_WIDTH) != WIN_SIZE_X || glutGet(GLUT_WINDOW_HEIGHT) != WIN_SIZE_Y) {
-        return;
-    }
-    GLfloat timeValue = 0;//glutGet(GLUT_ELAPSED_TIME)*0.0002;
-    vec3 ep( eye_pos[0] * sinf(timeValue), eye_pos[1] * cosf(timeValue) , eye_pos[2] * cosf(timeValue));
-    painter->set_view_position(ep);
-    painter->draw();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    update_gl();
+    setup_light();
+  
+    draw_helper::dsc_draw_interface(*dsc);
+    draw_helper::dsc_draw_node_color(*dsc);
+    
     glutSwapBuffers();
-    update_title();
+//    update_title();
     check_gl_error();
 }
 
@@ -186,7 +225,12 @@ void UI::reshape(int width, int height)
 {
     WIN_SIZE_X = width;
     WIN_SIZE_Y = height;
-    painter->reshape(width, height);
+    
+    update_gl();
+    
+//    painter->reshape(width, height);
+    
+    	glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
 }
 
 void UI::animate()
@@ -195,7 +239,7 @@ void UI::animate()
     {
         std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() + 1 <<  " START*************\n" << std::endl;
         vel_fun->take_time_step(*dsc);
-        painter->update(*dsc);
+//        painter->update(*dsc);
 //        if(RECORD && basic_log)
 //        {
 //            painter->set_view_position(camera_pos);
@@ -390,7 +434,7 @@ void UI::stop()
     }
     
     CONTINUOUS = false;
-    painter->update(*dsc);
+//    painter->update(*dsc);
     update_title();
     glutPostRedisplay();
 }
@@ -400,14 +444,14 @@ void UI::start(const std::string& log_folder_name)
     if(RECORD)
     {
         basic_log = std::unique_ptr<Log>(new Log(log_path + log_folder_name));
-        painter->set_view_position(camera_pos);
+//        painter->set_view_position(camera_pos);
         painter->save_painting(log_path, vel_fun->get_time_step());
         basic_log->write_message(vel_fun->get_name().c_str());
         basic_log->write_log(*vel_fun);
         basic_log->write_log(*dsc);
     }
     
-    painter->update(*dsc);
+//    painter->update(*dsc);
     update_title();
     glutPostRedisplay();
 }

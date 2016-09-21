@@ -121,6 +121,7 @@
 		A642127F1C7B54A600CBB594 /* profile.h in Headers */ = {isa = PBXBuildFile; fileRef = A642127D1C7B54A600CBB594 /* profile.h */; };
 		A64212841C7B555B00CBB594 /* profile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A64212821C7B555B00CBB594 /* profile.cpp */; };
 		A64212851C7B555B00CBB594 /* profile.h in Headers */ = {isa = PBXBuildFile; fileRef = A64212831C7B555B00CBB594 /* profile.h */; };
+		A64F086C1D8AE1B100378CC1 /* draw_helper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A64F086B1D8AE1B100378CC1 /* draw_helper.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -271,6 +272,8 @@
 		A642127D1C7B54A600CBB594 /* profile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = profile.h; path = src/profile.h; sourceTree = SOURCE_ROOT; };
 		A64212821C7B555B00CBB594 /* profile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = profile.cpp; path = src/profile.cpp; sourceTree = SOURCE_ROOT; };
 		A64212831C7B555B00CBB594 /* profile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = profile.h; path = src/profile.h; sourceTree = SOURCE_ROOT; };
+		A64F086A1D8AE1B100378CC1 /* draw_helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = draw_helper.h; sourceTree = "<group>"; };
+		A64F086B1D8AE1B100378CC1 /* draw_helper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = draw_helper.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -517,6 +520,8 @@
 		7AE27B0E17675CEA000F8238 /* DEMO */ = {
 			isa = PBXGroup;
 			children = (
+				A64F086A1D8AE1B100378CC1 /* draw_helper.h */,
+				A64F086B1D8AE1B100378CC1 /* draw_helper.cpp */,
 				7A470AE117F51DC3001FC0CB /* log.cpp */,
 				7A470AE217F51DC3001FC0CB /* log.h */,
 				7AE27B1117675CEA000F8238 /* demo.cpp */,
@@ -746,7 +751,7 @@
 				LastUpgradeCheck = 0500;
 				ORGANIZATIONNAME = "Asger Nyman Christiansen";
 			};
-			buildConfigurationList = 7AE27AB217675A1E000F8238 /* Build configuration list for PBXProject "DSC" */;
+			buildConfigurationList = 7AE27AB217675A1E000F8238 /* Build configuration list for PBXProject "DSC_cache" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -842,6 +847,7 @@
 			files = (
 				7AE27B1517675CEA000F8238 /* demo.cpp in Sources */,
 				7AF7E9BA176B402200F43714 /* user_interface.cpp in Sources */,
+				A64F086C1D8AE1B100378CC1 /* draw_helper.cpp in Sources */,
 				7A470AE317F51DC3001FC0CB /* log.cpp in Sources */,
 				7AF7E9BD176B412900F43714 /* draw.cpp in Sources */,
 			);
@@ -1114,7 +1120,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7AE27AB217675A1E000F8238 /* Build configuration list for PBXProject "DSC" */ = {
+		7AE27AB217675A1E000F8238 /* Build configuration list for PBXProject "DSC_cache" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7AE27ABE17675A1E000F8238 /* Debug */,

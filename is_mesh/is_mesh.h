@@ -256,6 +256,18 @@ namespace is_mesh {
             update(tids);
         }
         
+        template<typename Keytype>
+        int get_color(const Keytype & nk)
+        {
+            return get(nk).get_color();
+        }
+        
+        template<typename Keytype>
+        void set_color(const Keytype & nk, int color)
+        {
+            get(nk).set_color(color);
+        }
+        
     private:
 
         struct edge_key {
