@@ -482,7 +482,6 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
 
 template<> void dsc_class::topological_edge_removal_parallel1()
 {
-    profile t("erm over head");
     std::vector<is_mesh::SimplexSet<edge_key>> colored_list(MAX_COLORS_TET, is_mesh::SimplexSet<edge_key>());
     
     std::vector<tet_key> tets;
@@ -503,8 +502,6 @@ template<> void dsc_class::topological_edge_removal_parallel1()
             colored_list[cc] += e;
         }
     }
-    
-    t.change("erm main");
     
 //    topological_edge_removal();
 //    return;

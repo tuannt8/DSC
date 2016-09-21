@@ -21,6 +21,8 @@
 
 #define CLEAN_GARBAGE(a, b) if(a[b]){delete a[b]; a[b] = nullptr;}
 
+// Should consider thread safe
+
 class dsc_cache
 {
 public:
