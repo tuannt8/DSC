@@ -140,6 +140,31 @@ namespace DSC {
             return colors;
         }
         
+
+        std::vector<int> get_colors_cache(is_mesh::SimplexSet<node_key> nodes)
+        {
+            std::vector<int> colors;
+            for (auto n : nodes)
+            {
+                if(cache.node_color[n])
+                    colors.push_back(*cache.node_color[n]);
+            }
+            std::sort(colors.begin(), colors.end());
+            return colors;
+        }
+        
+        std::vector<int> get_colors_cache(is_mesh::SimplexSet<edge_key> nodes)
+        {
+            std::vector<int> colors;
+            for (auto n : nodes)
+            {
+                if(cache.edge_color[n])
+                    colors.push_back(*cache.edge_color[n]);
+            }
+            std::sort(colors.begin(), colors.end());
+            return colors;
+        }
+        
 //        std::vector<int> get_colors(is_mesh::SimplexSet<tet_key> tets)
 //        {
 //            std::vector<int> colors;
@@ -155,13 +180,21 @@ namespace DSC {
         // assign a color if not existed
         int get_color_node(node_key nk)
         {
-            int vv = get_color(nk);
-            if (get_color(nk) == NO_COLOR)
+//            int vv = get_color(nk);
+//            if (get_color(nk) == NO_COLOR)
+//            {
+//                set_color(nk, get_free_color(nk));
+//            }
+//            
+//            return get_color(nk);
+            
+            if(!cache.node_color[nk])
             {
-                set_color(nk, get_free_color(nk));
+                cache.node_color[nk] = new int;
+                *cache.node_color[nk] = get_free_color(nk);
             }
             
-            return get_color(nk);
+            return *cache.node_color[nk];
         }
         
         int get_color_tet(tet_key tk)
@@ -174,45 +207,70 @@ namespace DSC {
         
         int get_color_edge(edge_key ek)
         {
-            if(get_color(ek) == NO_COLOR)
-                set_color(ek, get_free_color(ek));
+//            if(get_color(ek) == NO_COLOR)
+//                set_color(ek, get_free_color(ek));
+//            
+//            return get_color(ek);
+            if(!cache.edge_color[ek])
+            {
+                cache.edge_color[ek] = new int;
+                *cache.edge_color[ek] = get_free_color(ek);
+            }
             
-            return get_color(ek);
+            return *cache.edge_color[ek];
         }
         
-#ifdef DSC_CACHE // variable
         dsc_cache cache;
         
-
-#endif
         
         ///////////////////////////////////
         // Cache
 #ifdef DSC_CACHE
         
         
-//#define CACHE_HIT
+#define CACHE_HIT
         
 #ifdef CACHE_HIT
-#define CACHE_MISS profile t("cache miss");
-#define CACHE_REFER profile t("cache refer");
+#define CACHE_MISS profile time("cache miss");
+#define CACHE_REFER profile time("cache refer");
 #else
 #define CACHE_MISS
 #define CACHE_REFER
 #endif
 
         
+        real quality_cache(tet_key t)
+        {
+//            return quality(t);
+            
+            if (!cache.quality_tet[t])
+            {
+//                CACHE_MISS
+                cache.quality_tet[t] = new real;
+                *cache.quality_tet[t] = quality(t);
+            }
+            
+//            CACHE_REFER
+//
+//            if(std::abs( quality(t) - *cache.quality_tet[t] ) > 0.001)
+//            {
+//                real a = quality(t);
+//                real b = *cache.quality_tet[t];
+//                
+//                assert(std::abs(a-b) < 0.001);
+//            }
+//            
+//            return quality(t);
+            return *cache.quality_tet[t];
+        }
+        
         is_mesh::SimplexSet<tet_key> * get_tets_cache(is_mesh::NodeKey nid)
         {
             
             if (!cache.tets_neighbor_node[nid])
             {
-                CACHE_MISS
-                //                cache.tets_neighbor_node[nid] = new is_mesh::SimplexSet<is_mesh::TetrahedronKey>;
                 cache.tets_neighbor_node[nid] = get_tets_ptr(nid);
             }
-            
-            CACHE_REFER
             
             return cache.tets_neighbor_node[nid];
         }
@@ -221,11 +279,8 @@ namespace DSC {
         {
             if (!cache.faces_neighbor_node[nid])
             {
-                CACHE_MISS
-                //                cache.faces_neighbor_node[nid] = new is_mesh::SimplexSet<is_mesh::FaceKey>;
-                cache.faces_neighbor_node[nid] = get_faces_ptr(nid);
+               cache.faces_neighbor_node[nid] = get_faces_ptr(nid);
             }
-            CACHE_REFER
             
             return cache.faces_neighbor_node[nid];
         }
@@ -234,14 +289,12 @@ namespace DSC {
         {
             if (!cache.link_of_node[nk])
             {
-                CACHE_MISS
                 is_mesh::SimplexSet<tet_key> * tids = get_tets_cache(nk);
                 is_mesh::SimplexSet<face_key> fids = get_faces(*tids) - *get_faces_cache(nk);
                 
                 cache.link_of_node[nk] = new is_mesh::SimplexSet<is_mesh::FaceKey>;
                 *cache.link_of_node[nk] = fids;
             }
-            CACHE_REFER
             return cache.link_of_node[nk];
         }
         
@@ -261,12 +314,10 @@ namespace DSC {
         {
             if (!cache.nodes_neighbor_node[nid])
             {
-                CACHE_MISS
                 is_mesh::SimplexSet<is_mesh::NodeKey> nidset; nidset.push_back(nid);
                 cache.nodes_neighbor_node[nid] = new is_mesh::SimplexSet<is_mesh::NodeKey>;
                 *cache.nodes_neighbor_node[nid] = get_nodes(get_edges(nid)) - nidset;
             }
-            CACHE_REFER
             
             return cache.nodes_neighbor_node[nid];
         }
@@ -275,12 +326,10 @@ namespace DSC {
         {
             if(!cache.nodes_on_tet[tk])
             {
-                CACHE_MISS
                 cache.nodes_on_tet[tk] = new is_mesh::SimplexSet<node_key>;
                 *cache.nodes_on_tet[tk] = get_nodes(tk);
             }
             
-            CACHE_REFER
             return cache.nodes_on_tet[tk];
         }
         
@@ -288,12 +337,15 @@ namespace DSC {
         {
             if(!cache.node_on_face[fk])
             {
-                CACHE_MISS
+
+                
                 cache.node_on_face[fk] = new is_mesh::SimplexSet<node_key>;
                 *cache.node_on_face[fk] = get_nodes(fk);
+                
+
             }
+            assert(cache.node_on_face[fk]->size()==3);
             
-            CACHE_REFER
             return cache.node_on_face[fk];
         }
 #endif
@@ -533,6 +585,16 @@ namespace DSC {
             {
                 get(nid).set_destination(p);
             }
+            
+//            profile t("quality over head");
+#ifdef DSC_CACHE // Move node, mark dirty for quality
+            auto & tets = *get_tets_cache(nid);
+            
+            for (auto tkey : tets)
+            {
+                cache.mark_dirty_tet(tkey);
+            }
+#endif
         }
         
         
@@ -623,6 +685,18 @@ namespace DSC {
                 Q[i][i+1] = INFINITY;
             }
             
+//            static std::vector<int> count(20,0);
+//            count[m]++;
+//            
+//            for (int i = 0; i < 20; i++)
+//            {
+//                if (count[i] > 0)
+//                {
+//                    std::cout << count[i] << " - " << i << ";";
+//                }
+//                std::cout<<"\n";
+//            }
+            
             // TUAN: Get pos first; It helps reduce 30% computation time
             auto pt = get_pos(polygon);
             auto pte = get_pos(nids);
@@ -697,7 +771,7 @@ namespace DSC {
             return polygon;
         }
  
-#define USE_NEW_GET_POLYGON
+//#define USE_NEW_GET_POLYGON
         std::vector<is_mesh::SimplexSet<node_key>> get_polygons(const edge_key& eid)
         {
             struct {
@@ -934,8 +1008,7 @@ namespace DSC {
         
         void topological_edge_removal(const is_mesh::SimplexSet<node_key>& polygon, const node_key& n1, const node_key& n2, std::vector<std::vector<int>>& K)
         {
-            std::unique_lock<std::mutex> guard(m, std::defer_lock);
-            guard.lock();
+
             
             const int m = static_cast<int>(polygon.size());
             int k = K[0][m-1];
@@ -943,33 +1016,7 @@ namespace DSC {
             flip_23_recursively(polygon, n1, n2, K, k, m-1);
             flip_32(get_edge(n1, n2));
             
-            guard.unlock();
-        }
-        
-        bool topological_edge_removal_test(const edge_key& eid, is_mesh::SimplexSet<edge_rm> &low_qual_edges)
-        {
-            std::vector<is_mesh::SimplexSet<node_key>> polygon = get_polygons(eid);
-#ifdef DEBUG
-            assert(polygon.size() == 1 && polygon.front().size() > 2);
-#endif
-            std::vector<std::vector<int>> K;
-            real q_new = build_table(eid, polygon.front(), K);
-            
-            if (q_new > min_quality(get_tets(eid)))
-            {
-                const is_mesh::SimplexSet<node_key>& nodes = get_nodes(eid);
-                
-                edge_rm newle;
-                newle.e2rm = eid;
-                newle.bBoundary_edge = false;
-                newle.K1 = K;
-                newle.polygons = polygon;
 
-                low_qual_edges.push_back(newle);
-                
-                return true;
-            }
-            return false;
         }
         
         /**
@@ -978,16 +1025,23 @@ namespace DSC {
          */
         bool topological_edge_removal(const edge_key& eid)
         {
+//            profile time("te - get pol");
             std::vector<is_mesh::SimplexSet<node_key>> polygon = get_polygons(eid);
 #ifdef DEBUG
             assert(polygon.size() == 1 && polygon.front().size() > 2);
 #endif
+//            time.change("te - build table");
             std::vector<std::vector<int>> K;
             real q_new = build_table(eid, polygon.front(), K);
             
+//            time.change("te - compare ole");
             if (q_new > min_quality(get_tets(eid)))
             {
+//                time.change("te - remove");
                 const is_mesh::SimplexSet<node_key>& nodes = get_nodes(eid);
+                
+                std::unique_lock<std::mutex> guard(m, std::defer_lock);
+                guard.lock();
                 
 #ifdef DSC_CACHE // edge remove
                 // Should update flag here, instead of inside topological_edge_removal(polygon.front(), nodes[0], nodes[1], K); function
@@ -1017,6 +1071,8 @@ namespace DSC {
                 }
 #endif
                 topological_edge_removal(polygon.front(), nodes[0], nodes[1], K);
+                
+                guard.unlock();
                 return true;
             }
             return false;
@@ -1024,8 +1080,7 @@ namespace DSC {
         
         void topological_boundary_edge_removal(const is_mesh::SimplexSet<node_key>& polygon1, const is_mesh::SimplexSet<node_key>& polygon2, const edge_key& eid, std::vector<std::vector<int>>& K1, std::vector<std::vector<int>>& K2)
         {
-            std::unique_lock<std::mutex> guard(m, std::defer_lock);
-            guard.lock();
+
             
             auto nids = get_nodes(eid);
             const int m1 = static_cast<int>(polygon1.size());
@@ -1072,46 +1127,7 @@ namespace DSC {
                 }
             }
             
-            guard.unlock();
-        }
-        
-        bool topological_boundary_edge_removal_test(const edge_key& eid, is_mesh::SimplexSet<edge_rm>& low_qual_edges)
-        {
-            // 1. Separate opposite vertices to groups of different labels
-            std::vector<is_mesh::SimplexSet<node_key>> polygons = get_polygons(eid);
-            
-            if(polygons.size() > 2 || polygons[0].size() <= 2)
-            {
-                return false;
-            }
-            
-            // 2. Build table
-            std::vector<std::vector<int>> K1, K2;
-            real q_new = build_table(eid, polygons[0], K1);
-            
-            if(polygons.size() == 2 && polygons[1].size() > 2)
-            {
-                q_new = Util::min(q_new, build_table(eid, polygons[1], K2));
-            }
-            else
-            {
-                polygons.push_back({polygons[0].front(), polygons[0].back()});
-            }
-            
-            if (q_new > min_quality(get_tets(eid)))
-            {
-                edge_rm newle;
-                newle.e2rm = eid;
-                newle.bBoundary_edge = true;
-                newle.K1 = K1; // consider swap
-                newle.K2 = K2;
-                newle.polygons = polygons;
-                
-                low_qual_edges.push_back(newle);
-                
-                return true;
-            }
-            return false;
+
         }
         
         bool topological_boundary_edge_removal(const edge_key& eid)
@@ -1139,6 +1155,9 @@ namespace DSC {
             
             if (q_new > min_quality(get_tets(eid)))
             {
+                std::unique_lock<std::mutex> guard(m, std::defer_lock);
+                guard.lock();
+                
 #ifdef DSC_CACHE // Bounadry edge removal
                 auto tets = get_tets(eid);
                 for (auto tkey : tets)
@@ -1165,6 +1184,8 @@ namespace DSC {
                 }
 #endif
                 topological_boundary_edge_removal(polygons[0], polygons[1], eid, K1, K2);
+                
+                guard.unlock();
                 return true;
             }
             return false;
@@ -1182,20 +1203,33 @@ namespace DSC {
          */
         void topological_edge_removal()
         {
+//            profile time("erm - Get low qual tet");
             std::vector<tet_key> tets;
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
+#ifdef DSC_CACHE
+                if (quality_cache(tit.key()) < pars.MIN_TET_QUALITY)
+                {
+                    tets.push_back(tit.key());
+                }
+#else
                 if (quality(tit.key()) < pars.MIN_TET_QUALITY)
                 {
                     tets.push_back(tit.key());
                 }
+#endif
             }
-            
+
             // Attempt to remove each edge of each tetrahedron in tets. Accept if it increases the minimum quality locally.
             int i = 0, j = 0, k = 0;
             for (auto &t : tets)
             {
+//                time.change("erm - check tet again");
+#ifdef DSC_CACHE
+                if (is_unsafe_editable(t) && quality_cache(t) < pars.MIN_TET_QUALITY)
+#else
                 if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
+#endif
                 {
 #ifdef DSC_CACHE
                     auto ets = get_edges(t);
@@ -1203,6 +1237,7 @@ namespace DSC {
                     {
                         if(is_safe_editable(e))
                         {
+                            //time.change("erm 1");
                             if(topological_edge_removal(e))
                             {
                                 i++;
@@ -1211,10 +1246,12 @@ namespace DSC {
                         }
                         else
                         {
+//                            time.change("erm - flipable");
                             bool bf = is_flippable(e);
                             
                             if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && bf)
                             {
+//                                time.change("erm - bound rm");
                                 if(topological_boundary_edge_removal(e))
                                 {
                                     k++;
@@ -1439,7 +1476,11 @@ namespace DSC {
             std::vector<tet_key> tets;
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
+#ifdef DSC_CACHE
+                if (quality_cache(tit.key()) < pars.MIN_TET_QUALITY)
+#else
                 if (quality(tit.key()) < pars.MIN_TET_QUALITY)
+#endif
                 {
                     tets.push_back(tit.key());
                 }
@@ -1451,7 +1492,11 @@ namespace DSC {
             int i = 0, j = 0;
             for (auto &t : tets)
             {
+#ifdef DSC_CACHE
+                if (is_unsafe_editable(t) && quality_cache(t) < pars.MIN_TET_QUALITY)
+#else
                 if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
+#endif
                 {
                     for (auto f : get_faces(t))
                     {
@@ -1517,47 +1562,7 @@ namespace DSC {
         
         void resize_interface()
         {
-            if(pars.MAX_LENGTH == INFINITY
-               || pars.MIN_LENGTH <= 0.)
-            {
-                return;
-            }
-            
-            std::vector<edge_key> edges_thickening;
-            std::vector<edge_key> edges_thinning;
-            for (auto eit = edges_begin(); eit != edges_end(); eit++)
-            {
-                real ll = length(eit.key());
-                if ((eit->is_interface() || eit->is_boundary()) && ll > pars.MAX_LENGTH*AVG_LENGTH)
-                {
-                    edges_thickening.push_back(eit.key());
-                }
-                
-                if ((eit->is_interface() || eit->is_boundary()) && length(eit.key()) < pars.MIN_LENGTH*AVG_LENGTH)
-                {
-                    edges_thinning.push_back(eit.key());
-                }
-            }
-            int i = 0;
-            for(auto &e : edges_thickening)
-            {
-                if (exists(e) && length(e) > pars.MAX_LENGTH*AVG_LENGTH && !is_flat(get_faces(e)))
-                {
-                    split(e);
-                    i++;
-                }
-            }
-            
 
-            for(auto &e : edges_thinning)
-            {
-                if (exists(e) && length(e) < pars.MIN_LENGTH*AVG_LENGTH)
-                {
-                    if(collapse(e))
-                    {
-                    }
-                }
-            }
         }
         
         /**
@@ -1750,7 +1755,11 @@ namespace DSC {
             
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
+#ifdef DSC_CACHE
+                if (quality_cache(tit.key()) < pars.DEG_TET_QUALITY)
+#else
                 if (quality(tit.key()) < pars.DEG_TET_QUALITY)
+#endif
                 {
                     tets.push_back(tit.key());
                 }
@@ -1759,7 +1768,11 @@ namespace DSC {
             int i = 0, j = 0;
             for (auto &t : tets)
             {
+#ifdef DSC_CACHE
+                if (exists(t) && quality_cache(t) < pars.DEG_TET_QUALITY && !collapse(t))
+#else
                 if (exists(t) && quality(t) < pars.DEG_TET_QUALITY && !collapse(t))
+#endif
                 {
                     if(collapse(t, false))
                     {
@@ -2054,7 +2067,11 @@ namespace DSC {
             
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
+#ifdef DSC_CACHE
+                if (quality_cache(tit.key()) < pars.MIN_TET_QUALITY)
+#else
                 if (quality(tit.key()) < pars.MIN_TET_QUALITY)
+#endif
                 {
                     tets.push_back(tit.key());
                 }
@@ -2062,7 +2079,11 @@ namespace DSC {
             int i = 0, j=0;
             for (auto &tet : tets)
             {
+#ifdef DSC_CACHE
+                if (is_unsafe_editable(tet) && quality_cache(tet) < pars.MIN_TET_QUALITY)
+#else
                 if (is_unsafe_editable(tet) && quality(tet) < pars.MIN_TET_QUALITY)
+#endif
                 {
                     if(remove_tet(tet))
                     {
@@ -2157,8 +2178,8 @@ namespace DSC {
             
             {
                 profile t("Fix: Edge remove");
-//            topological_edge_removal();
-            topological_edge_removal_parallel1();
+            topological_edge_removal();
+//            topological_edge_removal_parallel1();
             }
 
             {
@@ -2202,10 +2223,10 @@ namespace DSC {
         void deform(int num_steps = 10)
         {
             profile t("deform");
-#ifdef DEBUG
-            validity_check();
-            std::cout << std::endl << "********************************" << std::endl;
-#endif
+//#ifdef DEBUG
+//            validity_check();
+//            std::cout << std::endl << "********************************" << std::endl;
+//#endif
             int missing;
             int step = 0;
             do {
@@ -2229,20 +2250,21 @@ namespace DSC {
                 std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
                 
                 {
-                    
-                fix_complex();
+                    fix_complex();
                 }
-//#ifdef DEBUG
-//                validity_check();
-//#endif
+
                 ++step;
             } while (missing > 0 && step < num_steps);
-            
+
+//#ifdef DEBUG
+//            validity_check();
+//#endif
 
             resize_complex();
             
             t.change("garbge collect");
             garbage_collect();
+            
             for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
             {
                 nit->set_destination(nit->get_pos());
@@ -2378,7 +2400,12 @@ namespace DSC {
             }
 
             is_mesh::SimplexSet<node_key> e_nids = get_nodes(eid);
+#ifdef DSC_CACHE
+            is_mesh::SimplexSet<node_key> new_e_nids = (*get_nodes_cache(fids[0]) + *get_nodes_cache(fids[1])) - e_nids;
+#else
             is_mesh::SimplexSet<node_key> new_e_nids = (get_nodes(fids[0]) + get_nodes(fids[1])) - e_nids;
+#endif
+            
 #ifdef DEBUG
             assert(new_e_nids.size() == 2);
 #endif
@@ -2538,7 +2565,11 @@ namespace DSC {
             }
             if(get(eid).is_boundary() || get(eid).is_interface())
             {
+#ifdef DSC_CACHE
                 return is_flat(*get_faces_cache(nid));
+#else
+                return is_flat(get_faces(nid));
+#endif
             }
             return false;
         }
@@ -2827,6 +2858,7 @@ namespace DSC {
         
         real quality(const tet_key& tid)
         {
+//            profile t("tid");
 #ifdef DSC_CACHE
             is_mesh::SimplexSet<node_key> * nids = get_nodes_cache(tid);
             return std::abs(Util::quality<real>(get_pos(nids->operator[](0)), get_pos(nids->operator[](1)), get_pos(nids->operator[](2)), get_pos(nids->operator[](3))));
@@ -2934,12 +2966,23 @@ namespace DSC {
          */
         real min_quality(const is_mesh::SimplexSet<tet_key>& tids)
         {
+            {
+#ifdef DSC_CACHE
             real q_min = INFINITY;
             for (auto t : tids)
             {
-                q_min = Util::min(quality(t), q_min);
+                q_min = Util::min(quality_cache(t), q_min);
             }
-            return q_min;
+                return q_min;
+#endif
+            }
+            
+//            real q_min = INFINITY;
+//            for (auto t : tids)
+//            {
+//                q_min = Util::min(quality(t), q_min);
+//            }
+//            return q_min;
         }
         
         /**
@@ -2986,11 +3029,16 @@ namespace DSC {
             for (auto f : fids)
             {
 #ifdef DSC_CACHE
-                is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(f);
+                
+//                is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(f);
+                
+                
+                is_mesh::SimplexSet<node_key> nids = get_nodes(f);
 #else
                 is_mesh::SimplexSet<node_key> nids = get_nodes(f);
 #endif
-
+                assert(nids.size()==3);
+                
                 if(Util::sign(Util::signed_volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos_old)) !=
                    Util::sign(Util::signed_volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos_new)))
                 {

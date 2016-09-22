@@ -33,7 +33,7 @@ public:
     std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*> faces_neighbor_node;
     std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*> nodes_neighbor_node;
     
-    // Neighbor od edge
+    // Neighbor of edge
     std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>*> tets_share_edge;
     
     // face
@@ -41,6 +41,11 @@ public:
     
     // tets
     std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*> nodes_on_tet;
+    std::vector<real*> quality_tet;
+    
+    // Colors
+    std::vector<int *> node_color;
+    std::vector<int *> edge_color;
 public:
     
     dsc_cache()
@@ -50,15 +55,18 @@ public:
         tets_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>*>(MAX_ELEMENTS, nullptr);
         faces_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*>(MAX_ELEMENTS, nullptr);
         nodes_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*>(MAX_ELEMENTS, nullptr);
+        node_color = std::vector<int *>(MAX_ELEMENTS, nullptr);
         
         // Edge
         tets_share_edge = std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>*>(MAX_ELEMENTS, nullptr);
+        edge_color = std::vector<int *>(MAX_ELEMENTS, nullptr);
         
         // face
         node_on_face = std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*>(MAX_ELEMENTS, nullptr);
         
         // tet
         nodes_on_tet = std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*>(MAX_ELEMENTS, nullptr);
+        quality_tet = std::vector<real*>(MAX_ELEMENTS, nullptr);
     }
     
     ~dsc_cache(){};
@@ -69,11 +77,13 @@ public:
         CLEAN_GARBAGE(faces_neighbor_node, nk);
         CLEAN_GARBAGE(nodes_neighbor_node, nk);
         CLEAN_GARBAGE(link_of_node, nk);
+        CLEAN_GARBAGE(node_color, nk);
     }
     
     void mark_dirty(is_mesh::EdgeKey ek, bool dirty)
     {
         CLEAN_GARBAGE(tets_share_edge, ek);
+        CLEAN_GARBAGE(edge_color, ek);
     }
     
     void mark_dirty(is_mesh::FaceKey fk, bool dirty)
@@ -84,6 +94,12 @@ public:
     void mark_dirty(is_mesh::TetrahedronKey tk, bool dirty)
     {
         CLEAN_GARBAGE(nodes_on_tet, tk);
+        CLEAN_GARBAGE(quality_tet, tk);
+    }
+    
+    void mark_dirty_tet(is_mesh::TetrahedronKey tk)
+    {
+        CLEAN_GARBAGE(quality_tet, tk);
     }
 };
 

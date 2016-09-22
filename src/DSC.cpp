@@ -33,7 +33,7 @@ template<> int dsc_class::get_free_color(node_key nk)
 {
 #ifdef DSC_CACHE
     auto ring_nodes = get_nodes(*get_link(nk));
-    std::vector<int> colors = get_colors(ring_nodes);
+    std::vector<int> colors = get_colors_cache(ring_nodes);
     
     int fc = 0;
     FIND_MIN_COLOR
@@ -52,27 +52,9 @@ template<> int dsc_class::get_free_color(edge_key ek)
 {
     auto nids = get_nodes(ek);
     
-//    profile t("1 - get tets");
-//    
-//    auto t1 = get_tets(nids[0]);
-//    auto t2 = get_tets(nids[1]);
-//    
-//    t.change("1 - merge tets");
-//    auto aa = t1+t2;
-//    
-//    t.change("1 - get edges");
-//    
-//    auto es = get_edges(aa);
-//    
-//    t.change("1 - get colors");
-//    auto colors = get_colors(es);
+//    auto colors = get_colors_cache(get_edges(get_tets(ek)) + get_edges(nids[0]) + get_edges(nids[1]));
     
-//    auto colors = get_colors(get_edges(get_tets(nids[0]) + get_tets(nids[1])));
-    
-//    auto colors = get_colors(get_edges(*get_tets_cache(nids[0]) + *get_tets_cache(nids[1])));
-//    auto colors = get_colors(get_edges(get_faces(nids[0]) + get_faces(nids[1])));
-//    auto colors = get_colors(get_edges(nids[0]) + get_edges(nids[1]));
-    auto colors = get_colors(get_edges(get_tets(ek)) + get_edges(nids[0]) + get_edges(nids[1]));
+    auto colors = get_colors_cache(get_edges(get_tets(nids[0]) + get_tets(nids[1])));
     
     int fc = 0;
     FIND_MIN_COLOR
@@ -167,11 +149,6 @@ template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
 {
 #ifdef DSC_CACHE // laplacian smooth
 //    profile t("smooth get cache 1");
-    
-//    is_mesh::SimplexSet<tet_key> tids = get_tets(nid);
-//    is_mesh::SimplexSet<face_key> fids1 = get_faces(tids) - get_faces(nid);
-//    auto fids = &fids1;
-    
     auto fids = get_link(nid);
 
 //    t.change("get pos cache");
@@ -183,21 +160,22 @@ template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
 
     real q_old, q_new;
     
-    for (auto ff : *fids)
-    {
-        is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(ff);
-        if(nids.size() != 3)
-        {
-            if(ff.is_valid())
-            {
-                printf("Valid face: %d\n", (int)ff);
-                
-                auto nids1 = get_nodes(ff);
-                assert(nids1.size()==3);
-            }
-            
-        }
-    }
+//    for (auto ff : *fids)
+//    {
+//        is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(ff); // Funny we need this line of code
+//        
+//        if(nids.size() != 3)
+//        {
+//            if(ff.is_valid())
+//            {
+//                printf("Valid face: %d\n", (int)ff);
+//                
+//                auto nids1 = get_nodes(ff);
+//                assert(nids1.size()==3);
+//            }
+//            
+//        }
+//    }
     
 //    t.change("quality");
     min_quality(*fids, old_pos, new_pos, q_old, q_new);
