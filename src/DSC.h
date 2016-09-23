@@ -2823,7 +2823,11 @@ namespace DSC {
         
         real volume(const tet_key& tid)
         {
+#ifdef DSC_CACHE
+            is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(tid);
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(tid);
+#endif
             return Util::volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), get_pos(nids[3]));
         }
         
