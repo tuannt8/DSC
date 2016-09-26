@@ -50,11 +50,33 @@ template<> int dsc_class::get_free_color(node_key nk)
 
 template<> int dsc_class::get_free_color(edge_key ek)
 {
-    auto nids = get_nodes(ek);
+//    if ((size_t)ek == 22014
+//        || (size_t)ek == 9628)
+//    {
+//        auto ffs = get_faces(ek);
+//        is_mesh::SimplexSet<tet_key> tids;
+//        for(const face_key& f : get_faces(ek))
+//        {
+//            tids += get_tets(f);
+//        }
+//        
+//        auto tts = get_tets(ek);
+//        for (auto ts:tts)
+//        {
+//            if ((size_t)ts == 29648)
+//            {
+//                auto eks = get_edges(ts);
+//            }
+//        }
+//    }
     
+    auto nids = get_nodes(ek);
+
+//    auto colors = get_colors_cache(get_edges(get_faces (ek)));
+    auto colors = get_colors_cache(get_edges(get_tets(ek)));
 //    auto colors = get_colors_cache(get_edges(get_tets(ek)) + get_edges(nids[0]) + get_edges(nids[1]));
     
-    auto colors = get_colors_cache(get_edges(get_tets(nids[0]) + get_tets(nids[1])));
+//    auto colors = get_colors_cache(get_edges(get_tets(nids[0]) + get_tets(nids[1])));
     
     int fc = 0;
     FIND_MIN_COLOR
@@ -434,6 +456,16 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
         {
             continue;
         }
+        {
+            std::unique_lock<std::mutex> guard(dsc->m, std::defer_lock);
+            guard.lock();
+        if (!dsc->cache.edge_color[e]) // the neighbor has been modified
+        {
+            guard.unlock();
+            continue;
+        }
+            guard.unlock();
+        }
         
         if(dsc->is_safe_editable(e))
         {
@@ -460,24 +492,41 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
 
 template<> void dsc_class::topological_edge_removal_parallel1()
 {
+    booking(1000);
+    
     std::vector<is_mesh::SimplexSet<edge_key>> colored_list(MAX_COLORS_TET, is_mesh::SimplexSet<edge_key>());
     
     std::vector<tet_key> tets;
     for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
     {
-        if (quality(tit.key()) < pars.MIN_TET_QUALITY)
+        if (quality_cache(tit.key()) < pars.MIN_TET_QUALITY)
         {
             tets.push_back(tit.key());
         }
     }
-    
+
     for (auto &t : tets)
     {
         auto ets = get_edges(t);
         for (auto e : ets)
         {
+            if ((size_t)e == 22014
+                || (size_t)e == 9628)
+            {
+
+                auto tts = get_tets(e);
+                auto fids = get_faces(e);
+            }
             int cc = get_color_edge(e);
             colored_list[cc] += e;
+            
+            if ((size_t)e == 22014
+                || (size_t)e == 9628)
+            {
+                
+                auto tts = get_tets(e);
+                auto fids = get_faces(e);
+            }
         }
     }
     
@@ -495,7 +544,69 @@ template<> void dsc_class::topological_edge_removal_parallel1()
                 num_thread = 1;
             }
             
-//                        printf("Start threads %d, %d element\n", idx++ , cc.size());
+//            // Check color
+//            // No two edges in this list share a tetrahefral
+//            is_mesh::SimplexSet<tet_key> nb;
+//            int num = 0;
+//            for (auto &ec : cc)
+//            {
+//                if ((size_t)ec == 22014
+//                    || (size_t)ec == 9628)
+//                {
+//                    auto ek = ec;
+//                    auto ffs = get_faces(ek);
+//                    is_mesh::SimplexSet<tet_key> tids;
+//                    for(const face_key& f : get_faces(ek))
+//                    {
+//                        tids += get_tets(f);
+//                    }
+//                    
+//                    auto tts = get_tets(ek);
+//                    for (auto ts:tts)
+//                    {
+//                        if ((size_t)ts == 29648)
+//                        {
+//                            auto eks = get_edges(ts);
+//                        }
+//                    }
+//                }
+//                auto tetsec = get_tets(ec);
+//
+//                
+//                for (auto ts : tetsec)
+//                {
+//                    
+//                    if (nb.contains(ts))
+//                    {
+//                        
+//                    }
+//                    
+//                    if((size_t)ts == 29648)
+//                    {
+//                        bool bb = nb.contains(ts);
+//                        auto ees = get_edges(ts);
+//                        
+//                        auto ffs = get_faces(ec);
+//                        is_mesh::SimplexSet<tet_key> tids;
+//                        for(const face_key& f : get_faces(ec))
+//                        {
+//                            tids += get_tets(f);
+//                        }
+//                        
+//                        auto ttst = get_tets(ec);
+//                        if(bb)
+//                        {
+//                            
+//                            printf("contain 29648");
+//                        }
+//                    }
+//                }
+//                
+//                num += tetsec.size();
+//                nb += tetsec;
+//            }
+//            assert(num == nb.size());
+//            //
             
             std::thread th[NUM_THREADS];
             int stride = (cc.size())/num_thread + 1;

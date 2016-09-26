@@ -370,7 +370,7 @@ namespace DSC {
             
         }
         
-      //  using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::booking;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::booking;
         
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_label;
@@ -1041,7 +1041,7 @@ namespace DSC {
                 const is_mesh::SimplexSet<node_key>& nodes = get_nodes(eid);
                 
                 std::unique_lock<std::mutex> guard(m, std::defer_lock);
-                guard.lock();
+                guard.lock(); // Should separate cache lock and topo lock
                 
 #ifdef DSC_CACHE // edge remove
                 // Should update flag here, instead of inside topological_edge_removal(polygon.front(), nodes[0], nodes[1], K); function
@@ -1072,7 +1072,7 @@ namespace DSC {
 #endif
                 topological_edge_removal(polygon.front(), nodes[0], nodes[1], K);
                 
-                guard.unlock();
+                guard.unlock(); // Because we modify the kernel
                 return true;
             }
             return false;
@@ -2178,8 +2178,8 @@ namespace DSC {
             
             {
                 profile t("Fix: Edge remove");
-            topological_edge_removal();
-//            topological_edge_removal_parallel1();
+//            topological_edge_removal();
+            topological_edge_removal_parallel1();
             }
 
             {
