@@ -97,12 +97,12 @@ void UI::update_gl()
     glLoadIdentity();
     gluPerspective( /* field of view in degree */ 40.0,
                    /* aspect ratio */ 1.0,
-                   /* Z near */ 10.0, /* Z far */ gl_dis_max*5.0);
+                   /* Z near */ 0.1, /* Z far */ gl_dis_max*10.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     
-    vec3 center = _obj_dim / 2.0;
-    double dis = 2.0;
+    vec3 center = vec3(0.0);//_obj_dim / 2.0;
+    double dis = 0.9;
     vec3 eye = center + vec3(gl_dis_max*dis*cos(angle)*cos(angle2),
                              gl_dis_max*dis*cos(angle)*sin(angle2),
                              gl_dis_max*dis*sin(angle));
