@@ -389,7 +389,7 @@ void segment_function::update_average_intensity()
 
 void segment_function::segment()
 {
-    profile t("Average intensity");
+    profile t("Segment");
     
     // Compute average intensity
     int num_phases = 3;
@@ -473,10 +473,6 @@ void segment_function::segment()
     
     compute_external_force();
     
-    
-    t.done();
-    t = profile("Apply force");
-    
     double largest = 0;
     for(auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
     {
@@ -494,8 +490,6 @@ void segment_function::segment()
         }
     }
     
-    t.done();
-    t = profile("Deform");
 
     cout << "--------------------------------Max displacement: " << largest << endl;
     _dsc->deform();
