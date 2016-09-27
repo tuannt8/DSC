@@ -2970,7 +2970,7 @@ namespace DSC {
          */
         real min_quality(const is_mesh::SimplexSet<tet_key>& tids)
         {
-            {
+
 #ifdef DSC_CACHE
             real q_min = INFINITY;
             for (auto t : tids)
@@ -2978,15 +2978,15 @@ namespace DSC {
                 q_min = Util::min(quality_cache(t), q_min);
             }
                 return q_min;
-#endif
+#else
+            real q_min = INFINITY;
+            for (auto t : tids)
+            {
+                q_min = Util::min(quality(t), q_min);
             }
-            
-//            real q_min = INFINITY;
-//            for (auto t : tids)
-//            {
-//                q_min = Util::min(quality(t), q_min);
-//            }
-//            return q_min;
+            return q_min;
+#endif
+
         }
         
         /**
