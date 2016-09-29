@@ -267,18 +267,14 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
 {
     double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);
     
-    size_t dis = 0;
-    auto itd = std::find(dis_coord_size.begin(), dis_coord_size.end(), v);
-    if (itd!= dis_coord_size.end())
-    {
-        dis = itd - dis_coord_size.begin();
-    }else{
-        dis = dis_coord_size.size() - 1;
-    }
-    
+    size_t dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), v) - dis_coord_size.begin() - 1;
+
     
     double total = 0;
     auto const a = tet_dis_coord[dis];
+    
+    assert(a.size() < v);
+    
     for (auto tb : a)
     {
         auto pt = get_coord(tet_points, tb);
@@ -287,6 +283,7 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
     
     total = total * v / a.size();
     
+   
     if(total_inten)
         *total_inten = total;
     
@@ -302,18 +299,15 @@ double image3d::get_variation(std::vector<vec3> tet_points, double c)
 {
     double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);
     
-    size_t dis = 0;
-    auto itd = std::find(dis_coord_size.begin(), dis_coord_size.end(), v);
-    if (itd!= dis_coord_size.end())
-    {
-        dis = itd - dis_coord_size.begin();
-    }else{
-        dis = dis_coord_size.size() - 1;
-    }
+    
+    size_t dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), v) - dis_coord_size.begin() - 1;
     
     
     double total = 0;
     auto const a = tet_dis_coord[dis];
+    
+    assert(a.size() < v);
+    
     for (auto tb : a)
     {
         auto pt = get_coord(tet_points, tb);

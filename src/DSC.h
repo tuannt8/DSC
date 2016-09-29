@@ -1646,7 +1646,6 @@ namespace DSC {
                 return;
             }
             
-            profile tt("thin - find");
             std::vector<tet_key> tetrahedra;
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
@@ -1656,7 +1655,6 @@ namespace DSC {
                 }
             }
             
-            tt.change("thin - collapse");
             int i = 0, j = 0;
             for(auto &t : tetrahedra)
             {
@@ -1669,9 +1667,9 @@ namespace DSC {
                     j++;
                 }
             }
-            //#ifdef DEBUG
+            #ifdef DEBUG
             std::cout << "Thinning collapses: " << i << "/" << j << std::endl;
-            //#endif
+            #endif
         }
         
         /////////////////////////

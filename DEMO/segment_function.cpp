@@ -47,6 +47,15 @@ void segment_function::initialze_segmentation()
 //        }
 //    }
     
+    
+//    // Analyzing
+//    for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
+//    {
+//        double total, volume;
+//        auto pts = _dsc->get_pos(_dsc->get_nodes(tit.key()));
+//        double avgI = _img.get_tetra_intensity(pts, &total, &volume);
+//    }
+    
     /**
      Fuel cells
      */
@@ -239,6 +248,12 @@ bool sort_intersect(intersect_pt p1, intersect_pt p2)
     }
 }
 
+// Compute mean intensity by integrating over tetrahedral
+void segment_function::update_average_intensity1()
+{
+    
+}
+
 void segment_function::update_average_intensity()
 {
     cout << "Computing average intensity" << endl;
@@ -415,60 +430,67 @@ void segment_function::segment()
 //    
 //    t.done();
     
-    _mean_intensities.resize(num_phases);
-    // This function does not return correct result (in compare to above algorithm).
-    // Need further investigation
-    update_average_intensity();
+//    _mean_intensities.resize(num_phases);
+//    // This function does not return correct result (in compare to above algorithm).
+//    // Need further investigation
+//    update_average_intensity();
     
     /**
      RELABEL TETRAHEDRAL
      */
-    static int mesh_opt_counter = 0;
-    if (mesh_opt_counter > 20)
+    static int mesh_opt_counter = 200;
+    if (mesh_opt_counter++ > 20)
     {
-        // Perform relabeling
-        for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
-        {
-            // Evaluate the tetrahedral
-            auto pts = _dsc->get_pos(_dsc->get_nodes(tid.key()));
-            double meanc = _img.get_tetra_intensity(pts);
-            
-            // Find new phase
-            int phase = -1;
-            double min_dis = INFINITY;
-            for (int i = 0; i < _mean_intensities.size(); i++)
-            {
-                if (min_dis > std::abs(_mean_intensities[i] - meanc))
-                {
-                    min_dis = std::abs(_mean_intensities[i] - meanc);
-                    phase = i;
-                }
-            }
-            
-            if (phase != _dsc->get_label(tid.key()))
-            {
-                double var = _img.get_variation(pts, meanc);
-                double thres = 0.2*std::abs(_mean_intensities[_dsc->get_label(tid.key())]
-                                            - _mean_intensities[phase]);
-                
-                cout << "thres hold: " << thres << endl;
-                if (var > thres) // Large variation, split
-                {
-                    cout << "Relabel " << tid.key() << " from " << _dsc->get_label(tid.key())
-                    << "to" << phase << endl;
-                    _dsc->set_label(tid.key(), phase);
-                }
-                else // If they are stable, split the tetrahedral
-                {
-                    
-                }
-            }
-        }
+        mesh_opt_counter = 0;
+        
+        _mean_intensities.resize(num_phases);
+        // This function does not return correct result (in compare to above algorithm).
+        // Need further investigation
+        update_average_intensity();
+        
+//        // Perform relabeling
+//        for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
+//        {
+//            // Evaluate the tetrahedral
+//            auto pts = _dsc->get_pos(_dsc->get_nodes(tid.key()));
+//            double meanc = _img.get_tetra_intensity(pts);
+////             
+//            // Find new phase
+//            int phase = -1;
+//            double min_dis = INFINITY;
+//            for (int i = 0; i < _mean_intensities.size(); i++)
+//            {
+//                if (min_dis > std::abs(_mean_intensities[i] - meanc))
+//                {
+//                    min_dis = std::abs(_mean_intensities[i] - meanc);
+//                    phase = i;
+//                }
+//            }
+//            
+//            if (phase != _dsc->get_label(tid.key()))
+//            {
+//                double var = _img.get_variation(pts, meanc);
+//                double thres = 0.2*std::abs(_mean_intensities[_dsc->get_label(tid.key())]
+//                                            - _mean_intensities[phase]);
+//                
+//                cout << "thres hold: " << thres << endl;
+//                if (var > thres) // Large variation, split
+//                {
+//                    cout << "Relabel " << tid.key() << " from " << _dsc->get_label(tid.key())
+//                    << "to" << phase << endl;
+//                    _dsc->set_label(tid.key(), phase);
+//                }
+//                else // If they are stable, split the tetrahedral
+//                {
+//                    
+//                }
+//            }
+//        }
         
         // Face spliting
-        compute_external_force();
-        update_vertex_stability();
-        face_split();
+//        compute_external_force();
+//        update_vertex_stability();
+//        face_split();
     }
     
     compute_external_force();
@@ -492,5 +514,7 @@ void segment_function::segment()
     
 
     cout << "--------------------------------Max displacement: " << largest << endl;
+    
+    t.change("deform-");
     _dsc->deform();
 }

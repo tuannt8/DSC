@@ -43,13 +43,14 @@ public:
     void segment();
     
 public:
-    double _dt = 1.0;
+    double _dt = 0.5;
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
     
 private:
     std::vector<double> _mean_intensities;
     void update_average_intensity();
+    void update_average_intensity1();
     
     std::vector<int> _vertex_stability_map;
     std::vector<vec3> _forces;
