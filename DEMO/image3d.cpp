@@ -131,6 +131,11 @@ double image3d::sum_area(int x, int y, int z)
         return 0;
     }
     
+    if (!(x < _dim[0] and y < _dim[1] and z < _dim[2]))
+    {
+        return _sum_table.back();
+    }
+    
     // Make sure the function does not access out of range
 #ifdef DEBUG
     assert(x < _dim[0] and y < _dim[1] and z < _dim[2]);
@@ -380,6 +385,6 @@ double image3d::get_value(const int x, const int y, const int z) const
         return f;
     }
 
-    return 0;
+    return BOUND_INTENSITY;
 }
 

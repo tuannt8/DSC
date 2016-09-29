@@ -157,7 +157,8 @@ UI::UI(int &argc, char** argv)
     
     // Load cross sections
     _seg.init();
-    _obj_dim = _seg._img.dimension_v();// + vec3(2*m_edge_length);
+    _obj_dim = _seg._img.dimension_v();
+    _dsc_dim = _obj_dim + vec3(2*m_edge_length);
     
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
@@ -166,6 +167,7 @@ UI::UI(int &argc, char** argv)
     
     // Generate DSC
     init_dsc();
+    set_dsc_boundary_layer();
     
     std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
                 << dsc->get_no_tets() << " tets" << endl;
@@ -173,6 +175,21 @@ UI::UI(int &argc, char** argv)
     _seg._dsc = &*dsc;
     _seg.initialze_segmentation();
     
+}
+
+void UI::set_dsc_boundary_layer()
+{
+    for (auto nit =dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+    {
+        if(nit->is_boundary())
+        {
+            auto tets = dsc->get_tets(nit.key());
+            for (auto t : tets)
+            {
+                dsc->set_label(t, BOUND_LABEL);
+            }
+        }
+    }
 }
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
@@ -184,9 +201,9 @@ void UI::init_dsc()
     
 
     double delta = m_edge_length;
-    int NX = round(_obj_dim[0] / delta) + 1; // number of vertices
-    int NY = round(_obj_dim[1] / delta) + 1;
-    int NZ = round(_obj_dim[2] / delta) + 1;
+    int NX = round(_dsc_dim[0] / delta) + 1; // number of vertices
+    int NY = round(_dsc_dim[1] / delta) + 1;
+    int NZ = round(_dsc_dim[2] / delta) + 1;
     
     // points
     for (int iz = 0; iz < NZ; iz++)
@@ -195,7 +212,7 @@ void UI::init_dsc()
         {
             for (int ix = 0; ix < NX; ix++)
             {
-                points.push_back(vec3(ix, iy, iz)*delta); // - vec3(m_edge_length));
+                points.push_back(vec3(ix, iy, iz)*delta - vec3(m_edge_length));
             }
         }
     }

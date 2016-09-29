@@ -18,6 +18,9 @@
 #include <cstdint>
 #include "util.h"
 
+#define BOUND_LABEL 99
+#define BOUND_INTENSITY 0
+
 typedef cimg_library::CImg<double> cimg_byte;
 #define get_coord(a,b) (a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3])
 #define get_coord_tri(a,b) (a[0]*b[0] + a[1]*b[1] + a[2]*b[2])

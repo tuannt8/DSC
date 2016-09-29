@@ -31,6 +31,8 @@
 #define MAX_COLORS 30
 #define MAX_COLORS_TET 100
 
+using namespace std;
+
 class Barrier
 {
 private:
@@ -1027,9 +1029,19 @@ namespace DSC {
         {
             //            profile time("te - get pol");
             std::vector<is_mesh::SimplexSet<node_key>> polygon = get_polygons(eid);
-#ifdef DEBUG
+//#ifdef DEBUG
+            if(!(polygon.size() == 1 && polygon.front().size() > 2))
+            {
+                auto tets = get_tets(eid);
+                std::cout << tets.size() << endl;
+                auto pts0 = get_nodes(tets[0]);
+                auto pts1 = get_nodes(tets[1]);
+                auto e0 = get_edges(tets[0]);
+                auto e1 = get_edges(tets[1]);
+                auto polygon1 = get_polygons(eid);
+            }
             assert(polygon.size() == 1 && polygon.front().size() > 2);
-#endif
+//#endif
             //            time.change("te - build table");
             std::vector<std::vector<int>> K;
             real q_new = build_table(eid, polygon.front(), K);
@@ -1507,7 +1519,7 @@ namespace DSC {
 #else
                                 auto apices = get_nodes(get_tets(f)) - get_nodes(f);
 #endif
-                                if(topological_face_removal(apices[0], apices[1]))
+                                if(apices.size()==2 && topological_face_removal(apices[0], apices[1]))
                                 {
                                     i++;
                                     break;
@@ -1700,9 +1712,9 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+//#ifdef DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate edges" << std::endl;
-#endif
+//#endif
             garbage_collect();
         }
         
@@ -1739,9 +1751,9 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+//#ifdef DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate faces" << std::endl;
-#endif
+//#endif
             garbage_collect();
         }
         
@@ -1786,9 +1798,9 @@ namespace DSC {
                         j++;
                     }
             }
-#ifdef DEBUG
+//#ifdef DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate tets" << std::endl;
-#endif
+//#endif
             garbage_collect();
         }
         
@@ -2175,9 +2187,20 @@ namespace DSC {
             }
             
             {
+//                static int iter = 0;
+//                if (iter++ >= 51)
+//                {
+//                    validity_check();
+//                }
+                
                 profile t("Fix: Edge remove");
-                //            topological_edge_removal();
-                topological_edge_removal_parallel1();
+                            topological_edge_removal();
+//                topological_edge_removal_parallel1();
+                
+//                if (iter >= 51)
+//                {
+//                    validity_check();
+//                }
             }
             
             {
@@ -2268,6 +2291,7 @@ namespace DSC {
                 nit->set_destination(nit->get_pos());
             }
             
+
             
             //#ifdef DEBUG
             //            validity_check();

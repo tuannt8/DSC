@@ -96,6 +96,7 @@ public:
     double m_edge_length = 10;
     float gl_dis_max;
     vec3 _obj_dim;
+    vec3 _dsc_dim; // contain boundary gap
     
     GLfloat angle = -150;   /* in degrees */
     GLfloat angle2 = 30;   /* in degrees */
@@ -104,6 +105,7 @@ public:
     
     int phase_draw = 0;//Which phase to draw the interface
     void init_dsc();
+    void set_dsc_boundary_layer();
     
     ///////////// Thread
     GLuint m_gl_sence;

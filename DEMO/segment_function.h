@@ -13,6 +13,8 @@
 #include "image3d.h"
 #include "DSC.h"
 
+
+
 struct intersect_pt
 {
     intersect_pt(int z_, bool b_in_z_){
@@ -43,7 +45,7 @@ public:
     void segment();
     
 public:
-    double _dt = 0.5;
+    double _dt = 1;
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
     

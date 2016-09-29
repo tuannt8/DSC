@@ -19,7 +19,7 @@ void segment_function::init()
 {
     //_img.load("data/sphere_drill");
 //    _img.load("../Large_data/hamster");
-    _img.load("../Large_data/fuel_cells_small");
+    _img.load("../Large_data/fuel_cells_smaller");
 
 }
 
@@ -106,6 +106,9 @@ void segment_function::update_vertex_stability()
     }
 }
 
+#define get_mean_intensity(c,l) \
+    (l==BOUND_LABEL? BOUND_INTENSITY:c[l])
+
 void segment_function::compute_external_force()
 {
     auto c = _mean_intensities;
@@ -113,15 +116,23 @@ void segment_function::compute_external_force()
     std::vector<vec3> forces = std::vector<vec3>(30000, vec3(0.0)); // suppose we have less than 10000 vertices
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (fid->is_interface())
+        if (fid->is_interface()
+            && !fid->is_boundary())
         {
             // Normal
             auto tets = _dsc->get_tets(fid.key());
             auto verts = _dsc->get_nodes(fid.key());
             auto pts = _dsc->get_pos(verts);
             
-            double c0 = c[_dsc->get_label(tets[0])];
-            double c1 = c[_dsc->get_label(tets[1])];
+            double boud_scale = 1.0;
+            if (_dsc->get_label(tets[0]) == BOUND_LABEL ||
+                _dsc->get_label(tets[1]) == BOUND_LABEL )
+            {
+                boud_scale = 0.1;
+            }
+            
+            double c0 = get_mean_intensity(c, _dsc->get_label(tets[0]));
+            double c1 = get_mean_intensity(c, _dsc->get_label(tets[1]));
             
             vec3 Norm = _dsc->get_normal(fid.key());
             auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
@@ -131,13 +142,19 @@ void segment_function::compute_external_force()
             // Discretize the face
             double area = Util::area<double>(pts[0], pts[1], pts[2]);
             
-            size_t n = std::ceil( sqrt(area) );
+            size_t n = std::ceil( sqrt(area) ) - 1;
             if (n >= tri_coord_size.size())
             {
                 n = tri_coord_size.size() - 1;
             }
             
             auto a = tri_dis_coord[n - 1];
+            
+            if(a.size() > _dsc->area(fid.key()))
+            {
+                std::cout << "----: " << a.size() << " - " << _dsc->area(fid.key()) << std::endl;
+            }
+            
             for (auto coord : a)
             {
                 auto p = get_coord_tri(pts, coord);
@@ -145,6 +162,8 @@ void segment_function::compute_external_force()
                 
                 //                auto f = - Norm* ((c1 - c0)*(2*g - c0 - c1) / area);
                 auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area);
+                
+                f = f*boud_scale;
                 
                 // distribute
                 forces[verts[0]] += f*coord[0];
@@ -251,11 +270,11 @@ bool sort_intersect(intersect_pt p1, intersect_pt p2)
 // Compute mean intensity by integrating over tetrahedral
 void segment_function::update_average_intensity1()
 {
-    
 }
 
 void segment_function::update_average_intensity()
 {
+    // Using sum table. Much faster
     cout << "Computing average intensity" << endl;
     
     int nb_phase = 3;
@@ -280,7 +299,7 @@ void segment_function::update_average_intensity()
     // 2. Find intersection with interface
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (fid->is_interface())
+        if (fid->is_interface() && !fid->is_boundary())
         {
             auto tet = _dsc->get_tets(fid.key());
             auto phase0 = _dsc->get_label(tet[0]);
@@ -300,6 +319,10 @@ void segment_function::update_average_intensity()
             {
                 for (int y = std::floor(ld[1]); y < std::round(ru[1]); y++)
                 {
+                    if(y < 0 || x < 0
+                       || y >= dim[1] || x >= dim[0])
+                        continue;
+                    
                     try
                     {
                         auto bc = Util::barycentric_coords<double>(vec3(x+0.5, y+0.5, 0), pts[0], pts[1], pts[2]);
@@ -308,10 +331,11 @@ void segment_function::update_average_intensity()
                         { // inside
                             auto p = pts3[0]*bc[0] + pts3[1]*bc[1] + pts3[2]*bc[2];
                             
-                            assert(p[2] >= 0 and p[2] < 9999);
                             
-                            ray_intersect[phase0][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), !in_1));
-                            ray_intersect[phase1][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), in_1));
+                            if(phase0 != BOUND_LABEL)
+                                ray_intersect[phase0][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), !in_1));
+                            if(phase1 != BOUND_LABEL)
+                                ray_intersect[phase1][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), in_1));
                         }
                     }
                     catch (std::exception e)
@@ -369,8 +393,11 @@ void segment_function::update_average_intensity()
                         
                         area[i] += z2 - z1;
                         _mean_intensities[i] += _img.sum_line_z(r.x, r.y, z1, z2);
+                        
+                    
                     }
                 }
+                else{}//???
             }
         }
         cout << count << "Intersected rays" << endl;
@@ -389,6 +416,10 @@ void segment_function::update_average_intensity()
     
     for (int i  = 0; i < nb_phase; i++)
     {
+        if(area[i]==0)
+        {
+            std::cout << "Zero; " << _mean_intensities[i] << std::endl;
+        }
         _mean_intensities[i] /= area[i];
     }
     
@@ -404,31 +435,10 @@ void segment_function::update_average_intensity()
 
 void segment_function::segment()
 {
-    profile t("Segment");
+    
     
     // Compute average intensity
     int num_phases = 3;
-//    std::vector<double> c = {0.0 , 0.0};
-//    std::vector<double> vols = {0, 0};
-//    
-//    for (auto tet = _dsc->tetrahedra_begin(); tet != _dsc->tetrahedra_end(); tet++)
-//    {
-//        double total = 0, volume = 0;
-//        auto pts = _dsc->get_pos(_dsc->get_nodes(tet.key()));
-//        double avg = _img.get_tetra_intensity(pts, &total, &volume);
-//        assert( avg < 1.01);
-//        assert(total != NAN);
-//        int idx = _dsc->get_label(tet.key());
-//        c[idx] += total;
-//        vols[idx] += volume;
-//    }
-//    
-//    for (int i = 0; i < num_phases; i++)
-//    {
-//        c[i] = c[i] / vols[i];
-//    }
-//    
-//    t.done();
     
 //    _mean_intensities.resize(num_phases);
 //    // This function does not return correct result (in compare to above algorithm).
@@ -441,6 +451,8 @@ void segment_function::segment()
     static int mesh_opt_counter = 200;
     if (mesh_opt_counter++ > 20)
     {
+        profile t1("averaging intensity");
+        
         mesh_opt_counter = 0;
         
         _mean_intensities.resize(num_phases);
@@ -466,7 +478,7 @@ void segment_function::segment()
 //                    phase = i;
 //                }
 //            }
-//            
+//
 //            if (phase != _dsc->get_label(tid.key()))
 //            {
 //                double var = _img.get_variation(pts, meanc);
@@ -492,6 +504,7 @@ void segment_function::segment()
 //        update_vertex_stability();
 //        face_split();
     }
+    profile t("Compute force");
     
     compute_external_force();
     
@@ -500,7 +513,8 @@ void segment_function::segment()
     {
 
         if ( (nid->is_interface() or nid->is_crossing())
-            and _dsc->is_movable(nid.key()))
+            and _dsc->is_movable(nid.key())
+            and !nid->is_boundary())
         {
             auto dis = _forces[nid.key()]*_dt;
             //cout << "Node " << nid.key() << " : " << dis << endl;

@@ -843,17 +843,18 @@ namespace is_mesh {
                 }
                 return FaceKey();
             }
-            //            //
-            //            // Old
-            //            SimplexSet<FaceKey> fids1 = get_faces(nid1);
-            //            SimplexSet<FaceKey> fids2 = get_faces(nid2);
-            //            for (const FaceKey& f : get_faces(nid3)) {
-            //                if(fids1.contains(f) && fids2.contains(f))
-            //                {
-            //                    return f;
-            //                }
-            //            }
-            //            return FaceKey();
+            
+                //
+                // Old
+                SimplexSet<FaceKey> fids1 = get_faces(nid1);
+                SimplexSet<FaceKey> fids2 = get_faces(nid2);
+                for (const FaceKey& f : get_faces(nid3)) {
+                    if(fids1.contains(f) && fids2.contains(f))
+                    {
+                        return f;
+                    }
+                }
+                return FaceKey();
         }
         
         /**
