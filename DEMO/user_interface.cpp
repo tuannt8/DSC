@@ -179,17 +179,17 @@ UI::UI(int &argc, char** argv)
 
 void UI::set_dsc_boundary_layer()
 {
-    for (auto nit =dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
-    {
-        if(nit->is_boundary())
-        {
-            auto tets = dsc->get_tets(nit.key());
-            for (auto t : tets)
-            {
-                dsc->set_label(t, BOUND_LABEL);
-            }
-        }
-    }
+//    for (auto nit =dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+//    {
+//        if(nit->is_boundary())
+//        {
+//            auto tets = dsc->get_tets(nit.key());
+//            for (auto t : tets)
+//            {
+//                dsc->set_label(t, BOUND_LABEL);
+//            }
+//        }
+//    }
 }
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))

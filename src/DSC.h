@@ -2194,8 +2194,8 @@ namespace DSC {
 //                }
                 
                 profile t("Fix: Edge remove");
-                            topological_edge_removal();
-//                topological_edge_removal_parallel1();
+//                            topological_edge_removal();
+                topological_edge_removal_parallel1();
                 
 //                if (iter >= 51)
 //                {
@@ -2337,7 +2337,11 @@ namespace DSC {
             vec3 ray = destination - pos;
             
             real min_t = INFINITY;
+#ifdef DSC_CACHE
+            auto fids = *get_link(n);
+#else
             auto fids = get_faces(get_tets(n)) - get_faces(n);
+#endif
             for(auto f : fids)
             {
                 auto face_pos = get_pos(get_nodes(f));
@@ -2347,9 +2351,9 @@ namespace DSC {
                     min_t = Util::min(t, min_t);
                 }
             }
-#ifdef DEBUG
+//#ifdef DEBUG
             assert(min_t < INFINITY);
-#endif
+//#endif
             return min_t;
         }
         

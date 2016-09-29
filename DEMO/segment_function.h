@@ -13,7 +13,7 @@
 #include "image3d.h"
 #include "DSC.h"
 
-
+#define NB_PHASE 4
 
 struct intersect_pt
 {
@@ -45,7 +45,7 @@ public:
     void segment();
     
 public:
-    double _dt = 1;
+    double _dt = 5;
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
     

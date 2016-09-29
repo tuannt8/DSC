@@ -178,7 +178,7 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
     
     for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
     {
-        if (f->is_interface() && !f->is_boundary())
+        if (f->is_interface())
         {
             auto tets = dsc.get_tets(f.key());
             if (!(dsc.get_label(tets[0]) == phase
