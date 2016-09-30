@@ -178,7 +178,7 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
     
     for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
     {
-        if (f->is_interface())
+        if (f->is_interface() && !f->is_boundary())
         {
             auto tets = dsc.get_tets(f.key());
             if (!(dsc.get_label(tets[0]) == phase
@@ -191,8 +191,22 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
             
             
             auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
-            //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
-            auto norm = -dsc.get_normal(f.key());
+            auto norm = dsc.get_normal(f.key());
+            
+            glDisable(GL_LIGHTING);
+            glColor3f(0, 0, 1);
+            glBegin(GL_LINES);
+            
+            auto edges = dsc.get_edges(f.key());
+            
+            for (int i = 0; i < 3; i++)
+            {
+                glVertex3dv(pts[i].get());
+                glVertex3dv(pts[(i+1)%3].get());
+            }
+            glEnd();
+            glEnable(GL_LIGHTING);
+            
             
             glColor3f(0.7, 0.0, 0);
 //            glColor3dv(color[idx-1].get());
@@ -203,25 +217,7 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
                 glVertex3dv(v.get());
             }
             glEnd();
-            
-            //
-            //            glDisable(GL_LIGHTING);
-            //            glColor3f(0, 0, 0);
-            //            glBegin(GL_LINES);
-            //
-            //            auto edges = dsc.get_edges(f.key());
-            //
-            //            for (int i = 0; i < 3; i++)
-            //            {
-            //
-            //             //   glNormal3dv(norm.get());
-            //                glVertex3dv(pts[i].get());
-            //
-            //             //   glNormal3dv(norm.get());
-            //                glVertex3dv(pts[(i+1)%3].get());
-            //            }
-            //            glEnd();
-            //            glEnable(GL_LIGHTING);
+        
             
         }
     }

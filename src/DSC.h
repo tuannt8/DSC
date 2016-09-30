@@ -1038,6 +1038,8 @@ namespace DSC {
                 auto pts1 = get_nodes(tets[1]);
                 auto e0 = get_edges(tets[0]);
                 auto e1 = get_edges(tets[1]);
+                
+                printf("Crash: %d %d %d %d\n", pts0.size(), pts1.size(), e0.size(), e1.size());
                 auto polygon1 = get_polygons(eid);
             }
             assert(polygon.size() == 1 && polygon.front().size() > 2);
@@ -2208,12 +2210,11 @@ namespace DSC {
                 topological_face_removal() ;
             }
             
-            {
+            
                 profile t("Fix: remove degenerate");
                 remove_degenerate_tets();
                 remove_degenerate_faces();
                 remove_degenerate_edges();
-            }
         }
         
         void resize_complex()
