@@ -7,7 +7,17 @@
 //
 
 #include "glut_menu.h"
-#include <GLUT/GLUT.h>
+#ifdef _WIN32 // WINDOWS
+#include <GL/glut.h>
+#include <GL/glew.h>
+#elif defined(__APPLE__) // IOS
+#include <OpenGL/gl3.h>
+#include <GLUT/glut.h>
+#else // LINUX
+#include <GL/glew.h>
+#include <GL/glut.h>
+#endif
+// #include <GLUT/GLUT.h>
 #include <iostream>
 #include <sstream>
 

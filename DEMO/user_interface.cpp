@@ -36,7 +36,7 @@
 using namespace DSC;
 using namespace std;
 
-std::atomic<int> m_iters(0);
+int m_iters = 0;
 
 void display_(){
     UI::get_instance()->display();
@@ -160,18 +160,24 @@ UI::UI(int &argc, char** argv)
     _obj_dim = _seg._img.dimension_v();
     _dsc_dim = _obj_dim + vec3(2*m_edge_length);
     
+    cout << _obj_dim[0] << " " << _obj_dim[1] << " " <<  _obj_dim[2] << " " ;
+    cout << _dsc_dim[0] << " " << _dsc_dim[1] << " " <<  _dsc_dim[2] << " " ;
+
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
-    
+
     // Update texture draw
+    cout << "Update texture \n";
     draw_helper::update_texture(_seg._img, 0,0,0);
-    
+
     // Generate DSC
+    cout << "Init DSC\n";
     init_dsc();
+    cout << "Boundary layer\n";
     set_dsc_boundary_layer();
-    
+
     std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
                 << dsc->get_no_tets() << " tets" << endl;
-    
+
     _seg._dsc = &*dsc;
     _seg.initialze_segmentation();
     
@@ -201,10 +207,16 @@ void UI::init_dsc()
     
 
     double delta = m_edge_length;
+    
+    cout << "delta " << delta << endl;
+    cout << _dsc_dim[0] << " " << _dsc_dim[1] << " " <<  _dsc_dim[2] << " " ;
+    
     int NX = round(_dsc_dim[0] / delta) + 1; // number of vertices
     int NY = round(_dsc_dim[1] / delta) + 1;
     int NZ = round(_dsc_dim[2] / delta) + 1;
     
+        cout << "Compute point" << NX << " " << NY << " " << NZ << "\n";
+
     // points
     for (int iz = 0; iz < NZ; iz++)
     {
@@ -217,6 +229,8 @@ void UI::init_dsc()
         }
     }
 
+    cout << "Compute tets\n";
+    
     // tets
     for (int iz = 0; iz < NZ - 1; iz++)
     {
@@ -256,6 +270,7 @@ void UI::init_dsc()
     long nbTet = tets.size()/4;
     tet_labels = std::vector<int>(nbTet, 0);
     
+    cout << "Init DSC from point\n";
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
     dsc->set_avg_edge_length(delta);
@@ -321,7 +336,7 @@ void UI::display()
     std::chrono::duration<real> t = std::chrono::system_clock::now() - init_time;
     total_time += t.count();
     init_time = std::chrono::system_clock::now();
-    
+
     //
     if (glut_menu::get_state("Ray line", 0))
     {
@@ -338,12 +353,12 @@ void UI::display()
                     glVertex3f(r.x, r.y, j);
                 }
             }
-            
+
         }
         glEnd();
         glEnable(GL_LIGHTING);
     }
-    
+
     if (glut_menu::get_state("Ray cross section", 0))
     {
         glDisable(GL_LIGHTING);
@@ -360,19 +375,19 @@ void UI::display()
                     glVertex3f(r.x, r.y, zz);
                 }
             }
-            
-        } 
+
+        }
         glEnd();
         glEnable(GL_LIGHTING);
     }
-    
+
     if (glut_menu::get_state("Draw DSC single interface", 1))
     {
         glDisable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
         draw_helper::dsc_draw_one_interface(*dsc, phase_draw);
     }
-    
+
     if (glut_menu::get_state("Draw tripple edge", 0))
     {
         glDisable(GL_CULL_FACE);
@@ -381,40 +396,40 @@ void UI::display()
         draw_helper::dsc_draw_triple_edge(*dsc);
     }
 
-    
+
     if (glut_menu::get_state("Draw DSC edges", 0))
     {
         glColor3f(0, 0, 0);
         draw_helper::dsc_draw_edge(*dsc);
     }
-    
+
     if (glut_menu::get_state("Draw DSC domain", 1))
     {
         glColor3f(0.3, 0.3, 0.3);
         draw_helper::dsc_draw_domain(*dsc);
     }
-    
+
     if (glut_menu::get_state("Draw DSC interface edge", 0))
     {
         glDisable(GL_LIGHTING);
         glColor3f(0.0, 0.0, 1.0);
         draw_helper::dsc_draw_interface_edge(*dsc);
     }
-    
+
     if (glut_menu::get_state("Draw DSC interface", 0))
     {
         glDisable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
         draw_helper::dsc_draw_interface(*dsc);
     }
-    
-    
+
+
     if (glut_menu::get_state("Draw DSC face normal", 0))
     {
         draw_helper::dsc_draw_face_norm(*dsc);
     }
-    
-    
+
+
     if (glut_menu::get_state("Draw Image slide", 1))
     {
         draw_helper::draw_image_slice(_seg._img);

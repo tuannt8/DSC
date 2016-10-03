@@ -45,3 +45,7 @@ DerivedData/
 DSC_segment.xcodeproj/xuserdata/
 
 LOG/
+
+*.o
+*._*
+*.d

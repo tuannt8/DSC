@@ -21,7 +21,9 @@
 #include "log.h"
 #include "draw.h"
 #include "segment_function.h"
+#ifdef __APPLE__
 #include <GLUT/GLUT.h>
+#endif
 #include <condition_variable>
 
 #include <thread>

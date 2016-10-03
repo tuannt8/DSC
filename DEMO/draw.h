@@ -23,8 +23,8 @@
 #include <OpenGL/gl3.h>
 #include <GLUT/glut.h>
 #else // LINUX
-#include <GL/glut.h>
 #include <GL/glew.h>
+#include <GL/glut.h>
 #endif
 
 #include <memory>

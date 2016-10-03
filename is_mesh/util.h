@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cassert>
 #include <limits>
+#include <string.h>
 
 #include <CGLA/Vec2d.h>
 #include <CGLA/Vec3d.h>

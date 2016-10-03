@@ -7,7 +7,9 @@
 //
 
 #include "draw_helper.h"
+#ifdef __APPLE__
 #include <GLUT/GLUT.h>
+#endif
 #include "DSC.h"
 #include <iostream>
 #include <string>
@@ -153,7 +155,7 @@ void draw_helper::save_painting(int WIDTH, int HEIGHT, std::string folder)
         i++;
     }
     
-    int success = SOIL_save_screenshot(s.str().c_str(), SOIL_SAVE_TYPE_PNG, 0, 0, WIDTH, HEIGHT);
+    int success = SOIL_save_screenshot(s.str().c_str(), SOIL_SAVE_TYPE_PNG, 0, 0, WIDTH, HEIGHT); 
     if(!success)
     {
         std::cout << "ERROR: Failed to take screen shot: " << s.str().c_str() << std::endl;
