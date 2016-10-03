@@ -119,7 +119,7 @@ namespace DSC {
         
         parameters pars;
         
-        
+#pragma mark CACHE functions
     private:
         std::mutex m;
         
@@ -357,7 +357,7 @@ namespace DSC {
         //////////////////////////
         
     public:
-        
+#pragma INITIALIZE FUNCTIONS
         /// SimplicialComplex constructor.
         DeformableSimplicialComplex(std::vector<vec3> & points, std::vector<int> & tets, const std::vector<int>& tet_labels):
         is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>(points, tets, tet_labels)
@@ -523,7 +523,14 @@ namespace DSC {
             }
             std::cout << "];" << std::endl;
         }
+#pragma mark SAVE MESH
+        bool save_mesh()
+        {
+            
+        }
         
+        
+#pragma mark Attibute functions
         /////////////////////////
         // ATTRIBUTE FUNCTIONS //
         /////////////////////////
@@ -619,6 +626,8 @@ namespace DSC {
             }
         }
         
+        
+#pragma mark GETTERS
         /////////////
         // GETTERS //
         /////////////
@@ -659,6 +668,7 @@ namespace DSC {
             return design_domain;
         }
         
+#pragma mark fix mesh
         ////////////////////////
         // FIX MESH FUNCTIONS //
         ////////////////////////
