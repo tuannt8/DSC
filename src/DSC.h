@@ -245,22 +245,13 @@ namespace DSC {
             
             if (!cache.quality_tet[t])
             {
-//                CACHE_MISS
+                CACHE_MISS
                 cache.quality_tet[t] = new real;
                 *cache.quality_tet[t] = quality(t);
             }
             
-//            CACHE_REFER
-//
-//            if(std::abs( quality(t) - *cache.quality_tet[t] ) > 0.001)
-//            {
-//                real a = quality(t);
-//                real b = *cache.quality_tet[t];
-//                
-//                assert(std::abs(a-b) < 0.001);
-//            }
-//            
-//            return quality(t);
+            CACHE_REFER
+
             return *cache.quality_tet[t];
         }
         
@@ -269,8 +260,10 @@ namespace DSC {
             
             if (!cache.tets_neighbor_node[nid])
             {
+                CACHE_MISS
                 cache.tets_neighbor_node[nid] = get_tets_ptr(nid);
             }
+            CACHE_REFER
             
             return cache.tets_neighbor_node[nid];
         }
@@ -279,8 +272,10 @@ namespace DSC {
         {
             if (!cache.faces_neighbor_node[nid])
             {
+                CACHE_MISS
                cache.faces_neighbor_node[nid] = get_faces_ptr(nid);
             }
+            CACHE_REFER
             
             return cache.faces_neighbor_node[nid];
         }
@@ -289,12 +284,16 @@ namespace DSC {
         {
             if (!cache.link_of_node[nk])
             {
+                CACHE_MISS
+                
                 is_mesh::SimplexSet<tet_key> * tids = get_tets_cache(nk);
                 is_mesh::SimplexSet<face_key> fids = get_faces(*tids) - *get_faces_cache(nk);
                 
                 cache.link_of_node[nk] = new is_mesh::SimplexSet<is_mesh::FaceKey>;
                 *cache.link_of_node[nk] = fids;
             }
+            CACHE_REFER
+            
             return cache.link_of_node[nk];
         }
         
@@ -314,11 +313,12 @@ namespace DSC {
         {
             if (!cache.nodes_neighbor_node[nid])
             {
+                CACHE_MISS
                 is_mesh::SimplexSet<is_mesh::NodeKey> nidset; nidset.push_back(nid);
                 cache.nodes_neighbor_node[nid] = new is_mesh::SimplexSet<is_mesh::NodeKey>;
                 *cache.nodes_neighbor_node[nid] = get_nodes(get_edges(nid)) - nidset;
             }
-            
+            CACHE_REFER
             return cache.nodes_neighbor_node[nid];
         }
         
@@ -326,10 +326,11 @@ namespace DSC {
         {
             if(!cache.nodes_on_tet[tk])
             {
+                CACHE_MISS
                 cache.nodes_on_tet[tk] = new is_mesh::SimplexSet<node_key>;
                 *cache.nodes_on_tet[tk] = get_nodes(tk);
             }
-            
+            CACHE_REFER
             return cache.nodes_on_tet[tk];
         }
         
@@ -337,13 +338,14 @@ namespace DSC {
         {
             if(!cache.node_on_face[fk])
             {
-
+                CACHE_MISS
                 
                 cache.node_on_face[fk] = new is_mesh::SimplexSet<node_key>;
                 *cache.node_on_face[fk] = get_nodes(fk);
                 
 
             }
+            CACHE_REFER
             assert(cache.node_on_face[fk]->size()==3);
             
             return cache.node_on_face[fk];

@@ -30,6 +30,10 @@
 
 using namespace DSC;
 
+bool mouse_press = 0;
+int _dx = 0; int _dy = 0;
+int _x = 0; int _y=0;
+
 void display_(){
     UI::get_instance()->display();
 }
@@ -48,6 +52,35 @@ void visible_(int v){
 
 void animate_(){
     UI::get_instance()->animate();
+}
+
+void mouse_move_(int x, int y)
+{
+    if (mouse_press)
+    {
+        UI::get_instance()->angle += _dy/10.;
+        UI::get_instance()->angle2 += _dx/10.;
+        glutPostRedisplay();
+    }
+    _dx = x - _x;
+    _dy = y - _y;
+    _x = x;
+    _y = y;
+}
+
+void mouse_down_(int button, int state, int x, int y)
+{
+    if (button == GLUT_LEFT_BUTTON)
+    {
+        if (state == GLUT_DOWN)
+        {
+            mouse_press = 1;
+        }
+        if (state == GLUT_UP)
+        {
+            mouse_press = 0;
+        }
+    }
 }
 
 UI* UI::instance = NULL;
@@ -133,6 +166,8 @@ UI::UI(int &argc, char** argv)
     glutSetKeyRepeat(GLUT_KEY_REPEAT_ON);
     glutVisibilityFunc(visible_);
     glutReshapeFunc(reshape_);
+    glutMotionFunc(mouse_move_);
+    glutMouseFunc(mouse_down_);
     
     
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
