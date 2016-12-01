@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include "DSC.h"
 
+#define DISPLAY_LIM  0.05
+
 class draw_helper
 {
     typedef DSC::DeformableSimplicialComplex<> dsc_class;

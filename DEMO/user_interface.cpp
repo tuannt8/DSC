@@ -58,8 +58,8 @@ void mouse_move_(int x, int y)
 {
     if (mouse_press)
     {
-        UI::get_instance()->angle += _dy/10.;
-        UI::get_instance()->angle2 += _dx/10.;
+        UI::get_instance()->angle += _dy/30.;
+        UI::get_instance()->angle2 += _dx/30.;
         glutPostRedisplay();
     }
     _dx = x - _x;
@@ -92,11 +92,17 @@ void UI::setup_light()
                              gl_dis_max*2.0*cos(angle)*sin(angle2),
                              gl_dis_max*2.0*sin(angle));
     
+//    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+//    GLfloat mat_shininess[] = { 50.0 };
+//    GLfloat light_position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
+//    glClearColor(1.0, 1.1, 1.0, 1.0);
+    
     GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-    GLfloat mat_shininess[] = { 50.0 };
+    GLfloat mat_shininess[] = { 100.0 };
     GLfloat light_position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glShadeModel(GL_SMOOTH);
+    glClearColor(1.0, 1.1, 1.0, 1.0);
+    
+    glShadeModel(GL_FLAT);
     
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
@@ -105,6 +111,25 @@ void UI::setup_light()
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
+    
+    glEnable(GL_COLOR_MATERIAL);
+    
+//    {
+//        GLfloat white[] = {0.8f, 0.8f, 0.8f, 1.0f};
+//        GLfloat cyan1[] = {0.f, .8f, .8f, 1.0f};
+//        GLfloat cyan[] = {0.f, .8f, .8f, 0.8f};
+//        glMaterialfv(GL_FRONT, GL_DIFFUSE, cyan); // other
+//        glMaterialfv(GL_FRONT, GL_SPECULAR, cyan1); // shinny
+//        GLfloat shininess[] = {2};
+//        glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
+//        
+//        
+//        glEnable(GL_LIGHTING);
+//        glEnable(GL_LIGHT0);
+//        glEnable(GL_DEPTH_TEST);
+//        
+//    }
+
 }
 inline vec3 min_vec(vec3 v1, vec3 v2)
 {
@@ -241,15 +266,75 @@ void UI::update_title()
     glutSetWindowTitle(str.c_str());
 }
 
-void UI::display()
+void UI::draw_dsc_layer(double y_lim)
 {
+    vec3 look(0,0,1);
+    
+    for (auto f = dsc->faces_begin(); f != dsc->faces_end(); f++)
+    {
+        auto pts = dsc->get_pos(dsc->get_nodes(f.key()));
+        bool bDraw = true;
+        for (auto p : pts)
+        {
+            bDraw = bDraw & (p[2] > y_lim);
+        }
+        
+        if (bDraw)
+        {
+            
+
+            //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
+            auto norm = dsc->get_normal(f.key());
+            norm = norm*(Util::dot(norm, look));
+            
+            glBegin(GL_TRIANGLES);
+            for (auto v : pts)
+            {
+                glNormal3dv(norm.get());
+                glVertex3dv(v.get());
+            }
+            glEnd();
+            
+            //
+            //            glDisable(GL_LIGHTING);
+            //            glColor3f(0, 0, 0);
+            //            glBegin(GL_LINES);
+            //
+            //            auto edges = dsc.get_edges(f.key());
+            //
+            //            for (int i = 0; i < 3; i++)
+            //            {
+            //
+            //             //   glNormal3dv(norm.get());
+            //                glVertex3dv(pts[i].get());
+            //
+            //             //   glNormal3dv(norm.get());
+            //                glVertex3dv(pts[(i+1)%3].get());
+            //            }
+            //            glEnd();
+            //            glEnable(GL_LIGHTING);
+            
+        }
+    }
+}
+
+void UI::display()
+{return;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     update_gl();
     setup_light();
   
+
+    
+//    draw_helper::dsc_draw_node_color(*dsc);
+    
+    glColor3f(0.0, 0.9, 1.0);
     draw_helper::dsc_draw_interface(*dsc);
-    draw_helper::dsc_draw_node_color(*dsc);
+//    draw_helper::dsc_draw_domain(*dsc);
+    
+    glColor3f(0.5, 0.5, 0.5);
+    draw_dsc_layer(DISPLAY_LIM);
     
     glutSwapBuffers();
 //    update_title();
@@ -364,9 +449,11 @@ void UI::keyboard(unsigned char key, int x, int y) {
             painter->update(*dsc);
             break;
         case 's':
+        {
             std::cout << "TAKING SCREEN SHOT" << std::endl;
-            painter->set_view_position(camera_pos);
-            painter->save_painting("LOG");
+//            painter->set_view_position(camera_pos);
+//            painter->save_painting("LOG");
+        }
             break;
         case 'e':
         {
@@ -434,6 +521,12 @@ void UI::keyboard(unsigned char key, int x, int y) {
         case 'l':
         {
             profile::close();
+        }
+            break;
+        case 'b':
+        {
+
+            dsc->smooth_parallel();
         }
             break;
     }

@@ -14,6 +14,7 @@
 #include <fstream>
 
 
+
 void draw_helper::dsc_draw_edge(dsc_class &dsc)
 {
     glDisable(GL_LIGHTING);
@@ -49,12 +50,13 @@ std::vector<vec3> get_random_color()
 void draw_helper::dsc_draw_node_color(dsc_class & dsc)
 {
     static std::vector<vec3> colors = get_random_color();
-    glPointSize(1.0);
+    glPointSize(2.5);
     glDisable(GL_LIGHTING);
     glBegin(GL_POINTS);
     for (auto nit = dsc.nodes_begin(); nit != dsc.nodes_end(); ++nit)
     {
-        if(!nit->is_interface())
+        
+        if(!nit->is_interface() && dsc.get_pos(nit.key())[2] < DISPLAY_LIM)
             continue;
         
         if (dsc.get_color_node(nit.key()) >= 0)
@@ -148,7 +150,6 @@ void draw_helper::dsc_draw_interface(dsc_class & dsc)
             //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
             auto norm = -dsc.get_normal(f.key());
             
-            glColor3f(0.7, 0.0, 0);
             glBegin(GL_TRIANGLES);
             for (auto v : pts)
             {

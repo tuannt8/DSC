@@ -236,7 +236,7 @@ Painter::Painter(const vec3& light_pos)
 
 void Painter::save_painting(std::string folder, int time_step)
 {
-    draw();
+//    draw();
     std::ostringstream s;
     if (folder.length() == 0) {
         s << "scr";

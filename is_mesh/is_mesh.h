@@ -119,6 +119,11 @@ namespace is_mesh {
             m_tetrahedron_kernel->booking(free_cell_want);
         }
         
+        size_t allocated_edge()
+        {
+            return m_edge_kernel->allocated_size();
+        }
+        
         ISMesh(std::vector<vec3> & points, std::vector<int> & tets, const std::vector<int>& tet_labels)
         {
             m_node_kernel = new kernel<node_type, NodeKey>();

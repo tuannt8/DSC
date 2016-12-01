@@ -331,5 +331,10 @@ namespace is_mesh
                 m_data_freelist.push_back(key);
             }
         }
+        
+        size_t allocated_size()
+        {
+            return m_data.size();
+        }
     };
 }

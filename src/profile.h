@@ -15,6 +15,8 @@
 #include <chrono>
 #include <map>
 #include <string>
+#include <fstream>
+#include <vector>
 
 #define P_TIME_NOW (std::chrono::system_clock::now())
 typedef std::chrono::duration<double> p_duration_t;
@@ -47,6 +49,40 @@ private:
 private:
     
     std::string m_name;
+};
+
+class profile_progress
+{
+public:
+    profile_progress(std::string name){
+        _file_name = name;
+        _last_point = P_TIME_NOW;
+    }
+    ~profile_progress(){
+        std::ofstream f(std::string("LOG/") + _file_name + std::string(".txt"));
+        if (f.is_open())
+        {
+            for (auto t : _time_iter)
+            {
+                f << t << std::endl;
+            }
+            
+            f.close();
+        }
+    }
+    
+    void add()
+    {
+        p_duration_t t = P_TIME_NOW - _last_point;
+        _time_iter.push_back(t.count());
+        _last_point = P_TIME_NOW;
+    }
+    
+private:
+    std::vector<double> _time_iter;// By iteration
+    std::string _file_name;
+    
+    p_time_point _last_point;
 };
 
 #endif /* profile_hpp */

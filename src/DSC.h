@@ -228,7 +228,7 @@ namespace DSC {
 #ifdef DSC_CACHE
         
         
-#define CACHE_HIT
+//#define CACHE_HIT
         
 #ifdef CACHE_HIT
 #define CACHE_MISS profile time("cache miss");
@@ -373,6 +373,7 @@ namespace DSC {
         }
         
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::booking;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::allocated_edge;
         
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_label;
@@ -405,7 +406,8 @@ namespace DSC {
     private:
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_color;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::set_color;
-
+        
+        
     protected:
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::set_label;
 
@@ -2164,6 +2166,8 @@ namespace DSC {
         }
         
         static void smooth_worker(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<node_key> *node_list, int start_idx, int stop_idx);
+        
+    public:
         void smooth_parallel();
         
         ///////////////////
@@ -2174,14 +2178,15 @@ namespace DSC {
         {
             {
                 profile t("Fix: Smooth");
-//            smooth();
-            smooth_parallel();
+            smooth();
+//            smooth_parallel();
+//                normal_coloring_vertices();
             }
             
             {
                 profile t("Fix: Edge remove");
-//            topological_edge_removal();
-            topological_edge_removal_parallel1();
+            topological_edge_removal();
+//            topological_edge_removal_parallel1();
             }
 
             {
@@ -2224,6 +2229,9 @@ namespace DSC {
          */
         void deform(int num_steps = 10)
         {
+            static profile_progress time_prog("deform");
+            time_prog.add();
+            
             profile t("deform");
 //#ifdef DEBUG
 //            validity_check();
@@ -3536,7 +3544,11 @@ namespace DSC {
             }
         }
         
+    public:
+        // Testing
+        void normal_coloring_vertices();
 
     };
+
 
 }

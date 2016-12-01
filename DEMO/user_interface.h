@@ -117,4 +117,6 @@ private:
      Stops the motion and deletes the DSC object.
      */
     void stop();
+    
+    void draw_dsc_layer(double y_lim);
 };
