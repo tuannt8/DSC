@@ -17,9 +17,17 @@
 
 #define DSC_CACHE
 
-#define MAX_ELEMENTS 1000000
+#define MAX_ELEMENTS 100000
 
 #define CLEAN_GARBAGE(a, b) if(a[b]){delete a[b]; a[b] = nullptr;}
+#define RELEASE_CACHE(a) \
+    for(int i = 0; i < a.size(); i++) \
+    {\
+        if(a[i]){\
+            delete a[i]; \
+            a[i] = nullptr; \
+        }\
+    }
 
 // Should consider thread safe
 
@@ -50,6 +58,7 @@ public:
     
     dsc_cache()
     {
+        std::cout <<"Init cache" << std::endl;
         // Node
         link_of_node = std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*>(MAX_ELEMENTS, nullptr);
         tets_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>*>(MAX_ELEMENTS, nullptr);
@@ -69,7 +78,16 @@ public:
         quality_tet = std::vector<real*>(MAX_ELEMENTS, nullptr);
     }
     
-    ~dsc_cache(){};
+    ~dsc_cache(){
+        RELEASE_CACHE(link_of_node);
+        RELEASE_CACHE(tets_neighbor_node);
+        RELEASE_CACHE(faces_neighbor_node);
+        RELEASE_CACHE(nodes_neighbor_node);
+        RELEASE_CACHE(tets_share_edge);
+        RELEASE_CACHE(node_on_face);
+        RELEASE_CACHE(nodes_on_tet);
+        RELEASE_CACHE(quality_tet);
+    };
     
     void mark_dirty(is_mesh::NodeKey nk, bool dirty)
     {

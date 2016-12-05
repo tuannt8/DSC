@@ -34,6 +34,8 @@ bool mouse_press = 0;
 int _dx = 0; int _dy = 0;
 int _x = 0; int _y=0;
 
+int mode = 0;
+
 void display_(){
     UI::get_instance()->display();
 }
@@ -89,8 +91,13 @@ void UI::setup_light()
 {
     vec3 center = _obj_dim / 2.0;
     vec3 eye = center + vec3(gl_dis_max*2.0*cos(angle)*cos(angle2),
-                             gl_dis_max*2.0*cos(angle)*sin(angle2),
-                             gl_dis_max*2.0*sin(angle));
+                             gl_dis_max*2.0*sin(angle),
+                             gl_dis_max*2.0*cos(angle)*sin(angle2)
+                             );
+    
+//    vec3 eye = center + vec3(gl_dis_max*2.0*cos(angle)*cos(angle2),
+//                             gl_dis_max*2.0*cos(angle)*sin(angle2),
+//                             gl_dis_max*2.0*sin(angle));
     
 //    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 //    GLfloat mat_shininess[] = { 50.0 };
@@ -160,13 +167,23 @@ void UI::update_gl()
     glLoadIdentity();
     
     vec3 center = vec3(0.0);//_obj_dim / 2.0;
-    double dis = 0.9;
+    double dis = 1.5;
+    
     vec3 eye = center + vec3(gl_dis_max*dis*cos(angle)*cos(angle2),
-                             gl_dis_max*dis*cos(angle)*sin(angle2),
-                             gl_dis_max*dis*sin(angle));
+                             gl_dis_max*dis*sin(angle),
+                             gl_dis_max*dis*cos(angle)*sin(angle2)
+                             );
     vec3 head = vec3(-sin(angle)*cos(angle2),
-                     -sin(angle)*sin(angle2),
-                     cos(angle));
+                     cos(angle),
+                     -sin(angle)*sin(angle2)
+                     );
+    
+//    vec3 eye = center + vec3(gl_dis_max*dis*cos(angle)*cos(angle2),
+//                             gl_dis_max*dis*cos(angle)*sin(angle2),
+//                             gl_dis_max*dis*sin(angle));
+//    vec3 head = vec3(-sin(angle)*cos(angle2),
+//                     -sin(angle)*sin(angle2),
+//                     cos(angle));
     gluLookAt(eye[0], eye[1], eye[2], /* eye is at (0,8,60) */
               center[0], center[1], center[2],      /* center is at (0,8,0) */
               head[0], head[1], head[2]);      /* up is in postivie Y direction */
@@ -181,50 +198,70 @@ UI::UI(int &argc, char** argv)
 {
     instance = this;
     
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL | GLUT_MULTISAMPLE);
-    
-    glutCreateWindow("Shadowy Leapin' Lizards");
-    
-    glutDisplayFunc(display_);
-    glutKeyboardFunc(keyboard_);
-    glutSetKeyRepeat(GLUT_KEY_REPEAT_ON);
-    glutVisibilityFunc(visible_);
-    glutReshapeFunc(reshape_);
-    glutMotionFunc(mouse_move_);
-    glutMouseFunc(mouse_down_);
-    
-    
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    glEnable(GL_DEPTH_TEST);
-    glLineWidth(1.0);
-    
-    setup_light();
-    
-    glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
-    check_gl_error();
-    
+//    glutInit(&argc, argv);
+//    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL | GLUT_MULTISAMPLE);
+//    
+//    glutCreateWindow("Shadowy Leapin' Lizards");
+//    
+//    glutDisplayFunc(display_);
+//    glutKeyboardFunc(keyboard_);
+//    glutSetKeyRepeat(GLUT_KEY_REPEAT_ON);
+//    glutVisibilityFunc(visible_);
+//    glutReshapeFunc(reshape_);
+//    glutMotionFunc(mouse_move_);
+//    glutMouseFunc(mouse_down_);
+//    
+//    
+//    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+//    glEnable(GL_DEPTH_TEST);
+//    glLineWidth(1.0);
+//    
+//    setup_light();
+//    
+//    glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
+//    check_gl_error();
+//    
+//    
+//    
+//    load_model("armadillo", 2.5);
+//    
+//    real velocity = 5.;
+//    real accuracy = 0.25;
+//    vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
+//    start("");
+//    
+//    //
+//    vec3 minc(INFINITY);
+//    vec3 maxc(-INFINITY);
+//    for (auto vit = dsc->nodes_begin(); vit != dsc->nodes_end(); vit++)
+//    {
+//        vec3 pt = dsc->get_pos(vit.key());
+//        
+//        minc = min_vec(minc, pt);
+//        maxc = max_vec(maxc, pt);
+//    }
+//    _obj_dim = maxc - minc;
+//    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*2;
     
     
     load_model("armadillo", 2.5);
-    
     real velocity = 5.;
     real accuracy = 0.25;
     vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
-    start("");
+    stop();
+    QUIT_ON_COMPLETION = false;
+    RECORD = false;
+    vel_fun = std::unique_ptr<VelocityFunc<>>(new AverageFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
+    start("smooth");
     
-    //
-    vec3 minc(INFINITY);
-    vec3 maxc(-INFINITY);
-    for (auto vit = dsc->nodes_begin(); vit != dsc->nodes_end(); vit++)
+    
+    
+    for (int i = 0; i < 3; i++)
     {
-        vec3 pt = dsc->get_pos(vit.key());
-        
-        minc = min_vec(minc, pt);
-        maxc = max_vec(maxc, pt);
+        std::cout << "Iter " << i << std::endl;
+        vel_fun->take_time_step(*dsc);
     }
-    _obj_dim = maxc - minc;
-    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*2;
+//    exit(0);
 }
 
 void UI::load_model(const std::string& file_name, real discretization)
@@ -318,23 +355,88 @@ void UI::draw_dsc_layer(double y_lim)
     }
 }
 
+void UI::draw_dsc_layer_1(double y_lim)
+{
+    vec3 look(0,0,1);
+    
+    for (auto f = dsc->faces_begin(); f != dsc->faces_end(); f++)
+    {
+        auto pts = dsc->get_pos(dsc->get_nodes(f.key()));
+        bool bDraw = true;
+        for (auto p : pts)
+        {
+            bDraw = bDraw & (p[2] > y_lim);
+        }
+        
+        auto tets = dsc->get_tets(f.key());
+        if(tets.size()!=2)
+            glColor3f(0.5, 0.5, 0.5);
+        else if ( (dsc->get_label(tets[0]) == 1) || (dsc->get_label(tets[1]) == 1) )
+            glColor3f(0.0, 0.9, 1.0);
+        else
+            glColor3f(0.5, 0.5, 0.5);
+            
+        
+        
+        if (bDraw)
+        {
+            
+            
+            //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
+            auto norm = dsc->get_normal(f.key());
+            norm = norm*(Util::dot(norm, look));
+            
+            glBegin(GL_TRIANGLES);
+            for (auto v : pts)
+            {
+                glNormal3dv(norm.get());
+                glVertex3dv(v.get());
+            }
+            glEnd();
+            
+            
+            
+        }
+    }
+}
+
 void UI::display()
-{return;
+{
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     update_gl();
     setup_light();
-  
-
     
 //    draw_helper::dsc_draw_node_color(*dsc);
-    
+
+    if(mode == 0)
+    {
     glColor3f(0.0, 0.9, 1.0);
     draw_helper::dsc_draw_interface(*dsc);
-//    draw_helper::dsc_draw_domain(*dsc);
+    
+    glColor3f(0.8, 0.8, 0.8);
+    draw_helper::dsc_draw_domain(*dsc);
     
     glColor3f(0.5, 0.5, 0.5);
     draw_dsc_layer(DISPLAY_LIM);
+    }
+    else if(mode == 1)
+    {
+        glColor3f(0.0, 0.9, 1.0);
+        draw_helper::dsc_draw_interface(*dsc);
+        
+        glColor3f(0.8, 0.8, 0.8);
+        draw_helper::dsc_draw_domain(*dsc);
+    }
+    else if(mode == 2)
+    {
+        glColor3f(0.8, 0.8, 0.8);
+        draw_helper::dsc_draw_domain(*dsc);
+        
+        glColor3f(0.5, 0.5, 0.5);
+        draw_dsc_layer_1(DISPLAY_LIM);
+    }
+    
     
     glutSwapBuffers();
 //    update_title();
@@ -375,13 +477,16 @@ void UI::animate()
 //        }
         std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() <<  " STOP*************\n" << std::endl;
     }
-    glutPostRedisplay();
+//    glutPostRedisplay();
 }
 
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
         case 'p':
             profile::close();
+            break;
+        case 'v':
+            mode++;
             break;
         case '\033':
             stop();
@@ -538,6 +643,7 @@ void UI::visible(int v)
         glutIdleFunc(animate_);
     else
         glutIdleFunc(0);
+    
 }
 
 void UI::stop()

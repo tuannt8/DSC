@@ -10,11 +10,13 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "src/DSC.h"
-            timestampString = "502288756.486622"
+            timestampString = "502357232.400538"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "3135"
-            endingLineNumber = "3135">
+            startingLineNumber = "3136"
+            endingLineNumber = "3136"
+            landmarkName = "cos_dihedral_angles(const tet_key&amp; tid)"
+            landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

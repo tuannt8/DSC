@@ -119,4 +119,5 @@ private:
     void stop();
     
     void draw_dsc_layer(double y_lim);
+    void draw_dsc_layer_1(double y_lim);
 };
