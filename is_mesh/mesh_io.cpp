@@ -81,47 +81,50 @@ namespace is_mesh {
     
     void import_surface_mesh(const std::string& filename, std::vector<vec3>& points, std::vector<int>& faces)
     {
-        std::ifstream file(filename.data());
+        assert(1);// TUAN - linux build
+//        std::ifstream file(filename.data());
+//        
+//        if(file)
+//        {
+//            while(!file.eof())
+//            {
+//                std::string tok;
+//                file >> tok;
+//                if(tok == "v")
+//                {
+//                    real x,y,z;
+//                    file >> x;
+//                    file >> y;
+//                    file >> z;
+//                    points.push_back(vec3(x,y,z));
+//                    char line[1000];
+//                    file.getline(line, 998);
+//                }
+//                else if(tok == "f")
+//                {
+//                    char line[1000];
+//                    file.getline(line, 998);
+//                    char* pch = strtok(line, " \t");
+//                    int ctr = 0;
+//                    while(pch != 0)
+//                    {
+//                        int v;
+//                        sscanf(pch, "%d", &v);
+//                        faces.push_back(v-1);
+//                        pch = strtok(0, " \t");
+//                        ++ctr;
+//                    }
+//                }
+//                else
+//                {
+//                    char line[1000];
+//                    file.getline(line, 998);
+//                }
+//            }
+//            file.close();
+//        }
+//        
         
-        if(file)
-        {
-            while(!file.eof())
-            {
-                std::string tok;
-                file >> tok;
-                if(tok == "v")
-                {
-                    real x,y,z;
-                    file >> x;
-                    file >> y;
-                    file >> z;
-                    points.push_back(vec3(x,y,z));
-                    char line[1000];
-                    file.getline(line, 998);
-                }
-                else if(tok == "f")
-                {
-                    char line[1000];
-                    file.getline(line, 998);
-                    char* pch = strtok(line, " \t");
-                    int ctr = 0;
-                    while(pch != 0)
-                    {
-                        int v;
-                        sscanf(pch, "%d", &v);
-                        faces.push_back(v-1);
-                        pch = strtok(0, " \t");
-                        ++ctr;
-                    }
-                }
-                else
-                {
-                    char line[1000];
-                    file.getline(line, 998);
-                }
-            }
-            file.close();
-        }
 //        scale(points, 2.);
     }
     
