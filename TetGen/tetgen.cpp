@@ -31179,7 +31179,8 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-int main(int argc, char *argv[])
+// Tuan: linux build
+int main1(int argc, char *argv[])
 
 #else // with TETLIBRARY
 
