@@ -1496,44 +1496,45 @@ int
 {
 	int save_result;
 
-	/*	error check	*/
-	if( (width < 1) || (height < 1) ||
-		(channels < 1) || (channels > 4) ||
-		(data == NULL) ||
-		(filename == NULL) )
-	{
-		return 0;
-	}
-	if( image_type == SOIL_SAVE_TYPE_BMP )
-	{
-		save_result = stbi_write_bmp( filename,
-				width, height, channels, (void*)data );
-	} else
-	if( image_type == SOIL_SAVE_TYPE_TGA )
-	{
-		save_result = stbi_write_tga( filename,
-				width, height, channels, (void*)data );
-	} else
-	if( image_type == SOIL_SAVE_TYPE_DDS )
-	{
-		save_result = save_image_as_DDS( filename,
-				width, height, channels, (const unsigned char *const)data );
-	} else
-    if( image_type == SOIL_SAVE_TYPE_PNG )
-    {
-        save_result = stbi_write_png( filename, width, height, channels, (void*)data ,0 );
-    }
-    else
-	{
-		save_result = 0;
-	}
-	if( save_result == 0 )
-	{
-		result_string_pointer = "Saving the image failed";
-	} else
-	{
-		result_string_pointer = "Image saved";
-	}
+    assert(1); // TUAN linux
+//	/*	error check	*/
+//	if( (width < 1) || (height < 1) ||
+//		(channels < 1) || (channels > 4) ||
+//		(data == NULL) ||
+//		(filename == NULL) )
+//	{
+//		return 0;
+//	}
+//	if( image_type == SOIL_SAVE_TYPE_BMP )
+//	{
+//		save_result = stbi_write_bmp( filename,
+//				width, height, channels, (void*)data );
+//	} else
+//	if( image_type == SOIL_SAVE_TYPE_TGA )
+//	{
+//		save_result = stbi_write_tga( filename,
+//				width, height, channels, (void*)data );
+//	} else
+//	if( image_type == SOIL_SAVE_TYPE_DDS )
+//	{
+//		save_result = save_image_as_DDS( filename,
+//				width, height, channels, (const unsigned char *const)data );
+//	} else
+//    if( image_type == SOIL_SAVE_TYPE_PNG )
+//    {
+//        save_result = stbi_write_png( filename, width, height, channels, (void*)data ,0 );
+//    }
+//    else
+//	{
+//		save_result = 0;
+//	}
+//	if( save_result == 0 )
+//	{
+//		result_string_pointer = "Saving the image failed";
+//	} else
+//	{
+//		result_string_pointer = "Image saved";
+//	}
 	return save_result;
 }
 
