@@ -31,24 +31,24 @@
 #define MAX_COLORS 30
 #define MAX_COLORS_TET 100
 
-class Barrier
-{
-private:
-    std::mutex _mutex;
-    std::condition_variable _cv;
-    std::size_t _count;
-public:
-    explicit Barrier(std::size_t count) : _count{count} { }
-    void Wait()
-    {
-        std::unique_lock<std::mutex> lock{_mutex};
-        if (--_count == 0) {
-            _cv.notify_all();
-        } else {
-            _cv.wait(lock, [this] { return _count == 0; });
-        }
-    }
-};
+//class Barrier
+//{
+//private:
+//    std::mutex _mutex;
+//    std::condition_variable _cv;
+//    std::size_t _count;
+//public:
+//    explicit Barrier(std::size_t count) : _count{count} { }
+//    void Wait()
+//    {
+//        std::unique_lock<std::mutex> lock{_mutex};
+//        if (--_count == 0) {
+//            _cv.notify_all();
+//        } else {
+//            _cv.wait(lock, [this] { return _count == 0; });
+//        }
+//    }
+//};
 
 
 struct parameters {
@@ -1468,7 +1468,7 @@ namespace DSC {
             return false;
         }
         
-        static void topological_face_removal_worker(DeformableSimplicialComplex<>  *dsc, std::vector<tet_key> * tet_list, int start_idx, int stop_idx, Barrier & bar);
+//        static void topological_face_removal_worker(DeformableSimplicialComplex<>  *dsc, std::vector<tet_key> * tet_list, int start_idx, int stop_idx, Barrier & bar);
         void topological_face_removal_parallel();
         
         /**
