@@ -592,11 +592,16 @@ namespace DSC {
             
 //            profile t("quality over head");
 #ifdef DSC_CACHE // Move node, mark dirty for quality
+            {
+            profile t("Over head");
+            
             auto & tets = *get_tets_cache(nid);
             
             for (auto tkey : tets)
             {
                 cache.mark_dirty_tet(tkey);
+            }
+                
             }
 #endif
         }
@@ -1049,6 +1054,8 @@ namespace DSC {
                 
 #ifdef DSC_CACHE // edge remove
                 // Should update flag here, instead of inside topological_edge_removal(polygon.front(), nodes[0], nodes[1], K); function
+                {
+                profile tt("Over head");
                 
                 auto tets = get_tets(eid);
                 for (auto tkey : tets)
@@ -1072,6 +1079,7 @@ namespace DSC {
                 for(auto nk : dnodes)
                 {
                     cache.mark_dirty(nk, true);
+                }
                 }
 #endif
                 topological_edge_removal(polygon.front(), nodes[0], nodes[1], K);
@@ -1163,6 +1171,10 @@ namespace DSC {
                 guard.lock();
                 
 #ifdef DSC_CACHE // Bounadry edge removal
+                {
+                    
+                    profile tt("Over head");
+                
                 auto tets = get_tets(eid);
                 for (auto tkey : tets)
                 {
@@ -1185,6 +1197,7 @@ namespace DSC {
                 for(auto nk : dnodes)
                 {
                     cache.mark_dirty(nk, true);
+                }
                 }
 #endif
                 topological_boundary_edge_removal(polygons[0], polygons[1], eid, K1, K2);
@@ -1377,7 +1390,9 @@ namespace DSC {
             {
                 auto all_edges = e01 + e12 + e20;
 #ifdef DSC_CACHE // face removal
-
+                {
+                    
+                    profile tt("Over head");
                 auto tets = get_tets(all_edges) + get_tets(f);
                 
                 for (auto tkey : tets)
@@ -1401,6 +1416,7 @@ namespace DSC {
                 for(auto nk : dnodes)
                 {
                     cache.mark_dirty(nk, true);
+                }
                 }
 #endif
                 
@@ -2177,25 +2193,25 @@ namespace DSC {
         void fix_complex()
         {
             {
-                profile t("Fix: Smooth");
-            smooth();
-//            smooth_parallel();
+//                profile t("Fix: Smooth");
+//            smooth();
+            smooth_parallel();
 //                normal_coloring_vertices();
             }
             
             {
-                profile t("Fix: Edge remove");
+//                profile t("Fix: Edge remove");
             topological_edge_removal();
 //            topological_edge_removal_parallel1();
             }
 
             {
-                profile t("Fix: Face remove");
+//                profile t("Fix: Face remove");
             topological_face_removal() ;
             }
         
             {
-                profile t("Fix: remove degenerate");
+//                profile t("Fix: remove degenerate");
             remove_degenerate_tets();
             remove_degenerate_faces();
             remove_degenerate_edges();
@@ -2205,7 +2221,7 @@ namespace DSC {
         void resize_complex()
         {
             {
-                profile t("Resize");
+//                profile t("Resize");
                 
 //                resize_interface();
                 
@@ -2229,8 +2245,8 @@ namespace DSC {
          */
         void deform(int num_steps = 10)
         {
-            static profile_progress time_prog("deform");
-            time_prog.add();
+//            static profile_progress time_prog("deform");
+//            time_prog.add();
             
             profile t("deform");
 //#ifdef DEBUG
@@ -2272,7 +2288,7 @@ namespace DSC {
 
             resize_complex();
             
-            t.change("garbge collect");
+//            t.change("garbge collect");
             garbage_collect();
             
             for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
@@ -2525,6 +2541,10 @@ namespace DSC {
             }
             
 #ifdef DSC_CACHE // Split edge
+            {
+                
+                profile tt("Over head");
+            
             auto tets = get_tets(eid);
             
             for (auto tkey : tets)
@@ -2548,6 +2568,8 @@ namespace DSC {
             for(auto nk : dnodes)
             {
                 cache.mark_dirty(nk, true);
+            }
+                
             }
 #endif
             
@@ -2652,6 +2674,8 @@ namespace DSC {
                 {
 #ifdef DSC_CACHE // collapse edge
 //                    t.change("collapse e - cache overhead");
+                    {
+                    profile tt("Over head");
                     
                     auto tets = get_tets(get_nodes(eid));
                     
@@ -2677,6 +2701,7 @@ namespace DSC {
                     {
                         cache.mark_dirty(nk, true);
                     }
+                }
 #endif
 //                    t.change("collapse e - collapse");
                     
