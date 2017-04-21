@@ -120,4 +120,20 @@ private:
     
     void draw_dsc_layer(double y_lim);
     void draw_dsc_layer_1(double y_lim);
+    
+private:
+    // Testing - Object volume
+    void compute_volume();
+    
+    // Testing - Curvature
+    std::vector<double> _node_curvature;
+    void build_node_curvature();
+    is_mesh::SimplexSet<is_mesh::NodeKey> * node_on_one_ring(int node_idx);
+    
+    // testing - volume reservation
+    void compute_volume_gradient();
+    
+    // testing - gradient
+    void build_gradient_mass();
+    double mass(const is_mesh::SimplexSet<is_mesh::FaceKey> & face_around, vec3 pos);
 };

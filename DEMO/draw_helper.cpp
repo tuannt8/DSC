@@ -139,44 +139,80 @@ void draw_helper::save_painting(int WIDTH, int HEIGHT, std::string folder)
     }
 }
 
-void draw_helper::dsc_draw_interface(dsc_class & dsc)
+void draw_helper::dsc_draw_interface(dsc_class & dsc, std::vector<double> * color)
 {
-    for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+    if(color)
     {
-        if (f->is_interface())
+        vec3 red(1,0,0);
+        vec3 blue(0,0,1);
+        
+        glBegin(GL_TRIANGLES);
+        for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
         {
-
-            auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
-            //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
-            auto norm = -dsc.get_normal(f.key());
-            
-            glBegin(GL_TRIANGLES);
-            for (auto v : pts)
+            if (f->is_interface())
             {
-                glNormal3dv(norm.get());
-                glVertex3dv(v.get());
+                auto nodes = dsc.get_nodes(f.key());
+                auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
+                
+                
+
+                for (int i = 0; i < 3; i++)
+                {
+                    auto v = pts[i];
+                    double curvature = color->at((int)nodes[i]);
+                    // normalize
+                    curvature = curvature/30;
+//                    curvature = curvature>0? curvature*2-1 : curvature*2 + 1;
+                    auto c = blue*(curvature + 1)/2 + red*(1 - curvature)/2;
+                    
+                    auto norm = -dsc.get_normal(nodes[i]);
+                    glColor3d(c[0], c[1], c[2]);
+                    glNormal3dv(norm.get());
+                    glVertex3dv(v.get());
+                }
+
             }
-            glEnd();
-            
-//            
-//            glDisable(GL_LIGHTING);
-//            glColor3f(0, 0, 0);
-//            glBegin(GL_LINES);
-//            
-//            auto edges = dsc.get_edges(f.key());
-//            
-//            for (int i = 0; i < 3; i++)
-//            {
-//                
-//             //   glNormal3dv(norm.get());
-//                glVertex3dv(pts[i].get());
-//                
-//             //   glNormal3dv(norm.get());
-//                glVertex3dv(pts[(i+1)%3].get());
-//            }
-//            glEnd();
-//            glEnable(GL_LIGHTING);
-            
+        }
+        glEnd();
+    }
+    else
+    {
+        for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+        {
+            if (f->is_interface())
+            {
+                auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
+                //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
+                auto norm = -dsc.get_normal(f.key());
+                
+                glBegin(GL_TRIANGLES);
+                for (auto v : pts)
+                {
+                    glNormal3dv(norm.get());
+                    glVertex3dv(v.get());
+                }
+                glEnd();
+                
+    //            
+    //            glDisable(GL_LIGHTING);
+    //            glColor3f(0, 0, 0);
+    //            glBegin(GL_LINES);
+    //            
+    //            auto edges = dsc.get_edges(f.key());
+    //            
+    //            for (int i = 0; i < 3; i++)
+    //            {
+    //                
+    //             //   glNormal3dv(norm.get());
+    //                glVertex3dv(pts[i].get());
+    //                
+    //             //   glNormal3dv(norm.get());
+    //                glVertex3dv(pts[(i+1)%3].get());
+    //            }
+    //            glEnd();
+    //            glEnable(GL_LIGHTING);
+                
+            }
         }
     }
 }

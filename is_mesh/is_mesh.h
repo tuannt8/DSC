@@ -1657,6 +1657,36 @@ namespace is_mesh {
             }
         }
         
+        void print_mesh_info()
+        {
+            auto nb_node = get_no_nodes();
+            auto nb_edge = get_no_edges();
+            auto nb_faces = get_no_faces();
+            auto nb_tets = get_no_tets();
+            
+            // interface
+            size_t nb_nodes_interface = 0, n_faces_interface = 0;
+            for (auto nk = nodes_begin(); nk != nodes_end(); nk++)
+            {
+                if (nk->is_interface())
+                {
+                    nb_nodes_interface++;
+                }
+            }
+            
+            for (auto fk = faces_begin(); fk != faces_end(); fk++)
+            {
+                if (fk->is_interface())
+                {
+                    n_faces_interface++;
+                }
+            }
+            
+            std::cout << "Mesh information: " << std::endl;
+            std::cout << nb_node << " nodes; " << nb_edge << " edges; " << nb_faces << " faces; " << nb_tets << " tets." << std::endl;
+            std::cout << nb_nodes_interface << " interface nodes; " << n_faces_interface << " interface faces." << std::endl;
+        }
+        
         void extract_tet_mesh(std::vector<vec3>& points, std::vector<int>& tets, std::vector<int>& tet_labels)
         {
             garbage_collect();

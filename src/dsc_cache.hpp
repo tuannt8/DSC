@@ -1,5 +1,5 @@
 //
-//  cache.hpp
+//  dsc_cache.hpp
 //  DSC_parallel
 //
 //  Created by Tuan Nguyen Trung on 8/1/16.
@@ -34,6 +34,14 @@
 class dsc_cache
 {
 public:
+    
+    /// Curvature
+    // neighbor interface point
+    std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*> node_for_curvature_of_node;
+    // interface edge around point
+    std::vector<is_mesh::SimplexSet<is_mesh::EdgeKey>*> interface_edge_around_node;
+    ///
+    
     // Link of node
     std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*> link_of_node;
     // Neighbor tets of node
@@ -60,8 +68,11 @@ public:
     {
         std::cout <<"Init cache" << std::endl;
         // Node
+        node_for_curvature_of_node = std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*>(MAX_ELEMENTS, nullptr);
+        interface_edge_around_node = std::vector<is_mesh::SimplexSet<is_mesh::EdgeKey>*>(MAX_ELEMENTS, nullptr);
         link_of_node = std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*>(MAX_ELEMENTS, nullptr);
-        tets_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>*>(MAX_ELEMENTS, nullptr);
+        tets_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>*>
+                                (MAX_ELEMENTS, nullptr);
         faces_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*>(MAX_ELEMENTS, nullptr);
         nodes_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*>(MAX_ELEMENTS, nullptr);
         node_color = std::vector<int *>(MAX_ELEMENTS, nullptr);
@@ -79,6 +90,8 @@ public:
     }
     
     ~dsc_cache(){
+        RELEASE_CACHE(node_for_curvature_of_node);
+        RELEASE_CACHE(interface_edge_around_node);
         RELEASE_CACHE(link_of_node);
         RELEASE_CACHE(tets_neighbor_node);
         RELEASE_CACHE(faces_neighbor_node);
@@ -91,6 +104,8 @@ public:
     
     void mark_dirty(is_mesh::NodeKey nk, bool dirty)
     {
+        CLEAN_GARBAGE(interface_edge_around_node, nk);
+        CLEAN_GARBAGE(node_for_curvature_of_node, nk);
         CLEAN_GARBAGE(tets_neighbor_node, nk);
         CLEAN_GARBAGE(faces_neighbor_node, nk);
         CLEAN_GARBAGE(nodes_neighbor_node, nk);

@@ -24,7 +24,7 @@
 #include <mutex>
 #include <thread>
 #include "profile.h"
-#include "cache.hpp"
+#include "dsc_cache.hpp"
 
 
 
@@ -225,6 +225,91 @@ namespace DSC {
         
         ///////////////////////////////////
         // Cache
+        is_mesh::SimplexSet<is_mesh::NodeKey> * node_on_one_ring(node_key n)
+        {
+            auto dsc = this;
+            // 1. Build nodes around
+            is_mesh::SimplexSet<is_mesh::NodeKey> * node_around = new is_mesh::SimplexSet<is_mesh::NodeKey>;
+            
+            // Find edges around
+            is_mesh::SimplexSet<is_mesh::EdgeKey> edges_around;
+            auto faces = get_faces(n);
+            for (auto f : faces)
+            {
+                if (get(f).is_interface())
+                {
+                    auto edges = dsc->get_edges(f);
+                    for (auto e : edges)
+                    {
+                        auto ns = dsc->get_nodes(e);
+                        if (ns[0] != n && ns[1] != n)
+                        {
+                            edges_around.push_back(e);
+                            break;
+                        }
+                    }
+                }
+            }
+            // Sort the edge
+            assert(edges_around.size() > 0);
+            auto e0 = edges_around[0];
+            auto n0 = dsc->get_nodes(e0);
+            node_around->push_back(n0[0]);
+            node_around->push_back(n0[1]);
+            edges_around -= e0;
+            
+            while (edges_around.size() > 1)
+            {
+                // find next edge
+                auto n_cur = node_around->back();
+                
+                auto e_n = edges_around.begin();
+                bool found = false;
+                for (; e_n != edges_around.end(); e_n++)
+                {
+                    auto nns = dsc->get_nodes(*e_n);
+                    if (nns[0] == n_cur || nns[1] == n_cur)
+                    {
+                        found = true;
+                        
+                        break;
+                    }
+                }
+                
+                assert(found);
+                auto nns = dsc->get_nodes(*e_n);
+                node_around->push_back( (nns[0] == n_cur)? nns[1] : nns[0] );
+                
+                edges_around -= *e_n;
+            }
+            
+            return node_around;
+        }
+
+        is_mesh::SimplexSet<is_mesh::EdgeKey> * get_edge_around(DSC::DeformableSimplicialComplex<> *dsc, is_mesh::NodeKey n)
+        {
+            is_mesh::SimplexSet<is_mesh::EdgeKey> * edge_around = new is_mesh::SimplexSet<is_mesh::EdgeKey>;
+            
+            auto faces = dsc->get_faces(n);
+            for (auto f : faces)
+            {
+                if (dsc->get(f).is_interface())
+                {
+                    auto edges = dsc->get_edges(f);
+                    for (auto e : edges)
+                    {
+                        auto ns = dsc->get_nodes(e);
+                        if (ns[0] != n && ns[1] != n)
+                        {
+                            edge_around->push_back(e);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return edge_around;
+        }
 #ifdef DSC_CACHE
         
         
@@ -237,11 +322,30 @@ namespace DSC {
 #define CACHE_MISS
 #define CACHE_REFER
 #endif
+        is_mesh::SimplexSet<is_mesh::EdgeKey> * get_edge_around_cache(is_mesh::NodeKey n)
+        {
+            if(!cache.interface_edge_around_node[n])
+            {
+                cache.interface_edge_around_node[n] = get_edge_around(this, n);
+            }
+            
+            return cache.interface_edge_around_node[n];
+        }
+        
+        is_mesh::SimplexSet<is_mesh::NodeKey> * node_on_one_ring_cache(node_key n)
+        {
+            if(!cache.node_for_curvature_of_node[n])
+            {
+                cache.node_for_curvature_of_node[n] = node_on_one_ring(n);
+            }
+            
+            return cache.node_for_curvature_of_node[n];
+        }
 
         
         real quality_cache(tet_key t)
         {
-//            return quality(t);
+            return quality(t);
             
             if (!cache.quality_tet[t])
             {
@@ -591,19 +695,19 @@ namespace DSC {
             }
             
 //            profile t("quality over head");
-#ifdef DSC_CACHE // Move node, mark dirty for quality
-            {
-            profile t("Over head");
-            
-            auto & tets = *get_tets_cache(nid);
-            
-            for (auto tkey : tets)
-            {
-                cache.mark_dirty_tet(tkey);
-            }
-                
-            }
-#endif
+//#ifdef DSC_CACHE // Move node, mark dirty for quality
+//            {
+//            profile t("Over head");
+//            
+//            auto & tets = *get_tets_cache(nid);
+//            
+//            for (auto tkey : tets)
+//            {
+//                cache.mark_dirty_tet(tkey);
+//            }
+//                
+//            }
+//#endif
         }
         
         
@@ -2767,6 +2871,26 @@ namespace DSC {
             return Util::normal_direction(pos[0], pos[1], pos[2]);
         }
         
+        vec3 get_normal_interface(const face_key& fid)
+        {
+            auto pos = get_pos(get_nodes(fid));
+            auto norm = Util::normal_direction(pos[0], pos[1], pos[2]);
+            
+            // fix the direction
+            auto tets = get_tets(fid);
+            tet_key t;
+            if(get_label(tets[0]) < get_label(tets[1]))
+               t = tets[0];
+           else
+               t = tets[1];
+               
+            auto pos_tets = get_pos(get_nodes(t));
+            auto av = (pos_tets[0] + pos_tets[1] + pos_tets[2] + pos_tets[3])/4.0;
+            
+            auto direction = Util::normalize(av - pos[0]);
+            return norm*Util::dot(norm, direction);
+        }
+        
         /**
          Returns the normal to interface node n.
          */
@@ -2778,6 +2902,26 @@ namespace DSC {
                 if (get(f).is_interface())
                 {
                     result += get_normal(f);
+                }
+            }
+            if (Util::length(result) < EPSILON) {
+                return vec3(0.);
+            }
+#ifdef DEBUG
+            assert(!Util::isnan(result[0]) && !Util::isnan(result[1]) && !Util::isnan(result[2]));
+#endif
+            return Util::normalize(result);
+        }
+        
+        vec3 get_normal_interface(const node_key& nid)
+        {
+            vec3 result(0.);
+            for (auto f : get_faces(nid))
+            {
+                if (get(f).is_interface())
+                {
+                    profile t("get norm");
+                    result += get_normal_interface(f);
                 }
             }
             if (Util::length(result) < EPSILON) {
