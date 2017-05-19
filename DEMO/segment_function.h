@@ -13,7 +13,7 @@
 #include "image3d.h"
 #include "DSC.h"
 
-#define NB_PHASE 4
+#define NB_PHASE 3
 
 struct intersect_pt
 {
@@ -57,6 +57,7 @@ private:
     std::vector<int> _vertex_stability_map;
     std::vector<vec3> _forces;
     void compute_external_force();
+    void work_around_on_boundary_vertices();
     void update_vertex_stability();
     void face_split();
 public:

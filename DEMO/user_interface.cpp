@@ -160,8 +160,7 @@ UI::UI(int &argc, char** argv)
     _obj_dim = _seg._img.dimension_v();
     _dsc_dim = _obj_dim + vec3(2*m_edge_length);
     
-    cout << _obj_dim[0] << " " << _obj_dim[1] << " " <<  _obj_dim[2] << " " ;
-    cout << _dsc_dim[0] << " " << _dsc_dim[1] << " " <<  _dsc_dim[2] << " " ;
+    cout << "Image dimension" << _obj_dim[0] << " " << _obj_dim[1] << " " <<  _obj_dim[2] << " " ;
 
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
 
@@ -183,19 +182,20 @@ UI::UI(int &argc, char** argv)
     
 }
 
+// Label the gap between DSC boundary and image boundary to BOUND_LABEL (999)
 void UI::set_dsc_boundary_layer()
 {
-//    for (auto nit =dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
-//    {
-//        if(nit->is_boundary())
-//        {
-//            auto tets = dsc->get_tets(nit.key());
-//            for (auto t : tets)
-//            {
-//                dsc->set_label(t, BOUND_LABEL);
-//            }
-//        }
-//    }
+    for (auto nit =dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+    {
+        if(nit->is_boundary())
+        {
+            auto tets = dsc->get_tets(nit.key());
+            for (auto t : tets)
+            {
+                dsc->set_label(t, BOUND_LABEL);
+            }
+        }
+    }
 }
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
@@ -435,7 +435,6 @@ void UI::display()
         draw_helper::draw_image_slice(_seg._img);
     }
     
-    
     glutSwapBuffers();
     
     std::ostringstream os;
@@ -478,7 +477,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             profile::close();
             break;
         case 'v':// Change surface type
-            phase_draw = ++phase_draw % 3;
+            phase_draw = (phase_draw+1) % 3;
             break;
         default:
             break;

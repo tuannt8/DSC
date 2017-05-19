@@ -145,6 +145,8 @@ namespace is_mesh
          */
         size_t size() const     { return m_data.size() - m_data_freelist.size(); }
         
+        size_t size_buffer() const { return m_data.size(); }
+        
         /**
          * Returns a boolean value indicating if the size is zero.
          */
@@ -317,9 +319,9 @@ namespace is_mesh
          TUAN: To perform multi thread, we must avoid changing the container size.
          We have to book the free list.
          */
-        void booking(int free_cell_want)
+        void booking(unsigned int free_cell_want)
         {
-            int book_size = free_cell_want - m_data_freelist.size();
+            long book_size = free_cell_want - m_data_freelist.size();
             
             for (int i = 0; i < book_size; i++)
             {

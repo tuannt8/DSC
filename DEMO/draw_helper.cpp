@@ -189,29 +189,26 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
                 continue;
             }
             
-//            int idx = dsc.get_label(tets[0]) + dsc.get_label(tets[1]);
-            
-            
             auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
             auto norm = dsc.get_normal(f.key());
             
-            glDisable(GL_LIGHTING);
-            glColor3f(0, 0, 1);
-            glBegin(GL_LINES);
+//            // Draw edges
+//            glDisable(GL_LIGHTING);
+//            glColor3f(0, 0, 1);
+//            glBegin(GL_LINES);
+//            
+//            auto edges = dsc.get_edges(f.key());
+//            
+//            for (int i = 0; i < 3; i++)
+//            {
+//                glVertex3dv(pts[i].get());
+//                glVertex3dv(pts[(i+1)%3].get());
+//            }
+//            glEnd();
+//            glEnable(GL_LIGHTING);
             
-            auto edges = dsc.get_edges(f.key());
-            
-            for (int i = 0; i < 3; i++)
-            {
-                glVertex3dv(pts[i].get());
-                glVertex3dv(pts[(i+1)%3].get());
-            }
-            glEnd();
-            glEnable(GL_LIGHTING);
-            
-            
+            // Draw triangle
             glColor3f(0.7, 0.0, 0);
-//            glColor3dv(color[idx-1].get());
             glBegin(GL_TRIANGLES);
             for (auto v : pts)
             {

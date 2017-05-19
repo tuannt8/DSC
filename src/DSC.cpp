@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include "DSC.h"
 
-#define NUM_THREADS 6
+#define NUM_THREADS 4
 
 using namespace std;
 typedef DSC::DeformableSimplicialComplex<> dsc_class;
@@ -170,10 +170,8 @@ void min_quality_parallel(DSC::DeformableSimplicialComplex<> * dsc, const is_mes
 template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
 {
 #ifdef DSC_CACHE // laplacian smooth
-//    profile t("smooth get cache 1");
     auto fids = get_link(nid);
 
-//    t.change("get pos cache");
     
     vec3 old_pos = get_pos(nid);
     
@@ -182,30 +180,10 @@ template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
 
     real q_old, q_new;
     
-//    for (auto ff : *fids)
-//    {
-//        is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(ff); // Funny we need this line of code
-//        
-//        if(nids.size() != 3)
-//        {
-//            if(ff.is_valid())
-//            {
-//                printf("Valid face: %d\n", (int)ff);
-//                
-//                auto nids1 = get_nodes(ff);
-//                assert(nids1.size()==3);
-//            }
-//            
-//        }
-//    }
-    
-//    t.change("quality");
     min_quality(*fids, old_pos, new_pos, q_old, q_new);
        
 #else
     
-    
-
     is_mesh::SimplexSet<tet_key> tids1 = get_tets(nid);
     is_mesh::SimplexSet<face_key> fids1 = get_faces(tids1) - get_faces(nid);
 
@@ -221,9 +199,40 @@ template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
     min_quality(fids1, old_pos, new_pos, q_old, q_new);
 #endif
     
+//    // TUAN
+//    // Check if it creates inverted tetrahedra
+//#ifdef DSC_CACHE
+//    for (auto f : *fids)
+//#else
+//    for (auto f : fids1)
+//#endif
+//    {
+//        auto & tids = get_tets(f);
+//        if(tids.size() == 2) // Check that f is not a boundary face.
+//        {
+//            auto nids = get_nodes(f);
+//            auto normal = cross(get_pos(nids[0]) - get_pos(nids[2]), get_pos(nids[1]) - get_pos(nids[2]));
+//
+//            auto d1 = dot(old_pos - get_pos(nids[2]), normal);
+//            auto d2 = dot(new_pos - get_pos(nids[2]), normal);
+//            if((d1 < 0. && d2 < 0) || (d1 > 0. && d2 > 0.))
+//            {
+//                if(q_new > pars.MIN_TET_QUALITY || q_new > q_old)
+//                {
+//                    set_pos(nid, new_pos);
+//                    
+//                    return true;
+//                }
+//            }
+//        }
+//    }
+//    // End check
+    
+
     if(q_new > pars.MIN_TET_QUALITY || q_new > q_old)
     {
         set_pos(nid, new_pos);
+        
         return true;
     }
     return false;
@@ -456,16 +465,16 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
         {
             continue;
         }
-        {
-            std::unique_lock<std::mutex> guard(dsc->m, std::defer_lock);
-            guard.lock();
-        if (!dsc->cache.edge_color[e]) // the neighbor has been modified
-        {
-            guard.unlock();
-            continue;
-        }
-            guard.unlock();
-        }
+//        {
+//            std::unique_lock<std::mutex> guard(dsc->m, std::defer_lock);
+//            guard.lock();
+//            if (!dsc->cache.edge_color[e]) // the neighbor has been modified
+//            {
+//                guard.unlock();
+//                continue;
+//            }
+//            guard.unlock();
+//        }
         
         if(dsc->is_safe_editable(e))
         {
@@ -492,7 +501,7 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
 
 template<> void dsc_class::topological_edge_removal_parallel1()
 {
-    booking(1000);
+    booking(3000);
     
     std::vector<is_mesh::SimplexSet<edge_key>> colored_list(MAX_COLORS_TET, is_mesh::SimplexSet<edge_key>());
     
@@ -510,30 +519,11 @@ template<> void dsc_class::topological_edge_removal_parallel1()
         auto ets = get_edges(t);
         for (auto e : ets)
         {
-            if ((size_t)e == 22014
-                || (size_t)e == 9628)
-            {
-
-                auto tts = get_tets(e);
-                auto fids = get_faces(e);
-            }
             int cc = get_color_edge(e);
             colored_list[cc] += e;
-            
-            if ((size_t)e == 22014
-                || (size_t)e == 9628)
-            {
-                
-                auto tts = get_tets(e);
-                auto fids = get_faces(e);
-            }
         }
     }
     
-//    topological_edge_removal();
-//    return;
-    
-    int idx = 0;
     for (auto cc : colored_list)
     {
         if (cc.size() > 0)
@@ -543,70 +533,6 @@ template<> void dsc_class::topological_edge_removal_parallel1()
             {
                 num_thread = 1;
             }
-            
-//            // Check color
-//            // No two edges in this list share a tetrahefral
-//            is_mesh::SimplexSet<tet_key> nb;
-//            int num = 0;
-//            for (auto &ec : cc)
-//            {
-//                if ((size_t)ec == 22014
-//                    || (size_t)ec == 9628)
-//                {
-//                    auto ek = ec;
-//                    auto ffs = get_faces(ek);
-//                    is_mesh::SimplexSet<tet_key> tids;
-//                    for(const face_key& f : get_faces(ek))
-//                    {
-//                        tids += get_tets(f);
-//                    }
-//                    
-//                    auto tts = get_tets(ek);
-//                    for (auto ts:tts)
-//                    {
-//                        if ((size_t)ts == 29648)
-//                        {
-//                            auto eks = get_edges(ts);
-//                        }
-//                    }
-//                }
-//                auto tetsec = get_tets(ec);
-//
-//                
-//                for (auto ts : tetsec)
-//                {
-//                    
-//                    if (nb.contains(ts))
-//                    {
-//                        
-//                    }
-//                    
-//                    if((size_t)ts == 29648)
-//                    {
-//                        bool bb = nb.contains(ts);
-//                        auto ees = get_edges(ts);
-//                        
-//                        auto ffs = get_faces(ec);
-//                        is_mesh::SimplexSet<tet_key> tids;
-//                        for(const face_key& f : get_faces(ec))
-//                        {
-//                            tids += get_tets(f);
-//                        }
-//                        
-//                        auto ttst = get_tets(ec);
-//                        if(bb)
-//                        {
-//                            
-//                            printf("contain 29648");
-//                        }
-//                    }
-//                }
-//                
-//                num += tetsec.size();
-//                nb += tetsec;
-//            }
-//            assert(num == nb.size());
-//            //
             
             std::thread th[NUM_THREADS];
             int stride = (cc.size())/num_thread + 1;
@@ -622,8 +548,6 @@ template<> void dsc_class::topological_edge_removal_parallel1()
             {
                 th[i].join();
             }
-            
-//                        printf("Done threads\n");
         }
     }
     
@@ -659,7 +583,6 @@ template<> void dsc_class:: smooth_parallel()
 // Start thread
 // Simple solution first
    
-    int idx = 0;
     for (auto cc : colored_list)
     {
         if (cc.size() > 0)
@@ -687,7 +610,6 @@ template<> void dsc_class:: smooth_parallel()
                 th[i].join();
             }
             
-//            printf("Done threads\n");
         }
     }
 

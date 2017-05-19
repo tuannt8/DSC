@@ -18,7 +18,7 @@
 #include <cstdint>
 #include "util.h"
 
-#define BOUND_LABEL 0
+#define BOUND_LABEL 999
 #define BOUND_INTENSITY 0
 
 typedef cimg_library::CImg<double> cimg_byte;

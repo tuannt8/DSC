@@ -121,11 +121,11 @@
 		A65022771CFC8A2A00F3FF76 /* libX11.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A65022761CFC8A2A00F3FF76 /* libX11.dylib */; };
 		A65A0C2E1C15E018005A8106 /* image3d.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A65A0C2C1C15E018005A8106 /* image3d.cpp */; settings = {COMPILER_FLAGS = "-Wno-c++11-narrowing"; }; };
 		A681F1831C19CF0000831E2E /* tetralizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A3438E6183C7B7800829EEB /* tetralizer.cpp */; };
-		A681F1861C19CFB400831E2E /* tetgen.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1841C19CFB400831E2E /* tetgen.cxx */; };
-		A681F1871C19CFB400831E2E /* tetgen.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1841C19CFB400831E2E /* tetgen.cxx */; };
 		A681F1881C19CFB400831E2E /* tetgen.h in Headers */ = {isa = PBXBuildFile; fileRef = A681F1851C19CFB400831E2E /* tetgen.h */; };
-		A681F18A1C19D04C00831E2E /* predicates.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1891C19D04C00831E2E /* predicates.cxx */; };
-		A681F18B1C19D04C00831E2E /* predicates.cxx in Sources */ = {isa = PBXBuildFile; fileRef = A681F1891C19D04C00831E2E /* predicates.cxx */; };
+		A6C7361A1ECD769500A6EB65 /* predicates.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6C736181ECD769500A6EB65 /* predicates.cpp */; };
+		A6C7361B1ECD769500A6EB65 /* predicates.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6C736181ECD769500A6EB65 /* predicates.cpp */; };
+		A6C7361C1ECD769500A6EB65 /* tetgen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6C736191ECD769500A6EB65 /* tetgen.cpp */; };
+		A6C7361D1ECD769500A6EB65 /* tetgen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6C736191ECD769500A6EB65 /* tetgen.cpp */; };
 		A6EA33511C18589300FFA69B /* segment_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6EA334F1C18589300FFA69B /* segment_function.cpp */; };
 		A6F2930C1C18738200ED6916 /* glut_menu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6F2930A1C18738200ED6916 /* glut_menu.cpp */; };
 		A6F2930F1C187E2C00ED6916 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F2930E1C187E2C00ED6916 /* Accelerate.framework */; };
@@ -300,9 +300,9 @@
 		A65022761CFC8A2A00F3FF76 /* libX11.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libX11.dylib; path = ../../../../../opt/X11/lib/libX11.dylib; sourceTree = "<group>"; };
 		A65A0C2C1C15E018005A8106 /* image3d.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = image3d.cpp; sourceTree = "<group>"; };
 		A65A0C2D1C15E018005A8106 /* image3d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = image3d.h; sourceTree = "<group>"; };
-		A681F1841C19CFB400831E2E /* tetgen.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tetgen.cxx; path = TetGen/tetgen.cxx; sourceTree = SOURCE_ROOT; };
 		A681F1851C19CFB400831E2E /* tetgen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tetgen.h; path = TetGen/tetgen.h; sourceTree = SOURCE_ROOT; };
-		A681F1891C19D04C00831E2E /* predicates.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = predicates.cxx; path = TetGen/predicates.cxx; sourceTree = SOURCE_ROOT; };
+		A6C736181ECD769500A6EB65 /* predicates.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = predicates.cpp; path = TetGen/predicates.cpp; sourceTree = SOURCE_ROOT; };
+		A6C736191ECD769500A6EB65 /* tetgen.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tetgen.cpp; path = TetGen/tetgen.cpp; sourceTree = SOURCE_ROOT; };
 		A6EA334B1C18579500FFA69B /* libboost_filesystem.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_filesystem.dylib; path = ../../../../../usr/local/lib/libboost_filesystem.dylib; sourceTree = "<group>"; };
 		A6EA334D1C1857AD00FFA69B /* libboost_system.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_system.dylib; path = ../../../../../usr/local/lib/libboost_system.dylib; sourceTree = "<group>"; };
 		A6EA334F1C18589300FFA69B /* segment_function.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = segment_function.cpp; sourceTree = "<group>"; };
@@ -401,8 +401,8 @@
 		7A3438DB183C7B2E00829EEB /* SCGenerator */ = {
 			isa = PBXGroup;
 			children = (
-				A681F1891C19D04C00831E2E /* predicates.cxx */,
-				A681F1841C19CFB400831E2E /* tetgen.cxx */,
+				A6C736181ECD769500A6EB65 /* predicates.cpp */,
+				A6C736191ECD769500A6EB65 /* tetgen.cpp */,
 				A681F1851C19CFB400831E2E /* tetgen.h */,
 				7A3438E3183C7B7800829EEB /* generator.cpp */,
 				7A3438E6183C7B7800829EEB /* tetralizer.cpp */,
@@ -840,6 +840,8 @@
 			files = (
 				7A3438D4183C7A9600829EEB /* tetgen.cxx in Sources */,
 				7A3438D3183C7A9600829EEB /* predicates.cxx in Sources */,
+				A6C7361D1ECD769500A6EB65 /* tetgen.cpp in Sources */,
+				A6C7361B1ECD769500A6EB65 /* predicates.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -848,12 +850,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A9C209E17DFB4D40064171E /* ArithSqMat3x3Float.cpp in Sources */,
+				A6C7361A1ECD769500A6EB65 /* predicates.cpp in Sources */,
 				7A9C20A017DFB4D40064171E /* ArithSqMat4x4Float.cpp in Sources */,
 				7A8967BF1808F3FA00A55FB6 /* line.vert in Sources */,
-				A681F18A1C19D04C00831E2E /* predicates.cxx in Sources */,
 				7A9C20A417DFB4D40064171E /* ArithVec2Float.cpp in Sources */,
 				7A9C20A617DFB4D40064171E /* ArithVec3Float.cpp in Sources */,
-				A681F1861C19CFB400831E2E /* tetgen.cxx in Sources */,
 				7A9C20AF17DFB4D40064171E /* eigensolution.cpp in Sources */,
 				7A9C20B217DFB4D40064171E /* gel_rand.cpp in Sources */,
 				7A8967BE1808F3FA00A55FB6 /* line.geom in Sources */,
@@ -866,6 +867,7 @@
 				7A9C20C917DFB4D40064171E /* Vec2i.cpp in Sources */,
 				7A9C20CD17DFB4D40064171E /* Vec3f.cpp in Sources */,
 				7A9C20D017DFB4D40064171E /* Vec3i.cpp in Sources */,
+				A6C7361C1ECD769500A6EB65 /* tetgen.cpp in Sources */,
 				7A8967BD1808F3FA00A55FB6 /* line.frag in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -892,11 +894,9 @@
 				A65A0C2E1C15E018005A8106 /* image3d.cpp in Sources */,
 				7AF7E9BA176B402200F43714 /* user_interface.cpp in Sources */,
 				A6EA33511C18589300FFA69B /* segment_function.cpp in Sources */,
-				A681F18B1C19D04C00831E2E /* predicates.cxx in Sources */,
 				A6F293141C1885AC00ED6916 /* draw_helper.cpp in Sources */,
 				7A470AE317F51DC3001FC0CB /* log.cpp in Sources */,
 				A681F1831C19CF0000831E2E /* tetralizer.cpp in Sources */,
-				A681F1871C19CFB400831E2E /* tetgen.cxx in Sources */,
 				7AF7E9BD176B412900F43714 /* draw.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

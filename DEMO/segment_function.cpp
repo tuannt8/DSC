@@ -29,9 +29,12 @@ void segment_function::init()
     //_img.load("data/sphere_drill");
 //    _img.load("../Large_data/hamster");
     cout << "Load 3D data" << endl;
+#ifdef __APPLE__
+    _img.load("../Large_data/fuel_cells_smaller");
+#else
     _img.load("../../Large_data/fuel_cells_smaller");
+#endif
     cout << "Done loading " << endl;
-
 }
 
 void segment_function::initialze_segmentation()
@@ -74,16 +77,7 @@ void segment_function::initialze_segmentation()
     double thres[] = {0.31, 0.57, 0.7};
     for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
     {
-        auto ns = _dsc->get_nodes(tit.key());
-        bool bBound = false;
-        for (auto node : ns)
-        {
-            if (_dsc->get(node).is_boundary())
-            {
-                bBound = true;
-            }
-        }
-        if(bBound)
+        if(_dsc->get_label(tit.key()) == BOUND_LABEL)
             continue;
         
         // test
@@ -100,16 +94,16 @@ void segment_function::initialze_segmentation()
         assert(avgI < 1.01);
         
         // find closest
-        int idx = 1;
+        int idx = 0;
         if (std::abs(avgI - thres[1]) < 0.1 )
         {
-            idx = 2;
+            idx = 1;
         }else if(std::abs(avgI - thres[2]) < 0.1 )
         {
-            idx = 3;
+            idx = 2;
         }
 
-//        if (idx != 1)
+        if (idx != 0)
         {
             _dsc->set_label(tit.key(), idx);
         }
@@ -129,30 +123,123 @@ void segment_function::update_vertex_stability()
     }
 }
 
-#define get_mean_intensity(c,l) \
-    (l==BOUND_LABEL? BOUND_INTENSITY:c[l])
+#define X_direction 0x001
+#define Y_direction 0x010
+#define Z_direction 0x100
 
+inline std::uint8_t get_direction(vec3 a)
+{
+    std::uint8_t d = 0x0;
+    if (std::abs(a[0]) > 0.8)
+    {
+        d = d & X_direction;
+    }
+    if (std::abs(a[1]) > 0.8)
+    {
+        d = d & Y_direction;
+    }
+    if (std::abs(a[2]) > 0.8)
+    {
+        d = d & Z_direction;
+    }
+    
+    return d;
+}
+
+void segment_function::work_around_on_boundary_vertices()
+{
+
+    
+    // 1. Find boundary vertices
+    auto node_mem_size = _dsc->get_no_nodes_buffer();
+    std::vector<unsigned int> is_bound_vertex(node_mem_size,0); // Hard code. Assume that the number of vertex < 10000
+    std::vector<std::uint8_t> direction_state(node_mem_size,0x0);
+    for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
+    {
+        if (fid->is_interface() && !fid->is_boundary())
+        {
+            auto tets = _dsc->get_tets(fid.key());
+            if(_dsc->get_label(tets[0]) == BOUND_LABEL
+               || _dsc->get_label(tets[1]) == BOUND_LABEL)
+            {
+                auto nodes_on_face = _dsc->get_nodes(fid.key());
+                auto norm = _dsc->get_normal(fid.key());
+                std::uint8_t direction = get_direction(norm);
+                
+                for (auto n : nodes_on_face)
+                {
+//                    bound_nodes += n; //
+                    is_bound_vertex[(unsigned int)n] = 1;
+                    direction_state[(unsigned int)n] = direction_state[(unsigned int)n] & direction;
+                }
+            }
+        }
+    }
+    
+    // 2. Align the boundary vertices to the boundary
+    auto domain_dim = _img.dimension();
+    auto max_displacement = _dsc->get_avg_edge_length()*1.5;
+    
+    for (auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
+    {
+        if ( (nid->is_interface() or nid->is_crossing())
+            and _dsc->is_movable(nid.key())
+            and !nid->is_boundary())
+        {
+            auto dis = _forces[nid.key()]*_dt;
+            // limit it
+            if (dis.length() > max_displacement)
+            {
+                dis = Util::normalize(dis)*max_displacement;
+                cout << "Force is too large" << endl;
+            }
+            
+            
+            vec3 destination = nid->get_pos() + dis;
+            auto threshold = _dsc->get_avg_edge_length();
+            // Align boundary
+            if (is_bound_vertex[nid.key()] == 1){
+                auto direct = direction_state[nid.key()];
+                if (direct | X_direction){
+                    destination[0] = (std::abs(destination[0]) < threshold)? 0 : domain_dim[0];
+                }
+                if (direct | Y_direction){
+                    destination[1] = (std::abs(destination[1]) < threshold)? 0 : domain_dim[1];
+                }
+                if (direct | Z_direction){
+                    destination[2] = (std::abs(destination[2]) < threshold)? 2 : domain_dim[2];
+                }
+            }
+            
+            _dsc->set_destination(nid.key(), nid->get_pos() + dis);
+        }
+    }
+}
 void segment_function::compute_external_force()
 {
     auto c = _mean_intensities;
-    // Compute forces
-    std::vector<vec3> forces = std::vector<vec3>(30000, vec3(0.0)); // suppose we have less than 10000 vertices
+    
+    // Array to store temporary forces
+    // Use fixxed array for better performance. Suppose that we have less than 10000 vertices
+    std::vector<vec3> forces = std::vector<vec3>(30000, vec3(0.0));
+    
+    // Loop on interface faces
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (fid->is_interface())
+        if (fid->is_interface() && !fid->is_boundary())
         {
-            assert(!fid->is_boundary());
-            // Normal
             auto tets = _dsc->get_tets(fid.key());
-            auto verts = _dsc->get_nodes(fid.key());
-            auto pts = _dsc->get_pos(verts);
-            
-            double boud_scale = 1.0;
             if (_dsc->get_label(tets[0]) == BOUND_LABEL ||
                 _dsc->get_label(tets[1]) == BOUND_LABEL )
             {
-                boud_scale = 0.1;
+                // Ignore the faces on the boundary.
+                //   These boundary vertices should only move along the boundary
+                //   Forces faces on boundary will make them move perpendicullar to the boundary
+                continue;
             }
+            
+            auto verts = _dsc->get_nodes(fid.key());
+            auto pts = _dsc->get_pos(verts);
             
             double c0 = c[_dsc->get_label(tets[0])];
             double c1 = c[_dsc->get_label(tets[1])];
@@ -166,17 +253,19 @@ void segment_function::compute_external_force()
             // Discretize the face
             double area = Util::area<double>(pts[0], pts[1], pts[2]);
             
-            size_t n = std::ceil( sqrt(area) ) - 1;
-            if (n >= tri_coord_size.size())
+            size_t tri_sample_index = std::ceil( sqrt(area) ) - 1;
+            if (tri_sample_index >= tri_coord_size.size())
             {
-                n = tri_coord_size.size() - 1;
+                tri_sample_index = tri_coord_size.size() - 1;
             }
+            if(tri_sample_index < 1)tri_sample_index = 1;
             
-            auto a = tri_dis_coord[n - 1];
+            auto a = tri_dis_coord[tri_sample_index - 1];
             
-            if(a.size() > _dsc->area(fid.key()))
+            if(a.size() > 1 && a.size() > _dsc->area(fid.key()))
             {
-                std::cout << "----: " << a.size() << " - " << _dsc->area(fid.key()) << std::endl;
+                std::cout << "--Error in triangle decomposition. Each sample point represents the area < 1 pixel^2 ----: "
+                            << a.size() << " - " << _dsc->area(fid.key()) << std::endl;
             }
             
             for (auto coord : a)
@@ -185,10 +274,6 @@ void segment_function::compute_external_force()
                 auto g = _img.get_value_f(p);
 
                 auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area);
-                
-                f = f*boud_scale;
-                
-                assert(f.length() < 20);
                 
                 // distribute
                 forces[verts[0]] += f*coord[0];
@@ -296,7 +381,7 @@ bool sort_intersect(intersect_pt p1, intersect_pt p2)
 void segment_function::update_average_intensity()
 {
     // Using sum table. Much faster than normal loop
-    cout << "Computing average intensity" << endl;
+    cout << "Computing average intensity with" << NB_PHASE << " phases " << endl;
     
     int nb_phase = NB_PHASE;
     
@@ -320,7 +405,7 @@ void segment_function::update_average_intensity()
     // 2. Find intersection with interface
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (fid->is_interface())
+        if (fid->is_interface() and !fid->is_boundary())
         {
             auto tet = _dsc->get_tets(fid.key());
             auto phase0 = _dsc->get_label(tet[0]);
@@ -374,7 +459,7 @@ void segment_function::update_average_intensity()
     
     std::fill(_mean_intensities.begin(), _mean_intensities.end(), 0.0);
     vector<double> area(_mean_intensities.size(), 0.0);
-    for (int i = 1; i < nb_phase; i++) // we dont compute the background
+    for (int i = 0; i < nb_phase; i++) // we dont compute the background
     {
         int count = 0;
         for (auto r : ray_intersect[i])
@@ -424,16 +509,16 @@ void segment_function::update_average_intensity()
         cout << count << "Intersected rays" << endl;
     }
     
-    cout << "Update phase 0" << endl;
-    double s0 = _img.sum_area(dim[0]-1, dim[1]-1, dim[2]-1);
-    double v0 = dim[0]*dim[1]*dim[2];
-    for (int i = 2; i < nb_phase; i++) // we dont compute the background
-    {
-        s0 -= _mean_intensities[i];
-        v0 -= area[i];
-    }
-    _mean_intensities[1] = s0;
-    area[1] = v0;
+//    cout << "Update phase 0" << endl;
+//    double s0 = _img.sum_area(dim[0]-1, dim[1]-1, dim[2]-1);
+//    double v0 = dim[0]*dim[1]*dim[2];
+//    for (int i = 2; i < nb_phase; i++) // we dont compute the background
+//    {
+//        s0 -= _mean_intensities[i];
+//        v0 -= area[i];
+//    }
+//    _mean_intensities[1] = s0;
+//    area[1] = v0;
     
     for (int i  = 0; i < nb_phase; i++)
     {
@@ -443,8 +528,6 @@ void segment_function::update_average_intensity()
         }
         _mean_intensities[i] /= area[i];
     }
-    
-    _mean_intensities[0] = BOUND_INTENSITY;
     
     cout << "Done mean intensity" << endl;
     for (int i = 0; i < nb_phase; i++)
@@ -457,49 +540,57 @@ void segment_function::update_average_intensity()
 
 void segment_function::segment()
 {
-    profile t("averaging intensity");
-    
-    // Compute average intensity
     int num_phases = NB_PHASE;
     
+    static int iteration = 0;
+    cout << "--------------- Iteration " << ++iteration << "----------------" << endl;
+    
+    // 1. Compute average intensity
+    profile t("averaging intensity");
+    
     _mean_intensities.resize(num_phases);
-    // This function does not return correct result (in compare to above algorithm).
-    // Need further investigation
     update_average_intensity();
     
+    
     /**
-     RELABEL TETRAHEDRAL
+     2. RELABEL TETRAHEDRA
      */
-    static int mesh_opt_counter = 200;
+    t.change("Relabel tetrahedra");
+    static int mesh_opt_counter = 0;
     if (mesh_opt_counter++ > 20)
     {
 
     }
-    t.change("Compute force");
     
+    // 3. Compute external force
+    t.change("Compute force");
     compute_external_force();
     
-    double largest = 0;
-    for(auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
-    {
-
-        if ( (nid->is_interface() or nid->is_crossing())
-            and _dsc->is_movable(nid.key())
-            and !nid->is_boundary())
-        {
-            auto dis = _forces[nid.key()]*_dt;
-            //cout << "Node " << nid.key() << " : " << dis << endl;
-            _dsc->set_destination(nid.key(), nid->get_pos() + dis);
-            if (largest < dis.length())
-            {
-                largest = dis.length();
-            }
-        }
-    }
+    // 3.1: Work around to align boundary vertices
+    //  including set displacement for interface vertices
+    work_around_on_boundary_vertices();
     
-
-    cout << "--------------------------------Max displacement: " << largest << endl;
-    
-    t.change("deform-");
+//    // 4. Displace DSC
+//    t.change("Displace DSC interface");
+//    double largest = 0;
+//    for(auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
+//    {
+//        if ( (nid->is_interface() or nid->is_crossing())
+//            and _dsc->is_movable(nid.key())
+//            and !nid->is_boundary())
+//        {
+//            auto dis = _forces[nid.key()]*_dt;
+//            _dsc->set_destination(nid.key(), nid->get_pos() + dis);
+//            if (largest < dis.length())
+//            {
+//                largest = dis.length();
+//            }
+//        }
+//    }
+//    
+//
+//    cout << "--------------------------------Max displacement: " << largest << endl;
+//    
+//    t.change("deform-");
     _dsc->deform();
 }
