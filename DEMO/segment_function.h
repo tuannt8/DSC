@@ -15,6 +15,10 @@
 
 #define NB_PHASE 3
 
+#define VARIATION_THRES_FOR_RELABELING 0.3
+
+#define ALPHA 0.1 //The coefficient for Mumford-Shah
+
 struct intersect_pt
 {
     intersect_pt(int z_, bool b_in_z_){
@@ -39,8 +43,9 @@ public:
     segment_function(){};
     ~segment_function(){};
     
-    void init(); //
-    void initialze_segmentation();
+    void init(); // Load image
+    void initialze_segmentation(); // Label initialization
+    void random_initialization(); // Label initialization
     
     void segment();
     
@@ -59,6 +64,11 @@ private:
     void compute_external_force();
     void work_around_on_boundary_vertices();
     void update_vertex_stability();
+    
+    
+    double get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, int );
+    void relabel_tetrahedra();
+    
     void face_split();
 public:
     std::vector<ray_z> _d_rayz;

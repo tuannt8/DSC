@@ -284,13 +284,11 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
 {
     double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);
 
-    size_t dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), v) - dis_coord_size.begin() - 1;
+    int dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), v) - dis_coord_size.begin() - 1;
 
-
+    if(dis < 0)dis = 0;
     double total = 0;
     auto const a = tet_dis_coord[dis];
-
-    assert(a.size() < v);
 
     for (auto tb : a)
     {
@@ -317,13 +315,13 @@ double image3d::get_variation(std::vector<vec3> tet_points, double c)
     double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);
 
 
-    size_t dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), v) - dis_coord_size.begin() - 1;
-
+    long dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), v) - dis_coord_size.begin() - 1;
+    if(dis < 0) dis = 0;
 
     double total = 0;
     auto const a = tet_dis_coord[dis];
 
-    assert(a.size() < v);
+//    assert(a.size() < v); // The discretization should not be too small
 
     for (auto tb : a)
     {

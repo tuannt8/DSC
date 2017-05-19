@@ -178,7 +178,8 @@ UI::UI(int &argc, char** argv)
                 << dsc->get_no_tets() << " tets" << endl;
 
     _seg._dsc = &*dsc;
-    _seg.initialze_segmentation();
+//    _seg.initialze_segmentation();
+    _seg.random_initialization();
     
 }
 

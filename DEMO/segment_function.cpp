@@ -37,6 +37,18 @@ void segment_function::init()
     cout << "Done loading " << endl;
 }
 
+void segment_function::random_initialization()
+{
+    for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
+    {
+        if (_dsc->get_label(tit.key()) != BOUND_LABEL)
+        {
+            int new_label = (rand() % 3);
+            _dsc->set_label(tit.key(), new_label);
+        }
+    }
+}
+
 void segment_function::initialze_segmentation()
 {
 //    /**
@@ -146,6 +158,75 @@ inline std::uint8_t get_direction(vec3 a)
     return d;
 }
 
+double segment_function::get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, int assumed_label)
+{
+#ifdef DSC_CACHE
+    auto nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tkey));
+#else
+    auto nodes_pos = _dsc->get_pos(tkey);
+#endif
+    auto old_label = _dsc->get_label(tkey);
+    auto energy = _img.get_variation(nodes_pos, _mean_intensities[assumed_label]);
+    for (auto fid : _dsc->get_faces(tkey))
+    {
+        auto cobound_tets = _dsc->get_tets(fid); // We assume that this face is not DSC boundary, as there is a gap between DSC boundary and the image domain
+        auto label0 = _dsc->get_label(cobound_tets[0]);
+        auto label1 = _dsc->get_label(cobound_tets[1]);
+        
+        label0 = label0==old_label? label1 : label0;
+        
+        if (label0 != assumed_label)
+        {
+            energy += _dsc->area(fid)*ALPHA;
+        }
+    }
+    
+    return energy;
+}
+
+void segment_function::relabel_tetrahedra()
+{
+    cout << "Relabeling --" << endl;
+    
+    for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
+    {
+        if (_dsc->get_label(tid.key()) == BOUND_LABEL)
+        {
+            continue;
+        }
+#ifdef DSC_CACHE
+        auto nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tid.key()));
+#else
+        auto nodes_pos = _dsc->get_pos(tid.key());
+#endif
+        auto mean_inten_tetra = _img.get_tetra_intensity(nodes_pos);
+        
+        // We check if it is worth changing the label to the phase with closest mean intensity
+        double smallest_gap = INFINITY;
+        int label_of_closest_phase = -1;
+        for (int i = 0; i < _mean_intensities.size(); i++)
+        {
+            if (smallest_gap > mean_inten_tetra - _mean_intensities[i])
+            {
+                smallest_gap = mean_inten_tetra - _mean_intensities[i];
+                label_of_closest_phase = i;
+            }
+        }
+        
+        if (label_of_closest_phase != _dsc->get_label(tid.key()))
+        {
+            // Check if we reduce the energy
+            auto old_energy = get_energy_tetrahedron(tid.key(), _dsc->get_label(tid.key()));
+            auto new_energy = get_energy_tetrahedron(tid.key(), label_of_closest_phase);
+            
+            if (new_energy < old_energy) //Should we a factor here to make sure that the benifit is enough?
+            {
+                _dsc->set_label(tid.key(), label_of_closest_phase);
+            }
+        }
+    }
+}
+
 void segment_function::work_around_on_boundary_vertices()
 {
 
@@ -207,7 +288,7 @@ void segment_function::work_around_on_boundary_vertices()
                     destination[1] = (std::abs(destination[1]) < threshold)? 0 : domain_dim[1];
                 }
                 if (direct | Z_direction){
-                    destination[2] = (std::abs(destination[2]) < threshold)? 2 : domain_dim[2];
+                    destination[2] = (std::abs(destination[2]) < threshold)? 0 : domain_dim[2];
                 }
             }
             
@@ -570,27 +651,28 @@ void segment_function::segment()
     //  including set displacement for interface vertices
     work_around_on_boundary_vertices();
     
-//    // 4. Displace DSC
-//    t.change("Displace DSC interface");
-//    double largest = 0;
-//    for(auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
-//    {
-//        if ( (nid->is_interface() or nid->is_crossing())
-//            and _dsc->is_movable(nid.key())
-//            and !nid->is_boundary())
-//        {
-//            auto dis = _forces[nid.key()]*_dt;
-//            _dsc->set_destination(nid.key(), nid->get_pos() + dis);
-//            if (largest < dis.length())
-//            {
-//                largest = dis.length();
-//            }
-//        }
-//    }
-//    
-//
-//    cout << "--------------------------------Max displacement: " << largest << endl;
-//    
-//    t.change("deform-");
     _dsc->deform();
+    
+    // 4. Relabel tetrahedron
+    // Asumme that the average intensitise do not change much
+//    update_average_intensity();
+//    switch (iteration) {
+//        case 0:
+//        case 2:
+//        case 5:
+//        case 10:
+//            relabel_tetrahedra();
+//            break;
+//            
+//        default:
+//            break;
+//    }
+    if (iteration % 5 == 0)
+    {
+        relabel_tetrahedra();
+    }
+
+
+    
+    iteration++;
 }

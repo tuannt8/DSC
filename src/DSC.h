@@ -2088,48 +2088,35 @@ namespace DSC {
         
         void fix_complex()
         {
-            static int cc = 0;
-            cc++;
             {
                 profile t("Fix: Smooth");
-//                if(cc==10)
-//                    validity_check();
 #ifdef DSC_CACHE
 //                smooth();
                 smooth_parallel();
 #else
                 smooth();
 #endif
-//                if(cc==10)
-//                    validity_check();
             }
             
             {
                 profile t("Fix: Edge remove");
 //                            topological_edge_removal();
                 topological_edge_removal_parallel1();
-                
-//                if(cc==10)
-//                validity_check();
+
             }
             
             {
                 profile t("Fix: Face remove");
                 topological_face_removal() ;
-//                if(cc>=10)
-//                validity_check();
+
             }
             
-//            if(cc>=9)
-//                validity_check();
             
             profile t("Fix: remove degenerate");
             remove_degenerate_tets();
             remove_degenerate_faces();
             remove_degenerate_edges();
-            
-//            if(cc==9)
-//                validity_check();
+
         }
         
         void resize_complex()
@@ -2165,7 +2152,6 @@ namespace DSC {
             //            std::cout << std::endl << "********************************" << std::endl;
             //#endif
             
-            static int count_ = 0;
 
             
             int missing;
@@ -2174,8 +2160,6 @@ namespace DSC {
                 std::cout << "\n\tMove vertices step " << step << std::endl;
                 missing = 0;
                 
-//                if(count_ >= 7)
-//                    validity_check();
                 
                 int movable = 0;
                 {
@@ -2193,11 +2177,9 @@ namespace DSC {
                     
                 }
                 
-//                if(count_ >= 7)
-//                    validity_check();
                 
                 std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
-                count_ ++;
+
                 
                 {
                     fix_complex();
@@ -2383,19 +2365,7 @@ namespace DSC {
             // Check that the edge is not a feature edge if it is a part of the interface or boundary.
             if(get(eid).is_interface() || get(eid).is_boundary())
             {
-                return is_flat(fids);
-//                
-//                // TUAN
-//                // The is_flat takes time
-//                // Here it is simpler
-//                // Check if it is flat
-//                vec3 norm = Util::normal_direction(get_pos(e_nids[0]), get_pos(e_nids[1]), get_pos(new_e_nids[0]));
-//                vec3 vv = get_pos(new_e_nids[1]) - get_pos(e_nids[0]);
-//                vv.normalize();
-////                static real thres = sqrt(1 - FLIP_EDGE_INTERFACE_FLATNESS*FLIP_EDGE_INTERFACE_FLATNESS);
-//                
-//                return std::abs(dot(norm, vv)) < thres;
-                
+                return is_flat(fids);     
             }
             
             return true;
