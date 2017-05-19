@@ -26,6 +26,9 @@ $(TARGET): $(LIBOBJS)
 
 -include ${DEPENDS}
 
+test:
+	echo $(LIBOBJS)
+
 .PHONY: clean
 clean: 
 	rm $(LIBOBJS)
