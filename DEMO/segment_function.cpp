@@ -436,6 +436,8 @@ void segment_function::work_around_on_boundary_vertices()
     auto domain_dim = _img.dimension();
     auto max_displacement = _dsc->get_avg_edge_length()*1.5;
     
+    double max_displacement_real = -INFINITY;
+    
     for (auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
     {
         if ( (nid->is_interface() or nid->is_crossing())
@@ -468,8 +470,15 @@ void segment_function::work_around_on_boundary_vertices()
             }
             
             _dsc->set_destination(nid.key(), nid->get_pos() + dis);
+            
+            if (max_displacement_real < dis.length())
+            {
+                max_displacement_real = dis.length();
+            }
         }
     }
+    
+    cout << "Max displacement: " << max_displacement_real << endl;
 }
 void segment_function::compute_external_force()
 {
@@ -637,7 +646,9 @@ bool sort_intersect(intersect_pt p1, intersect_pt p2)
 void segment_function::update_average_intensity()
 {
     // Using sum table. Much faster than normal loop
+#ifdef LOG_DEBUG
     cout << "Computing average intensity with" << NB_PHASE << " phases " << endl;
+#endif
     
     int nb_phase = NB_PHASE;
     
@@ -656,8 +667,9 @@ void segment_function::update_average_intensity()
     }
     
     vector<std::vector<ray_z>> ray_intersect(nb_phase, init_rayz);
-
+#ifdef LOG_DEBUG
     cout << "Find intersection" << endl;
+#endif
     // 2. Find intersection with interface
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
@@ -708,8 +720,9 @@ void segment_function::update_average_intensity()
             }
         }
     }
-    
+#ifdef LOG_DEBUG
     cout << "Count intersection" << endl;
+#endif
     // 3. Compute integral
     _d_rayz.clear();
     
@@ -762,7 +775,9 @@ void segment_function::update_average_intensity()
                 else{}//???
             }
         }
+#ifdef LOG_DEBUG
         cout << count << "Intersected rays" << endl;
+#endif
     }
     
 //    cout << "Update phase 0" << endl;
@@ -784,8 +799,8 @@ void segment_function::update_average_intensity()
         }
         _mean_intensities[i] /= area[i];
     }
-    
-    cout << "Done mean intensity" << endl;
+
+    cout << "Mean intensity: ";
     for (int i = 0; i < nb_phase; i++)
     {
         cout << _mean_intensities[i] << " -- ";
@@ -799,10 +814,10 @@ void segment_function::segment()
     int num_phases = NB_PHASE;
     
     static int iteration = 0;
-    cout << "--------------- Iteration " << iteration++ << "----------------" << endl;
+    cout << "--------------- Iteration " << iteration++ << " ----------------" << endl;
     
     // 1. Compute average intensity
-    profile t("averaging intensity");
+    profile t("Segment time");
     
     _mean_intensities.resize(num_phases);
     update_average_intensity();
@@ -811,7 +826,6 @@ void segment_function::segment()
 
     
     // 2. Compute external force
-    t.change("Compute force");
     compute_external_force();
     
     // 3. Work around to align boundary vertices
@@ -823,9 +837,11 @@ void segment_function::segment()
     /**
      4. RELABEL TETRAHEDRA
      */
-    t.change("Relabel tetrahedra");
     if (iteration % 20 == 0)
     {
         initialization_discrete_opt();
     }
+    
+    t.done();
+    profile::close();
 }

@@ -318,12 +318,6 @@ void UI::display()
 {
     if (CONTINUOUS)
     {
-        static int iter = 0;
-        if(iter++ > 300)
-        {
-            CONTINUOUS = false;
-            
-        }
         _seg.segment();
         m_iters++;
     }

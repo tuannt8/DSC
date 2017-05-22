@@ -51,7 +51,7 @@ public:
     void segment();
     
 public:
-    double _dt = 1;
+    double _dt = 2;
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
     

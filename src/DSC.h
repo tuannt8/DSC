@@ -31,6 +31,8 @@
 #define MAX_COLORS 30
 #define MAX_COLORS_TET 100
 
+//#define LOG_DEBUG
+
 using namespace std;
 
 class Barrier
@@ -235,7 +237,7 @@ namespace DSC {
 #ifdef DSC_CACHE
         
         
-#define CACHE_HIT
+//#define CACHE_HIT
         
 #ifdef CACHE_HIT
 #define CACHE_MISS profile time("cache miss");
@@ -1011,7 +1013,6 @@ namespace DSC {
          */
         bool topological_edge_removal(const edge_key& eid)
         {
-            //            profile time("te - get pol");
             std::vector<is_mesh::SimplexSet<node_key>> polygon = get_polygons(eid);
 //#ifdef DEBUG
             if(!(polygon.size() == 1 && polygon.front().size() > 2))
@@ -1142,16 +1143,6 @@ namespace DSC {
                 std::unique_lock<std::mutex> guard(m, std::defer_lock);
                 guard.lock();
                 
-                //Debug
-                auto alledges = get_edges(get_tets(eid));
-                for(auto ee : alledges)
-                {
-                    if((int)ee == 165160)
-                    {
-                        cout << "remove edge " << eid << " that affects 165160" <<endl;
-                    }
-                }
-                
 #ifdef DSC_CACHE // Bounadry edge removal
                 auto tets = get_tets(eid);// + get_tets(polygons[0]) + get_tets(polygons[1]);
                 for (auto tkey : tets)
@@ -1197,7 +1188,6 @@ namespace DSC {
          */
         void topological_edge_removal()
         {
-            //            profile time("erm - Get low qual tet");
             std::vector<tet_key> tets;
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
@@ -1263,9 +1253,9 @@ namespace DSC {
                         j++;
                     }
             }
-//#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Topological edge removals: " << i + k << "/" << j << " (" << k << " at interface)" << std::endl;
-//#endif
+#endif
             garbage_collect();
         }
         
@@ -1489,7 +1479,7 @@ namespace DSC {
                     }
             }
             
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Topological face removals: " << i << "/" << j << std::endl;
 #endif
             garbage_collect();
@@ -1526,9 +1516,9 @@ namespace DSC {
                     i++;
                 }
             }
-//#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Thickening interface splits: " << i << std::endl;
-//#endif
+#endif
         }
         
         void resize_interface()
@@ -1546,7 +1536,6 @@ namespace DSC {
                 return;
             }
             
-            profile t("Thick - find");
             std::vector<tet_key> tetrahedra;
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
@@ -1556,7 +1545,6 @@ namespace DSC {
                 }
             }
             
-            t.change("Thick - split");
             int i = 0;
             for(auto &t : tetrahedra)
             {
@@ -1566,9 +1554,9 @@ namespace DSC {
                     i++;
                 }
             }
-//#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Thickening splits: " << i << std::endl;
-//#endif
+#endif
         }
         
         //////////////
@@ -1602,9 +1590,9 @@ namespace DSC {
                     j++;
                 }
             }
-//#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Thinning interface collapses: " << i << "/" << j << std::endl;
-//#endif
+#endif
         }
         
         /**
@@ -1638,9 +1626,9 @@ namespace DSC {
                     j++;
                 }
             }
-//            #ifdef DEBUG
+            #ifdef LOG_DEBUG
             std::cout << "Thinning collapses: " << i << "/" << j << std::endl;
-//            #endif
+            #endif
         }
         
         /////////////////////////
@@ -1671,16 +1659,14 @@ namespace DSC {
                     j++;
                 }
             }
-//#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate edges" << std::endl;
-//#endif
+#endif
             garbage_collect();
         }
         
         void remove_degenerate_faces()
         {
-            //            profile t("Remove degenerate face");
-            
             std::list<face_key> faces;
             
             for (auto fit = faces_begin(); fit != faces_end(); fit++)
@@ -1710,16 +1696,15 @@ namespace DSC {
                     j++;
                 }
             }
-//#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate faces" << std::endl;
-//#endif
+#endif
             garbage_collect();
         }
         
         void remove_degenerate_tets()
         {
-            //            profile t("degenerate tets");
-            
+           
             std::vector<tet_key> tets;
             
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
@@ -1749,9 +1734,9 @@ namespace DSC {
                         j++;
                     }
             }
-//#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate tets" << std::endl;
-//#endif
+#endif
             garbage_collect();
         }
         
@@ -1784,7 +1769,7 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " low quality edges" << std::endl;
 #endif
             garbage_collect();
@@ -1863,7 +1848,7 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " low quality faces" << std::endl;
 #endif
             garbage_collect();
@@ -2045,7 +2030,7 @@ namespace DSC {
                         j++;
                     }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " low quality tets" << std::endl;
 #endif
             garbage_collect();
@@ -2074,9 +2059,9 @@ namespace DSC {
                     j++;
                 }
             }
-//#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Smoothed: " << i << "/" << j << std::endl;
-//#endif
+#endif
         }
         
         static void smooth_worker(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<node_key> *node_list, int start_idx, int stop_idx);
@@ -2089,7 +2074,6 @@ namespace DSC {
         void fix_complex()
         {
             {
-                profile t("Fix: Smooth");
 #ifdef DSC_CACHE
 //                smooth();
                 smooth_parallel();
@@ -2099,20 +2083,17 @@ namespace DSC {
             }
             
             {
-                profile t("Fix: Edge remove");
 //                            topological_edge_removal();
                 topological_edge_removal_parallel1();
 
             }
             
             {
-                profile t("Fix: Face remove");
                 topological_face_removal() ;
 
             }
             
             
-            profile t("Fix: remove degenerate");
             remove_degenerate_tets();
             remove_degenerate_faces();
             remove_degenerate_edges();
@@ -2122,7 +2103,6 @@ namespace DSC {
         void resize_complex()
         {
             {
-                profile t("Resize");
                 
                 //                resize_interface();
                 
@@ -2146,7 +2126,6 @@ namespace DSC {
          */
         void deform(int num_steps = 10)
         {
-            profile t("deform");
             //#ifdef DEBUG
             //            validity_check();
             //            std::cout << std::endl << "********************************" << std::endl;
@@ -2157,7 +2136,9 @@ namespace DSC {
             int missing;
             int step = 0;
             do {
+#ifdef LOG_DEBUG
                 std::cout << "\n\tMove vertices step " << step << std::endl;
+#endif
                 missing = 0;
                 
                 
@@ -2177,9 +2158,9 @@ namespace DSC {
                     
                 }
                 
-                
+#ifdef LOG_DEBUG
                 std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
-
+#endif
                 
                 {
                     fix_complex();
@@ -2194,7 +2175,6 @@ namespace DSC {
             
             resize_complex();
             
-            t.change("garbge collect");
             garbage_collect();
             
             for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
@@ -2517,7 +2497,6 @@ namespace DSC {
          */
         bool collapse(const edge_key& eid, bool safe = true)
         {
-            //            profile t("collapse e - collapsable");
             is_mesh::SimplexSet<node_key> nids = get_nodes(eid);
             bool n0_is_editable = is_collapsable(eid, nids[0], safe);
             bool n1_is_editable = is_collapsable(eid, nids[1], safe);
@@ -2527,7 +2506,6 @@ namespace DSC {
                 return false;
             }
             
-            //            t.change("collapse e - test weight check");
             
             std::vector<real> test_weights;
             if (!n0_is_editable || !n1_is_editable)
@@ -2808,7 +2786,6 @@ namespace DSC {
         
         real quality(const tet_key& tid)
         {
-            //            profile t("tid");
 #ifdef DSC_CACHE
             is_mesh::SimplexSet<node_key> * nids = get_nodes_cache(tid);
             return std::abs(Util::quality<real>(get_pos(nids->operator[](0)), get_pos(nids->operator[](1)), get_pos(nids->operator[](2)), get_pos(nids->operator[](3))));
