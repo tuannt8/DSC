@@ -2141,6 +2141,7 @@ namespace DSC {
 #endif
                 missing = 0;
                 
+                cout << ".";
                 
                 int movable = 0;
                 {
@@ -2183,7 +2184,7 @@ namespace DSC {
             }
             
 
-            
+            cout << endl;
             //#ifdef DEBUG
             //            validity_check();
             //#endif
