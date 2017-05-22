@@ -46,6 +46,7 @@ public:
     void init(); // Load image
     void initialze_segmentation(); // Label initialization
     void random_initialization(); // Label initialization
+    void initialization_discrete_opt(); // Optimize the initialization automatically
     
     void segment();
     

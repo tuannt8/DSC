@@ -169,6 +169,11 @@ namespace is_mesh {
             return static_cast<unsigned int>(m_tetrahedron_kernel->size());
         }
         
+        unsigned int get_no_tets_buffer() const
+        {
+            return static_cast<unsigned int>(m_tetrahedron_kernel->size_buffer());
+        }
+        
         ///////////////
         // ITERATORS //
         ///////////////

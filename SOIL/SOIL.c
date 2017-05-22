@@ -1495,7 +1495,7 @@ int
 	)
 {
 	int save_result;
-#ifdef _WIN32 || __APPLE__
+#if defined(_WIN32) || defined(__APPLE__)
 	/*	error check	*/
 	if( (width < 1) || (height < 1) ||
 		(channels < 1) || (channels > 4) ||

@@ -179,7 +179,8 @@ UI::UI(int &argc, char** argv)
 
     _seg._dsc = &*dsc;
 //    _seg.initialze_segmentation();
-    _seg.random_initialization();
+//    _seg.random_initialization();
+    _seg.initialization_discrete_opt();
     
 }
 

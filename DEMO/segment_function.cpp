@@ -49,6 +49,179 @@ void segment_function::random_initialization()
     }
 }
 
+// Threshold the histogram in a range to 3 regions
+// Multilevel Thresholding for Image Segmentation through a Fast Statistical Recursive Algorithm
+// Arora
+void Obstu_threshold(std::vector<int> & thres_T1, std::vector<int> & thres_T2, std::vector<int> & input, int iter)
+{
+    if (iter == 0)
+    {
+        return;
+    }
+    
+    int range_min = thres_T1[thres_T1.size()-1];
+    int range_max = thres_T2[0];
+    
+    double thres_cofficient = 1;
+    // Compute mean
+    int mean = 0, count=0;
+    for (int i = range_min; i < range_max; i++)
+    {
+        mean += input[i]*i;
+        count += input[i];
+    }
+    mean = mean/count;
+    
+    // Compute deviation
+    double deviation = 0;
+    for (int i = range_min; i < range_max; i++)
+    {
+        deviation += input[i]*std::abs(i - mean);
+    }
+    deviation = (deviation) / count;
+    
+    int K1 = mean - thres_cofficient*deviation;
+    int K2 = mean + thres_cofficient*deviation;
+    
+    assert(K1 > 0 && K2 < range_max);
+    
+    thres_T1.push_back(K1);
+    thres_T2.insert(thres_T2.begin(), K2);
+}
+
+std::vector<int> obstu_recursive(std::vector<int> input, int nb_phase)
+{
+    std::vector<int> thres_T1; thres_T1.push_back(0);
+    std::vector<int> thres_T2; thres_T2.push_back(255);
+    Obstu_threshold(thres_T1, thres_T2, input, int((nb_phase-1)/2));
+    
+    if (nb_phase %2 == 0)
+    {
+        // remove one threshold
+        thres_T2.erase(thres_T2.begin());
+    }
+    
+    thres_T1.insert(thres_T1.end(), thres_T2.begin(), thres_T2.end());
+    return thres_T1;
+}
+
+void segment_function::initialization_discrete_opt()
+{
+    // Optimize the labels of the tetrahedral
+    int no_tets = _dsc->get_no_tets_buffer();
+    std::vector<double> total_intensity_per_tet(no_tets, -1.0);
+    std::vector<double> volume_per_tet(no_tets, -1.0);
+    std::vector<double> mean_inten_per_tet(no_tets, -1.0);
+    std::vector<double> variation_inten_per_tet(no_tets, -1.0);
+    std::vector<int> labels(no_tets, -1);
+    
+    double max_variation = -INFINITY, min_variation = INFINITY;
+    // 1. Compute mean intensity and variation of each tetrahedron
+    for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
+    {
+        if(_dsc->get_label(tit.key()) == BOUND_LABEL)
+            continue;
+        
+        auto tet_nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tit.key()));
+        double total_inten, volume;
+        auto mean_inten = _img.get_tetra_intensity(tet_nodes_pos, &total_inten, &volume);
+        
+        auto variation = _img.get_variation(tet_nodes_pos, mean_inten);
+        
+        mean_inten_per_tet[tit.key()] = mean_inten;
+        total_intensity_per_tet[tit.key()] = total_inten;
+        volume_per_tet[tit.key()] = volume;
+        variation_inten_per_tet[tit.key()] = variation;
+        
+        if (max_variation < variation)
+        {
+            max_variation = variation;
+        }
+        if (min_variation > variation)
+        {
+            min_variation = variation;
+        }
+    }
+    
+    // 2. Remove tetrahedra that have high variations
+    double portion_keep_for_opt = 0.4; // Depend how sparse the segmenting image. More sparse, more tetrahedra to be optimized
+    // Use bin size 100 for histogram count
+    int bin_size = 200;
+    max_variation *= 1.01;
+    min_variation *= 0.99;
+    double his_step = (max_variation - min_variation)/(double)bin_size;
+    std::vector<int> his_count(bin_size, 0);
+    long total_count = 0;
+    for (auto & v : variation_inten_per_tet)
+    {
+        if(v > 0)
+        {
+            int step = (int)((v - min_variation)/his_step);
+            his_count[step] ++;
+            total_count++;
+        }
+    }
+    
+    // Find the threshold
+    int index_for_thres = 0;
+    long count_cur = 0;
+    for (; index_for_thres < his_count.size(); index_for_thres++)
+    {
+        count_cur += his_count[index_for_thres];
+        if (count_cur > total_count*portion_keep_for_opt)
+        {
+            break;
+        }
+    }
+    double thres_hold = (index_for_thres+1)*his_step; // thres hold to remove high variation tets
+    
+    // make new list, tets with low variation
+    std::vector<int> histogram_for_thresholding(256,0);
+    for (int i = 0; i < variation_inten_per_tet.size(); i++)
+    {
+        if (variation_inten_per_tet[i] > 0
+            && variation_inten_per_tet[i] < thres_hold)
+        {
+            // This tetrahedron is considered for relabeling
+            int idx = (int)(mean_inten_per_tet[i]*256); // convert from [0, 1] to [0, 256] image
+            
+            if(idx > 255) idx = 255;
+            histogram_for_thresholding[idx] ++;
+        }
+    }
+    
+    // 3. Optimize the label
+    // 3.1. Random initialize
+    int nb_phases = NB_PHASE;
+    vector<int> thres_hold_array = obstu_recursive(histogram_for_thresholding, nb_phases);
+    
+    // debuging
+    cout << "Thresholding with: " << thres_hold_array[1] << "; "
+            << thres_hold_array[2] << endl;
+    
+    // Initialize the label
+    for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
+    {
+        if (_dsc->get_label(tit.key()) == BOUND_LABEL
+            || variation_inten_per_tet[tit.key()] > thres_hold)
+        {
+            continue;
+        }
+        
+        const int mean_inten_tet = (int)(mean_inten_per_tet[tit.key()]*255);
+        int label = 0;
+        for (; label < thres_hold_array.size(); label++)
+        {
+            if (mean_inten_tet < thres_hold_array[label])
+            {
+                break;
+            }
+        }
+        
+        _dsc->set_label(tit.key(), label-1); // -1 because the thres_array start from 0
+    }
+}
+
 void segment_function::initialze_segmentation()
 {
 //    /**
