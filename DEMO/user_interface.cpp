@@ -109,7 +109,7 @@ void UI::setup_light()
     GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
     GLfloat mat_shininess[] = { 50.0 };
     GLfloat light_position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
-    glClearColor (0.0, 0.0, 0.0, 0.0);
+//    glClearColor (0.0, 0.0, 0.0, 0.0);
     glShadeModel (GL_SMOOTH);
     
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
@@ -311,7 +311,7 @@ void UI::update_gl()
     int size = std::min(WIN_SIZE_Y, WIN_SIZE_X);
     glViewport((WIN_SIZE_X-size)/2.0, (WIN_SIZE_Y-size)/2.0, size, size);
     
-    glClearColor(0.1, 0.1, 0.1, 1.0);
+    glClearColor(1.0, 1.0, 1.0, 1.0);
 }
 
 void UI::display()

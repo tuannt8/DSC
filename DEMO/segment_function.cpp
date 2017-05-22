@@ -107,6 +107,8 @@ std::vector<int> obstu_recursive(std::vector<int> input, int nb_phase)
 
 void segment_function::initialization_discrete_opt()
 {
+    cout << "Relabeling " << endl;
+    
     // Optimize the labels of the tetrahedral
     int no_tets = _dsc->get_no_tets_buffer();
     std::vector<double> total_intensity_per_tet(no_tets, -1.0);
@@ -828,21 +830,10 @@ void segment_function::segment()
     
     // 4. Relabel tetrahedron
     // Asumme that the average intensitise do not change much
-//    update_average_intensity();
-//    switch (iteration) {
-//        case 0:
-//        case 2:
-//        case 5:
-//        case 10:
-//            relabel_tetrahedra();
-//            break;
-//            
-//        default:
-//            break;
-//    }
-    if (iteration % 5 == 0)
+
+    if (iteration % 20 == 0)
     {
-        relabel_tetrahedra();
+        initialization_discrete_opt();
     }
 
 
