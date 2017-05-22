@@ -129,6 +129,8 @@ void UI::update_draw_list()
 
 UI::UI(int &argc, char** argv)
 {
+    std::cout << "Version " << VERSION << endl;
+    
     instance = this;
 
     glutInit(&argc, argv);
@@ -165,13 +167,10 @@ UI::UI(int &argc, char** argv)
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
 
     // Update texture draw
-    cout << "Update texture \n";
     draw_helper::update_texture(_seg._img, 0,0,0);
 
     // Generate DSC
-    cout << "Init DSC\n";
     init_dsc();
-    cout << "Boundary layer\n";
     set_dsc_boundary_layer();
 
     std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
