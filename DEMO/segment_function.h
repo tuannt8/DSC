@@ -57,6 +57,8 @@ public:
     
 private:
     std::vector<double> _mean_intensities;
+    std::vector<double> _total_intensities; // To update mean intensity during relabeling
+    std::vector<double> _phase_volume;
     void update_average_intensity();
     void update_average_intensity1();
     

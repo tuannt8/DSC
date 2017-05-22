@@ -374,7 +374,10 @@ void segment_function::relabel_tetrahedra()
 #else
         auto nodes_pos = _dsc->get_pos(tid.key());
 #endif
-        auto mean_inten_tetra = _img.get_tetra_intensity(nodes_pos);
+        double volume, total_inten;
+        auto mean_inten_tetra = _img.get_tetra_intensity(nodes_pos, &total_inten, &volume);
+        
+        
         
         // We check if it is worth changing the label to the phase with closest mean intensity
         double smallest_gap = INFINITY;
@@ -397,6 +400,18 @@ void segment_function::relabel_tetrahedra()
             if (new_energy < old_energy) //Should we a factor here to make sure that the benifit is enough?
             {
                 _dsc->set_label(tid.key(), label_of_closest_phase);
+                
+                // update mean intensity
+                int old_label = _dsc->get_label(tid.key());
+                _total_intensities[old_label] -= total_inten;
+                _total_intensities[label_of_closest_phase] += total_inten;
+                _phase_volume[old_label] -= volume;
+                _phase_volume[label_of_closest_phase] += volume;
+                
+                for (int i = 0; i < _mean_intensities.size(); i++)
+                {
+                    _mean_intensities[i] =_total_intensities[i] / _phase_volume[i];
+                }
             }
         }
     }
@@ -780,16 +795,8 @@ void segment_function::update_average_intensity()
 #endif
     }
     
-//    cout << "Update phase 0" << endl;
-//    double s0 = _img.sum_area(dim[0]-1, dim[1]-1, dim[2]-1);
-//    double v0 = dim[0]*dim[1]*dim[2];
-//    for (int i = 2; i < nb_phase; i++) // we dont compute the background
-//    {
-//        s0 -= _mean_intensities[i];
-//        v0 -= area[i];
-//    }
-//    _mean_intensities[1] = s0;
-//    area[1] = v0;
+    _total_intensities = _mean_intensities;
+    _phase_volume = area;
     
     for (int i  = 0; i < nb_phase; i++)
     {
@@ -839,7 +846,8 @@ void segment_function::segment()
      */
     if (iteration % 20 == 0)
     {
-        initialization_discrete_opt();
+//        initialization_discrete_opt();
+        relabel_tetrahedra();
     }
     
     t.done();
