@@ -799,7 +799,7 @@ void segment_function::segment()
     int num_phases = NB_PHASE;
     
     static int iteration = 0;
-    cout << "--------------- Iteration " << ++iteration << "----------------" << endl;
+    cout << "--------------- Iteration " << iteration++ << "----------------" << endl;
     
     // 1. Compute average intensity
     profile t("averaging intensity");
@@ -808,35 +808,24 @@ void segment_function::segment()
     update_average_intensity();
     
     
-    /**
-     2. RELABEL TETRAHEDRA
-     */
-    t.change("Relabel tetrahedra");
-    static int mesh_opt_counter = 0;
-    if (mesh_opt_counter++ > 20)
-    {
 
-    }
     
-    // 3. Compute external force
+    // 2. Compute external force
     t.change("Compute force");
     compute_external_force();
     
-    // 3.1: Work around to align boundary vertices
+    // 3. Work around to align boundary vertices
     //  including set displacement for interface vertices
     work_around_on_boundary_vertices();
     
     _dsc->deform();
     
-    // 4. Relabel tetrahedron
-    // Asumme that the average intensitise do not change much
-
+    /**
+     4. RELABEL TETRAHEDRA
+     */
+    t.change("Relabel tetrahedra");
     if (iteration % 20 == 0)
     {
         initialization_discrete_opt();
     }
-
-
-    
-    iteration++;
 }
