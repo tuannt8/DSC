@@ -31,7 +31,7 @@
 #define MAX_COLORS 30
 #define MAX_COLORS_TET 100
 
-//#define LOG_DEBUG
+#define LOG_DEBUG
 
 using namespace std;
 
