@@ -847,16 +847,16 @@ void segment_function::segment()
     //  including set displacement for interface vertices
     work_around_on_boundary_vertices();
     
-//    _dsc->deform();
-//    
-//    /**
-//     4. RELABEL TETRAHEDRA
-//     */
-//    if (iteration % 20 == 0)
-//    {
-//        relabel_tetrahedra();
-//    }
-//    
+    _dsc->deform();
+    
+    /**
+     4. RELABEL TETRAHEDRA
+     */
+    if (iteration % 5 == 0)
+    {
+        relabel_tetrahedra();
+    }
+    
     t.done();
     profile::close();
 }
