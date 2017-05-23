@@ -106,21 +106,43 @@ void UI::setup_light()
                              gl_dis_max*2.0*cos(angle)*sin(angle2),
                              gl_dis_max*2.0*sin(angle));
     
-    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-    GLfloat mat_shininess[] = { 50.0 };
-    GLfloat light_position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
-//    glClearColor (0.0, 0.0, 0.0, 0.0);
+
+    GLfloat light_position[] = { (GLfloat)eye[0], (GLfloat)eye[1], (GLfloat)eye[2], 0.0 };
     glShadeModel (GL_SMOOTH);
     
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    GLfloat amb = 0.2, diff = 0.3, spec = 0.6;
     
-    glEnable(GL_COLOR_MATERIAL);
+    //PointLight(10,10,10);
+    //PointLight(0,0,0, 0, 1, 1);
+    
+    GLfloat light_ambient[] = { amb,amb,amb, 1.0 };
+    GLfloat light_diffuse[] = {diff, diff, diff, 1.0 };
+    GLfloat light_specular[] = {spec, spec, spec, 1.0 };
+    
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
+    
+    GLfloat g_amb = .2;
+    GLfloat global_ambient[] = {g_amb, g_amb, g_amb, 0.1};
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
+    
+    
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat mat_shininess[] = { 50.0 };
+    
+//    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+//    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    
+    glColorMaterial ( GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE ) ;
+    glEnable(GL_COLOR_MATERIAL);
+    
+
 }
 
 void UI::update_draw_list()
@@ -197,6 +219,56 @@ void UI::set_dsc_boundary_layer()
             }
         }
     }
+}
+
+void UI::load_model(const std::string& file_name)
+{
+    std::cout << "\nLoading " << file_name << std::endl;
+    dsc = nullptr;
+    std::vector<vec3> points;
+    std::vector<int>  tets;
+    std::vector<int>  tet_labels;
+    is_mesh::import_tet_mesh(file_name, points, tets, tet_labels);
+    
+    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
+    
+    vec3 p_min(INFINITY), p_max(-INFINITY);
+    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++) {
+        for (int i = 0; i < 3; i++) {
+            p_min[i] = Util::min(nit->get_pos()[i], p_min[i]);
+            p_max[i] = Util::max(nit->get_pos()[i], p_max[i]);
+        }
+    }
+    
+    std::cout << "Loading done" << std::endl << std::endl;
+}
+void UI::save_model( std::string file_name){
+    if(file_name.empty())
+    {
+        // Find a file name to avoid overwriting
+        for (int i = 0; i < 100; i++)
+        {
+            std::string temp_path = log_path + std::string(PROBLEM_NAME) + std::to_string(i) + std::string(".dsc");
+            if (!std::ifstream(temp_path))
+            {
+                file_name = temp_path;
+                break;
+            }
+        }
+        if (file_name.empty())
+        {
+            cout<<"There are over 100 files in the log folder. Clean temporary saved file to save more file" << endl;
+            return;
+        }
+    }
+    
+    std::vector<vec3> points;
+    std::vector<int> faces;
+    std::vector<int> tets;
+    std::vector<int> tet_labels;
+    dsc->extract_tet_mesh(points, tets, tet_labels);
+    is_mesh::export_tet_mesh(file_name, points, tets, tet_labels);
+    points.clear();
 }
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
@@ -311,6 +383,8 @@ void UI::update_gl()
     glViewport((WIN_SIZE_X-size)/2.0, (WIN_SIZE_Y-size)/2.0, size, size);
     
     glClearColor(1.0, 1.0, 1.0, 1.0);
+    
+    eye_pos = eye;
 }
 
 void UI::display()
@@ -430,6 +504,10 @@ void UI::display()
         draw_helper::draw_image_slice(_seg._img);
     }
     
+    // Debug boundary force
+    
+    // End debug
+    
     glutSwapBuffers();
     
     std::ostringstream os;
@@ -462,17 +540,22 @@ void UI::keyboard(unsigned char key, int x, int y) {
             draw_helper::update_texture(_seg._img, 0,0,-1);
             break;
         case ' ':
-            //_seg.segment();
             CONTINUOUS = !CONTINUOUS;
             break;
         case '\t':
             draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
             break;
-        case 'p':
+        case 's':
+            save_model();
+            break;
+        case 'p':// Display time counter
             profile::close();
             break;
         case 'v':// Change surface type
             phase_draw = (phase_draw+1) % 3;
+            break;
+        case 'u':
+            draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);
             break;
         default:
             break;

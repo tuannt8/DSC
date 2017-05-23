@@ -75,6 +75,9 @@ private:
     void face_split();
 public:
     std::vector<ray_z> _d_rayz;
+    
+    // For debuging
+    std::vector<vec3> boundary_vertices_displacements;
 };
 
 #endif /* segment_function_hpp */

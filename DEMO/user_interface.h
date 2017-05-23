@@ -30,6 +30,7 @@
 
 #define VERSION "3.1"
 
+#define PROBLEM_NAME "fuelcells_smaller"
 /**
  A default application which utilizes OpenGL, GLEW and GLUT for visualization. Three sample velocity functions (rotation, smoothing and expansion) can be applies to a model specified by the model_file_name variable or as input variable. See https://github.com/asny/DSC/wiki/DEMO-instructions for details on how to use this DEMO application. See https://github.com/asny/DSC/wiki/Instructions for instructions on how to build your own application which uses the implementation of the DSC method.
  */
@@ -119,8 +120,8 @@ public:
     /**
      Loads the .dsc file specified by the model_file_name variable.
      */
-    void load_model(const std::string& file_name, real discretization);
-    
+    void load_model(const std::string& file_name);
+    void save_model(std::string file_name = std::string());
     /**
      Updates the window title.
      */
@@ -135,4 +136,6 @@ public:
      Stops the motion and deletes the DSC object.
      */
     void stop();
+    
+    
 };

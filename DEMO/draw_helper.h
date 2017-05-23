@@ -31,7 +31,7 @@ public:
     /*
      GL function
      */
-    
+
     /*
      Draw the 3d image
      */
@@ -44,7 +44,11 @@ public:
      */
     static void dsc_draw_edge(dsc_class & dsc);
     static void dsc_draw_domain(dsc_class & dsc);
+    
+    static std::vector<vec3> node_normal_vector;
+    static void update_normal_vector_interface(dsc_class & dsc, int phase, vec3 eye_pos);
     static void dsc_draw_one_interface(dsc_class & dsc, int phase);
+    
     static void dsc_draw_interface(dsc_class & dsc);
     static void dsc_draw_interface_edge(dsc_class & dsc);
     static void dsc_draw_face_norm(dsc_class & dsc);

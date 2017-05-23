@@ -109,6 +109,10 @@ void segment_function::initialization_discrete_opt()
 {
     cout << "Relabeling " << endl;
     
+    
+    double portion_keep_for_opt = 0.7; // Depend how sparse the segmenting
+    
+    
     // Optimize the labels of the tetrahedral
     int no_tets = _dsc->get_no_tets_buffer();
     std::vector<double> total_intensity_per_tet(no_tets, -1.0);
@@ -145,8 +149,7 @@ void segment_function::initialization_discrete_opt()
         }
     }
     
-    // 2. Remove tetrahedra that have high variations
-    double portion_keep_for_opt = 0.4; // Depend how sparse the segmenting image. More sparse, more tetrahedra to be optimized
+    // 2. Remove tetrahedra that have high variationsimage. More sparse, more tetrahedra to be optimized
     // Use bin size 100 for histogram count
     int bin_size = 200;
     max_variation *= 1.01;
@@ -220,7 +223,7 @@ void segment_function::initialization_discrete_opt()
             }
         }
         
-        _dsc->set_label(tit.key(), label-1); // -1 because the thres_array start from 0
+        _dsc->set_label(tit.key(), label-1); // -1 because the thres_array start from threshold = 0
     }
 }
 
@@ -423,7 +426,7 @@ void segment_function::work_around_on_boundary_vertices()
     
     // 1. Find boundary vertices
     auto node_mem_size = _dsc->get_no_nodes_buffer();
-    std::vector<unsigned int> is_bound_vertex(node_mem_size,0); // Hard code. Assume that the number of vertex < 10000
+    std::vector<unsigned int> is_bound_vertex(node_mem_size,0);
     std::vector<std::uint8_t> direction_state(node_mem_size,0x0);
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
@@ -452,6 +455,9 @@ void segment_function::work_around_on_boundary_vertices()
     auto max_displacement = _dsc->get_avg_edge_length()*1.5;
     
     double max_displacement_real = -INFINITY;
+    
+    // For debuging
+    boundary_vertices_displacements = std::vector<vec3>(node_mem_size, vec3(0));
     
     for (auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
     {
@@ -482,6 +488,8 @@ void segment_function::work_around_on_boundary_vertices()
                 if (direct | Z_direction){
                     destination[2] = (std::abs(destination[2]) < threshold)? 0 : domain_dim[2];
                 }
+                
+                boundary_vertices_displacements[nid.key()] = destination - nid->get_pos();
             }
             
             _dsc->set_destination(nid.key(), nid->get_pos() + dis);
@@ -839,17 +847,16 @@ void segment_function::segment()
     //  including set displacement for interface vertices
     work_around_on_boundary_vertices();
     
-    _dsc->deform();
-    
-    /**
-     4. RELABEL TETRAHEDRA
-     */
-    if (iteration % 20 == 0)
-    {
-//        initialization_discrete_opt();
-        relabel_tetrahedra();
-    }
-    
+//    _dsc->deform();
+//    
+//    /**
+//     4. RELABEL TETRAHEDRA
+//     */
+//    if (iteration % 20 == 0)
+//    {
+//        relabel_tetrahedra();
+//    }
+//    
     t.done();
     profile::close();
 }

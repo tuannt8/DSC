@@ -173,10 +173,55 @@ enum interface_type
     type_1_2
 };
 
+std::vector<vec3> draw_helper::node_normal_vector;
+void draw_helper::update_normal_vector_interface(dsc_class & dsc, int phase, vec3 eye_pos)
+{
+    node_normal_vector = std::vector<vec3>(dsc.get_no_nodes_buffer(), vec3(0.0));
+    std::vector<int> neighbor_faces_count(dsc.get_no_nodes_buffer(), 0);
+    
+    for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+    {
+        if (f->is_interface() && !f->is_boundary())
+        {
+            auto tets = dsc.get_tets(f.key());
+            
+            if (!(dsc.get_label(tets[0]) == phase
+                  or dsc.get_label(tets[1]) == phase))
+            {
+                continue;
+            }
+            
+            auto nodes = dsc.get_nodes_cache(f.key());
+            auto nodes_pos = dsc.get_pos(*nodes);
+            
+            auto norm = Util::normal_direction(nodes_pos[0], nodes_pos[1], nodes_pos[2]);
+            
+            // normalize the normal to the eye
+            is_mesh::TetrahedronKey other_tet = (dsc.get_label(tets[0]) == phase)? tets[1] : tets[0];
+            auto other_node = dsc.get_nodes(other_tet) - *nodes;
+            vec3 direct = dsc.get_pos(other_node[0]) - nodes_pos[0];
+//            auto direct = eye_pos - nodes_pos[0];direct.normalize();
+            norm = norm*Util::dot(norm, direct);
+            
+            for(auto n : *nodes)
+            {
+                node_normal_vector[n] += norm;
+                neighbor_faces_count[n]++;
+            }
+        }
+    }
+    
+    for(int i = 0; i < node_normal_vector.size(); i++)
+    {
+        if(neighbor_faces_count[i] > 0)
+            node_normal_vector[i] /= (double)neighbor_faces_count[i];
+    }
+}
+
+
+
 void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
 {
-//    glDisable(GL_LIGHTING);
-    vec3 color[] = {vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0)};
     
     for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
     {
@@ -188,9 +233,20 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
             {
                 continue;
             }
-            
-            auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
+#ifdef DSC_CACHE
+            auto nodes=*dsc.get_nodes_cache(f.key());
+#else
+            auto nodes=dsc.get_nodes(f.key());
+#endif
+            auto pts = dsc.get_pos(nodes);
             auto norm = dsc.get_normal(f.key());
+            
+            // normalize the normal to the eye
+            is_mesh::TetrahedronKey other_tet = (dsc.get_label(tets[0]) == phase)? tets[1] : tets[0];
+            auto other_node = dsc.get_nodes(other_tet) - nodes;
+            vec3 direct = dsc.get_pos(other_node[0]) - pts[0];
+            //            auto direct = eye_pos - nodes_pos[0];direct.normalize();
+            norm = norm*Util::dot(norm, direct);
             
 //            // Draw edges
 //            glDisable(GL_LIGHTING);
@@ -208,11 +264,17 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
 //            glEnable(GL_LIGHTING);
             
             // Draw triangle
-            glColor3f(0.7, 0.0, 0);
+            glColor3f(0.7, 0.7, 0.7);
             glBegin(GL_TRIANGLES);
-            for (auto v : pts)
+            for (int i =0; i < 3; i++)
             {
-                glNormal3dv(norm.get());
+                auto v = pts[i];
+                auto n = nodes[i];
+                vec3 real_norm = norm;
+                if((int)n < node_normal_vector.size() && node_normal_vector[n].length() > 0.1)
+                    real_norm = node_normal_vector[n];
+                
+                glNormal3dv(real_norm.get());
                 glVertex3dv(v.get());
             }
             glEnd();
