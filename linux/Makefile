@@ -8,7 +8,7 @@ LIBOBJS = $(LIBSRCS:.cpp=.o) $(LIBC:.c=.o)
 DEPENDS = ${OBJECTS:.o=.d}
 
 WARNING= -w
-	
+
 
 CXX = g++
 CXXFLAGS = -Wall -O3 -std=c++11 -fpermissive $(WARNING) -I ../src -I../CGLA -I../SOIL -I../is_mesh -I../ -I/usr/include -I../CImg -I../SCGenerator -I../TetGen -MMD
@@ -29,6 +29,10 @@ $(TARGET): $(LIBOBJS)
 test:
 	echo $(LIBOBJS)
 
+clean_common:
+	rm ../DEMO/segment_function.o ../DEMO/user_interface.o ../src/DSC.o
+
 .PHONY: clean
 clean: 
 	rm $(LIBOBJS)
+
