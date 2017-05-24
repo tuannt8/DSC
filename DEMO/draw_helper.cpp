@@ -190,20 +190,23 @@ void draw_helper::update_normal_vector_interface(dsc_class & dsc, int phase, vec
             {
                 continue;
             }
-            
-            auto nodes = dsc.get_nodes_cache(f.key());
-            auto nodes_pos = dsc.get_pos(*nodes);
+#ifdef DSC_CACHE
+            auto nodes = *dsc.get_nodes_cache(f.key());
+#else
+            auto nodes = dsc.get_nodes(f.key());
+            auto nodes_pos = dsc.get_pos(nodes);
+#endif
             
             auto norm = Util::normal_direction(nodes_pos[0], nodes_pos[1], nodes_pos[2]);
             
             // normalize the normal to the eye
             is_mesh::TetrahedronKey other_tet = (dsc.get_label(tets[0]) == phase)? tets[1] : tets[0];
-            auto other_node = dsc.get_nodes(other_tet) - *nodes;
+            auto other_node = dsc.get_nodes(other_tet) - nodes;
             vec3 direct = dsc.get_pos(other_node[0]) - nodes_pos[0];
 //            auto direct = eye_pos - nodes_pos[0];direct.normalize();
             norm = norm*Util::dot(norm, direct);
             
-            for(auto n : *nodes)
+            for(auto n : nodes)
             {
                 node_normal_vector[n] += norm;
                 neighbor_faces_count[n]++;

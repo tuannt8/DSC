@@ -70,6 +70,8 @@ public:
 public:
     
     UI(int &argc, char** argv);
+    UI(); //no interface
+    void init_data();
     
     static UI* get_instance()
     {

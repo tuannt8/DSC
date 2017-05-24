@@ -18,10 +18,21 @@
 #include <iostream>
 using namespace std;
 
-void printMenu(){
+// 0: No interface, for linux cluster; 1: Use interface
+#define _USE_INTERFACE 1
 
+
+#if _USE_INTERFACE == 1
+int num_iters = 1000;
+int main(int argc, char** argv)
+{
+    UI ui;
+    for(int i = 0; i < num_iters; i++)
+    {
+        ui._seg.segment();
+    }
 }
-
+#else
 int main(int argc, char** argv)
 {
     UI ui(argc, argv);
@@ -29,3 +40,4 @@ int main(int argc, char** argv)
     glutMainLoop();
     return 0;
 }
+#endif

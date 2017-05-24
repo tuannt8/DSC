@@ -127,8 +127,11 @@ void segment_function::initialization_discrete_opt()
     {
         if(_dsc->get_label(tit.key()) == BOUND_LABEL)
             continue;
-        
+#ifdef DSC_CACHE
         auto tet_nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tit.key()));
+#else
+        auto tet_nodes_pos = _dsc->get_pos(_dsc->get_nodes(tit.key()));
+#endif
         double total_inten, volume;
         auto mean_inten = _img.get_tetra_intensity(tet_nodes_pos, &total_inten, &volume);
         
@@ -341,7 +344,7 @@ double segment_function::get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, in
 #ifdef DSC_CACHE
     auto nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tkey));
 #else
-    auto nodes_pos = _dsc->get_pos(tkey);
+    auto nodes_pos = _dsc->get_pos(_dsc->get_nodes(tkey));
 #endif
     auto old_label = _dsc->get_label(tkey);
     auto energy = _img.get_variation(nodes_pos, _mean_intensities[assumed_label]);
@@ -375,7 +378,7 @@ void segment_function::relabel_tetrahedra()
 #ifdef DSC_CACHE
         auto nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tid.key()));
 #else
-        auto nodes_pos = _dsc->get_pos(tid.key());
+        auto nodes_pos = _dsc->get_pos(_dsc->get_nodes(tid.key()));
 #endif
         double volume, total_inten;
         auto mean_inten_tetra = _img.get_tetra_intensity(nodes_pos, &total_inten, &volume);
@@ -690,9 +693,7 @@ void segment_function::update_average_intensity()
     }
     
     vector<std::vector<ray_z>> ray_intersect(nb_phase, init_rayz);
-#ifdef LOG_DEBUG
-    cout << "Find intersection" << endl;
-#endif
+
     // 2. Find intersection with interface
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
@@ -743,9 +744,7 @@ void segment_function::update_average_intensity()
             }
         }
     }
-#ifdef LOG_DEBUG
-    cout << "Count intersection" << endl;
-#endif
+
     // 3. Compute integral
     _d_rayz.clear();
     
@@ -798,9 +797,6 @@ void segment_function::update_average_intensity()
                 else{}//???
             }
         }
-#ifdef LOG_DEBUG
-        cout << count << "Intersected rays" << endl;
-#endif
     }
     
     _total_intensities = _mean_intensities;

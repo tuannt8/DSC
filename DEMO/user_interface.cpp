@@ -149,6 +149,35 @@ void UI::update_draw_list()
 {
 }
 
+UI::UI()
+{
+    init_data();
+}
+
+void UI::init_data()
+{
+    // Load cross sections
+    _seg.init();
+    _obj_dim = _seg._img.dimension_v();
+    _dsc_dim = _obj_dim + vec3(2*m_edge_length);
+    
+    cout << "Image dimension" << _obj_dim[0] << " " << _obj_dim[1] << " " <<  _obj_dim[2] << " " ;
+    
+    gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
+    
+    // Generate DSC
+    init_dsc();
+    set_dsc_boundary_layer();
+    
+    std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
+    << dsc->get_no_tets() << " tets" << endl;
+    
+    _seg._dsc = &*dsc;
+    //    _seg.initialze_segmentation();
+    //    _seg.random_initialization();
+    _seg.initialization_discrete_opt();
+}
+
 UI::UI(int &argc, char** argv)
 {
     std::cout << "Version " << VERSION << endl;
@@ -179,30 +208,11 @@ UI::UI(int &argc, char** argv)
 	glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
     check_gl_error();
     
-    // Load cross sections
-    _seg.init();
-    _obj_dim = _seg._img.dimension_v();
-    _dsc_dim = _obj_dim + vec3(2*m_edge_length);
+    // Init data
+    init_data();
     
-    cout << "Image dimension" << _obj_dim[0] << " " << _obj_dim[1] << " " <<  _obj_dim[2] << " " ;
-
-    gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
-
     // Update texture draw
     draw_helper::update_texture(_seg._img, 0,0,0);
-
-    // Generate DSC
-    init_dsc();
-    set_dsc_boundary_layer();
-
-    std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
-                << dsc->get_no_tets() << " tets" << endl;
-
-    _seg._dsc = &*dsc;
-//    _seg.initialze_segmentation();
-//    _seg.random_initialization();
-    _seg.initialization_discrete_opt();
-    
 }
 
 // Label the gap between DSC boundary and image boundary to BOUND_LABEL (999)

@@ -15,7 +15,7 @@
 #include "util.h"
 #include "is_mesh.h"
 
-#define DSC_CACHE
+//#define DSC_CACHE
 
 #define MAX_ELEMENTS 1000000
 
