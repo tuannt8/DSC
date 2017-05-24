@@ -114,7 +114,11 @@ void segment_function::initialization_discrete_opt()
     
     
     // Optimize the labels of the tetrahedral
+#ifdef _DSC_ORIGIN_
+    int no_tets = 10000;
+#else
     int no_tets = _dsc->get_no_tets_buffer();
+#endif
     std::vector<double> total_intensity_per_tet(no_tets, -1.0);
     std::vector<double> volume_per_tet(no_tets, -1.0);
     std::vector<double> mean_inten_per_tet(no_tets, -1.0);
@@ -428,7 +432,11 @@ void segment_function::work_around_on_boundary_vertices()
 
     
     // 1. Find boundary vertices
+#ifdef _DSC_ORIGIN_
+    int node_mem_size = 10000;
+#else
     auto node_mem_size = _dsc->get_no_nodes_buffer();
+#endif
     std::vector<unsigned int> is_bound_vertex(node_mem_size,0);
     std::vector<std::uint8_t> direction_state(node_mem_size,0x0);
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)

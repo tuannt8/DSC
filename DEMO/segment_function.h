@@ -13,11 +13,15 @@
 #include "image3d.h"
 #include "DSC.h"
 
+#include "define.h"
+
 #define NB_PHASE 3
 
 #define VARIATION_THRES_FOR_RELABELING 0.3
 
 #define ALPHA 0.1 //The coefficient for Mumford-Shah
+
+
 
 struct intersect_pt
 {

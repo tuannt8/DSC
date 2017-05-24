@@ -7,8 +7,6 @@
 
 #include <is_mesh/kernel_iterator.h>
 
-#include <mutex>
-
 namespace is_mesh
 {
     
@@ -38,7 +36,7 @@ namespace is_mesh
                 key = ke.key;
                 state = ke.state;
             }
-            
+
             kernel_element&& operator=(kernel_element&& other) {
                 if (this != &other) {
                     value = std::move(other.value);
@@ -73,7 +71,7 @@ namespace is_mesh
         typedef          util::kernel_element<value_type, key_type>     kernel_element;
         typedef          kernel_iterator<kernel_type>                   iterator;
         typedef          iterator const                                 const_iterator;
-        
+
         friend class kernel_iterator<kernel_type>;
         
     private:
@@ -92,7 +90,7 @@ namespace is_mesh
          */
         kernel_element& lookup(key_type k)
         {
-            //          assume key_type is integer type
+//          assume key_type is integer type
             assert(k >= 0 || !"looked up with negative element");
             assert((int)k < m_data.size() || !"k out of range");
             return m_data[k];
@@ -107,7 +105,6 @@ namespace is_mesh
         {
             key_type key;
             if (m_data_freelist.size()==0){
-                
                 key = m_data.size();
                 m_data.emplace_back();
                 kernel_element& element = m_data.back();
@@ -145,8 +142,6 @@ namespace is_mesh
          */
         size_t size() const     { return m_data.size() - m_data_freelist.size(); }
         
-        size_t size_buffer() const { return m_data.size(); }
-        
         /**
          * Returns a boolean value indicating if the size is zero.
          */
@@ -163,7 +158,7 @@ namespace is_mesh
         const_iterator create(const type_traits& attributes)
         {
             kernel_element& cur = get_next_free_cell();
-            
+
             assert(cur.state != kernel_element::VALID || !"Cannot create new element, duplicate key.");
             assert(cur.state != kernel_element::MARKED || !"Attempted to overwrite a marked element.");
             
@@ -295,7 +290,7 @@ namespace is_mesh
         {
             for (auto key : m_data_marked_for_deletion){
                 auto & p = m_data[key];
-                
+
                 //m_alloc.destroy(&p);  // needed?
                 p.state = kernel_element::EMPTY;
                 m_data_freelist.push_back(key);
@@ -307,31 +302,12 @@ namespace is_mesh
          * Commits all changes and permanently deletes all marked elements.
          * The garbage collect routine performs one functions. First it commits all changes on the undo
          * stack and clears all undo marks.
-         * The operation runs in O(n) - where n is m_capacity or the size of allocated memory (not
+         * The operation runs in O(n) - where n is m_capacity or the size of allocated memory (not 
          * efficient, but cleans lists).
          */
-        void garbage_collect()
+        void garbage_collect() 
         {
             commit_all();
-        }
-        
-        /**
-         TUAN: To perform multi thread, we must avoid changing the container size.
-         We have to book the free list.
-         */
-        void booking(unsigned int free_cell_want)
-        {
-            long book_size = free_cell_want - m_data_freelist.size();
-            
-            for (int i = 0; i < book_size; i++)
-            {
-                key_type key = m_data.size();
-                m_data.emplace_back();
-                kernel_element& element = m_data.back();
-                element.key = key;
-                element.state = kernel_element::EMPTY;
-                m_data_freelist.push_back(key);
-            }
         }
     };
 }

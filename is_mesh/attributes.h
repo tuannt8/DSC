@@ -19,8 +19,6 @@
 #include <bitset>
 #include "util.h"
 
-#define NO_COLOR -1
-
 namespace is_mesh {
     
     class NodeAttributes
@@ -29,33 +27,30 @@ namespace is_mesh {
         vec3 p_new;
         std::bitset<3> flags;
         
-        int color;
     public:
-        
+
         NodeAttributes()
         {
-            color = NO_COLOR; // Not assigned
         }
-        
+
         NodeAttributes(vec3 _p) : p(_p), p_new(_p)
         {
-            color = NO_COLOR; // Not assigned
+            
         }
-        
+
         NodeAttributes(const NodeAttributes& other)
-        :p{other.p}, p_new{other.p_new}, flags{other.flags}, color{other.color}
+                :p{other.p}, p_new{other.p_new}, flags{other.flags}
         {}
-        
+
         NodeAttributes(NodeAttributes&& other)
-        :p{other.p}, p_new{other.p_new}, flags{other.flags}, color{other.color}
+        :p{other.p}, p_new{other.p_new}, flags{other.flags}
         {}
-        
+
         NodeAttributes& operator=(NodeAttributes&& other){
             if (this != &other){
                 std::swap(p, other.p);
                 std::swap(p_new, other.p_new);
                 std::swap(flags, other.flags);
-                std::swap(color, other.color);
             }
             return *this;
         }
@@ -79,16 +74,6 @@ namespace is_mesh {
         void set_pos(const vec3& p_)
         {
             p = p_;
-        }
-        
-        const int & get_color()
-        {
-            return color;
-        };
-        
-        void set_color(const int & c)
-        {
-            color = c;
         }
         
         void set_destination(const vec3& p_)
@@ -130,25 +115,23 @@ namespace is_mesh {
     class EdgeAttributes
     {
         std::bitset<3> flags;
-        int color = NO_COLOR;
         
     public:
         EdgeAttributes() {}
-        
+
         EdgeAttributes(const EdgeAttributes& other)
-        :flags(other.flags), color(other.color)
+                :flags(other.flags)
         {
         }
-        
+
         EdgeAttributes(EdgeAttributes&& other)
         :flags(other.flags)
         {
         }
-        
+
         EdgeAttributes& operator=(EdgeAttributes&& other){
             if (this != &other){
                 std::swap(flags,other.flags);
-                std::swap(color, other.color);
             }
             return *this;
         }
@@ -182,40 +165,31 @@ namespace is_mesh {
         {
             flags[0] = b;
         }
-        
-        int get_color() const{
-            return color;
-        }
-        
-        void set_color(const int & new_color){
-            color = new_color;
-        }
     };
     
     class FaceAttributes
     {
         std::bitset<2> flags;
-        int color = NO_COLOR;
+        
     public:
         FaceAttributes() {}
-        
+
         FaceAttributes(const FaceAttributes& other)
-        :flags(other.flags), color(other.color)
+                :flags(other.flags)
         {
-            
+
         }
-        
+
         FaceAttributes(FaceAttributes&& other)
-        :flags(other.flags), color(other.color)
+        :flags(other.flags)
         {
-            
+
         }
-        
+
         FaceAttributes& operator=(FaceAttributes&& other){
             if (this != &other)
             {
                 std::swap(flags, other.flags);
-                std::swap(color, other.color);
             }
             return *this;
         }
@@ -239,47 +213,36 @@ namespace is_mesh {
         {
             flags[0] = b;
         }
-        
-        int get_color()
-        {
-            return color;
-        }
-        
-        void set_color(int new_color)
-        {
-            color = new_color;
-        }
     };
     
     class TetAttributes
     {
         unsigned int l = 0;
-        int color = NO_COLOR;
+        
     public:
         TetAttributes() {}
-        
+
         TetAttributes(const TetAttributes& other)
-        :l(other.l), color(other.color)
+                :l(other.l)
         {
-            
+
         }
-        
-        
+
+
         TetAttributes(TetAttributes&& other)
-        :l(other.l), color(other.color)
+        :l(other.l)
         {
-            
+
         }
-        
+
         TetAttributes& operator=(TetAttributes&& other){
             if (this != &other)
             {
                 l = other.l;
-                color = other.color;
             }
             return *this;
         }
-        
+
         
         int label()
         {
@@ -291,15 +254,6 @@ namespace is_mesh {
             l = _label;
         }
         
-        int get_color()
-        {
-            return color;
-        }
-        
-        void set_color(int new_color)
-        {
-            color = new_color;
-        }
     };
     
 }

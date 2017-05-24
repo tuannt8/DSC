@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include "DSC.h"
 
+#include "define.h"
+
 class draw_helper
 {
     typedef DSC::DeformableSimplicialComplex<> dsc_class;

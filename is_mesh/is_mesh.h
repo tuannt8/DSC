@@ -22,7 +22,7 @@
 #include "simplex_set.h"
 
 namespace is_mesh {
-    
+
     template <typename node_traits>
     class NodeIterator {
         typedef Node<node_traits>                                         node_type;
@@ -30,17 +30,17 @@ namespace is_mesh {
     public:
         NodeIterator(const kernel<node_type, NodeKey> *m_node_kernel) : m_node_kernel(m_node_kernel) {
         }
-        
+
         typename kernel<node_type, NodeKey>::iterator begin() const {
             return m_node_kernel->begin();
         }
-        
+
         typename kernel<node_type, NodeKey>::iterator end() const {
             return m_node_kernel->end();
         }
     };
-    
-    
+
+
     template <typename edge_traits>
     class EdgeIterator {
         typedef Edge<edge_traits>                                         edge_type;
@@ -48,16 +48,16 @@ namespace is_mesh {
     public:
         EdgeIterator(const kernel<edge_type, EdgeKey> *m_edge_kernel) : m_edge_kernel(m_edge_kernel) {
         }
-        
+
         typename kernel<edge_type, EdgeKey>::iterator begin() const {
             return m_edge_kernel->begin();
         }
-        
+
         typename kernel<edge_type, EdgeKey>::iterator end() const {
             return m_edge_kernel->end();
         }
     };
-    
+
     template <typename face_traits>
     class FaceIterator {
         typedef Face<face_traits>                                         face_type;
@@ -65,38 +65,38 @@ namespace is_mesh {
     public:
         FaceIterator(const kernel<face_type, FaceKey> *m_face_kernel) : m_face_kernel(m_face_kernel) {
         }
-        
+
         typename kernel<face_type, FaceKey>::iterator begin() const {
             return m_face_kernel->begin();
         }
-        
+
         typename kernel<face_type, FaceKey>::iterator end() const {
             return m_face_kernel->end();
         }
-        
+
     };
-    
+
     template <typename tet_traits>
     class TetrahedronIterator {
         typedef Tetrahedron<tet_traits>                           tetrahedron_type;
         const kernel<tetrahedron_type, TetrahedronKey>*           m_tetrahedron_kernel;
     public:
         TetrahedronIterator(const kernel<tetrahedron_type, TetrahedronKey> *m_tetrahedron_kernel)
-        : m_tetrahedron_kernel(m_tetrahedron_kernel) {
+                : m_tetrahedron_kernel(m_tetrahedron_kernel) {
         }
-        
+
         typename kernel<tetrahedron_type, TetrahedronKey>::iterator begin() const{
             return m_tetrahedron_kernel->begin();
         }
-        
+
         typename kernel<tetrahedron_type, TetrahedronKey>::iterator end() const {
             return m_tetrahedron_kernel->end();
         }
-        
+
     };
-    
-    
-    
+
+
+
     template <typename node_traits, typename edge_traits, typename face_traits, typename tet_traits>
     class ISMesh
     {
@@ -104,21 +104,13 @@ namespace is_mesh {
         typedef Edge<edge_traits>                                         edge_type;
         typedef Face<face_traits>                                         face_type;
         typedef Tetrahedron<tet_traits>                           tetrahedron_type;
-        
+
         kernel<node_type, NodeKey>* m_node_kernel;
-        kernel<edge_type, EdgeKey>* m_edge_kernel;
-        kernel<face_type, FaceKey>* m_face_kernel;
-        kernel<tetrahedron_type, TetrahedronKey>* m_tetrahedron_kernel;
+        kernel<edge_type, EdgeKey>*                  m_edge_kernel;
+        kernel<face_type, FaceKey>*                  m_face_kernel;
+        kernel<tetrahedron_type, TetrahedronKey>*           m_tetrahedron_kernel;
         
     public:
-        void booking(unsigned int free_cell_want)
-        {
-            m_node_kernel->booking(free_cell_want);
-            m_edge_kernel->booking(free_cell_want);
-            m_face_kernel->booking(free_cell_want);
-            m_tetrahedron_kernel->booking(free_cell_want);
-        }
-        
         ISMesh(std::vector<vec3> & points, std::vector<int> & tets, const std::vector<int>& tet_labels)
         {
             m_node_kernel = new kernel<node_type, NodeKey>();
@@ -144,16 +136,6 @@ namespace is_mesh {
             return static_cast<unsigned int>(m_node_kernel->size());
         }
         
-        unsigned int get_no_nodes_buffer() const
-        {
-            return static_cast<unsigned int>(m_node_kernel->size_buffer());
-        }
-        
-        unsigned int get_no_edges_buffer() const
-        {
-            return static_cast<unsigned int>(m_edge_kernel->size_buffer());
-        }
-        
         unsigned int get_no_edges() const
         {
             return static_cast<unsigned int>(m_edge_kernel->size());
@@ -169,11 +151,6 @@ namespace is_mesh {
             return static_cast<unsigned int>(m_tetrahedron_kernel->size());
         }
         
-        unsigned int get_no_tets_buffer() const
-        {
-            return static_cast<unsigned int>(m_tetrahedron_kernel->size_buffer());
-        }
-        
         ///////////////
         // ITERATORS //
         ///////////////
@@ -181,7 +158,7 @@ namespace is_mesh {
         NodeIterator<node_traits> nodes() const {
             return NodeIterator<node_traits>{m_node_kernel};
         }
-        
+
         typename kernel<node_type, NodeKey>::iterator nodes_begin()
         {
             return m_node_kernel->begin();
@@ -191,7 +168,7 @@ namespace is_mesh {
         {
             return m_node_kernel->end();
         }
-        
+
         EdgeIterator<edge_traits> edges() const {
             return EdgeIterator<edge_traits>{m_edge_kernel};
         }
@@ -205,7 +182,7 @@ namespace is_mesh {
         {
             return m_edge_kernel->end();
         }
-        
+
         FaceIterator<face_traits> faces() const {
             return FaceIterator<face_traits>{m_face_kernel};
         }
@@ -219,7 +196,7 @@ namespace is_mesh {
         {
             return m_face_kernel->end();
         }
-        
+
         TetrahedronIterator<tet_traits> tetrahedra() const {
             return TetrahedronIterator<tet_traits>{m_tetrahedron_kernel};
         }
@@ -271,20 +248,8 @@ namespace is_mesh {
             update(tids);
         }
         
-        template<typename Keytype>
-        int get_color(const Keytype & nk)
-        {
-            return get(nk).get_color();
-        }
-        
-        template<typename Keytype>
-        void set_color(const Keytype & nk, int color)
-        {
-            get(nk).set_color(color);
-        }
-        
     private:
-        
+
         struct edge_key {
             int k1, k2;
             edge_key(int i, int j) : k1(i), k2(j) {}
@@ -689,16 +654,6 @@ namespace is_mesh {
             return fids;
         }
         
-        SimplexSet<FaceKey> * get_faces_ptr(const NodeKey& nid)
-        {
-            auto fids = new SimplexSet<FaceKey>;
-            for(const EdgeKey& e : get_edges(nid))
-            {
-                fids->operator+=(get_faces(e));
-            }
-            return fids;
-        }
-        
         SimplexSet<TetrahedronKey> get_tets(const NodeKey& nid)
         {
             SimplexSet<TetrahedronKey> tids;
@@ -707,19 +662,6 @@ namespace is_mesh {
                 for(const FaceKey& f : get_faces(e))
                 {
                     tids += get_tets(f);
-                }
-            }
-            return tids;
-        }
-        
-        SimplexSet<TetrahedronKey> * get_tets_ptr(const NodeKey& nid)
-        {
-            SimplexSet<TetrahedronKey> * tids = new SimplexSet<TetrahedronKey>;
-            for(const EdgeKey& e : get_edges(nid))
-            {
-                for(const FaceKey& f : get_faces(e))
-                {
-                    tids->operator+=(get_tets(f));
                 }
             }
             return tids;
@@ -845,31 +787,15 @@ namespace is_mesh {
          */
         FaceKey get_face(const NodeKey& nid1, const NodeKey& nid2, const NodeKey& nid3)
         {
-            //TUAN
-            {
-                auto fids = get_faces(get_edge(nid1, nid2));
-                for (auto f : fids)
+            SimplexSet<FaceKey> fids1 = get_faces(nid1);
+            SimplexSet<FaceKey> fids2 = get_faces(nid2);
+            for (const FaceKey& f : get_faces(nid3)) {
+                if(fids1.contains(f) && fids2.contains(f))
                 {
-                    auto nids = get_nodes(f);
-                    if (nids.contains(nid3))
-                    {
-                        return f;
-                    }
+                    return f;
                 }
-                return FaceKey();
             }
-            
-                //
-                // Old
-                SimplexSet<FaceKey> fids1 = get_faces(nid1);
-                SimplexSet<FaceKey> fids2 = get_faces(nid2);
-                for (const FaceKey& f : get_faces(nid3)) {
-                    if(fids1.contains(f) && fids2.contains(f))
-                    {
-                        return f;
-                    }
-                }
-                return FaceKey();
+            return FaceKey();
         }
         
         /**
@@ -1035,7 +961,7 @@ namespace is_mesh {
         ////////////////////
         // MESH FUNCTIONS //
         ////////////////////
-        
+    
     public:
         /**
          * Inserts a node into the mesh. Trivial.
@@ -1394,76 +1320,6 @@ namespace is_mesh {
             return new_fid;
         }
         
-        void multi_faces_remove(const SimplexSet<NodeKey> & apices,
-                                const is_mesh::SimplexSet<EdgeKey> & edges_to_rm,
-                                const is_mesh::SimplexSet<FaceKey> & faces_to_rm)
-        {
-            // create edge
-            EdgeKey new_eid = insert_edge(apices[0], apices[1]);
-            
-            auto label = get_label(get_tets(faces_to_rm[0])[0]);
-            
-            auto tet_to_rm = get_tets(faces_to_rm);
-            
-            auto faces_to_remove = get_faces(edges_to_rm) + faces_to_rm;
-            
-            // create face
-            std::map<int, FaceKey> new_face;
-            SimplexSet<EdgeKey> boundEdge = get_edges(faces_to_rm) - edges_to_rm;
-            SimplexSet<NodeKey> nodes = get_nodes(boundEdge);
-            for (auto nn : nodes)
-            {
-                FaceKey f1 = insert_face(new_eid,
-                                         get_edge(apices[0], nn),
-                                         get_edge(apices[1], nn));
-                
-                new_face.insert(std::make_pair(nn, f1));
-            }
-            
-            // create tetrahedral
-            SimplexSet<TetrahedronKey> newTet;
-            for (auto f : faces_to_rm)
-            {
-                auto otherEdge = get_edges(f) - edges_to_rm;
-                
-                for (auto ee : otherEdge)
-                {
-                    auto enodes = get_nodes(ee);
-                    
-                    
-                    FaceKey f1 = new_face[enodes[0]];
-                    FaceKey f2 = new_face[enodes[1]];
-                    
-                    auto ff = (get_faces(get_tets(f)) & get_faces(ee)) - f;
-                    assert(ff.size() == 2);
-                    TetrahedronKey new_tet = insert_tetrahedron(f1, f2, ff[0], ff[1]);
-                    newTet.push_back(new_tet);
-                }
-            }
-            
-            
-            
-            for (auto e : edges_to_rm)
-            {
-                remove(e);
-            }
-            
-            for (auto f : faces_to_remove)
-            {
-                remove(f);
-            }
-            
-            for (auto t : tet_to_rm)
-            {
-                remove(t);
-            }
-            
-            for (auto tt : newTet)
-            {
-                set_label(tt, label);
-            }
-        }
-        
         EdgeKey flip_23(const FaceKey& fid)
         {
             SimplexSet<TetrahedronKey> f_tids = get_tets(fid);
@@ -1689,7 +1545,7 @@ namespace is_mesh {
                 tet_labels.push_back(get_label(tit.key()));
             }
         }
-        
+                
         void validity_check()
         {
             std::cout << "Testing connectivity of simplicial complex: ";
@@ -1741,10 +1597,7 @@ namespace is_mesh {
             std::cout << "Testing for inverted tetrahedra: ";
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
-                if(is_inverted(tit.key()))
-                {
-                    assert(0);
-                }
+                assert(!is_inverted(tit.key()));
             }
             std::cout << "PASSED" << std::endl;
             

@@ -176,8 +176,12 @@ enum interface_type
 std::vector<vec3> draw_helper::node_normal_vector;
 void draw_helper::update_normal_vector_interface(dsc_class & dsc, int phase, vec3 eye_pos)
 {
+#ifdef _DSC_ORIGIN_
+    std::vector<int> neighbor_faces_count(10000, 0);
+#else
     node_normal_vector = std::vector<vec3>(dsc.get_no_nodes_buffer(), vec3(0.0));
     std::vector<int> neighbor_faces_count(dsc.get_no_nodes_buffer(), 0);
+#endif
     
     for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
     {
