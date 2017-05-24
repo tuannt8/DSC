@@ -89,7 +89,7 @@ void image3d::load(std::string path)
                  {
                      double aa = (double)im(i,j);
                      _voxels[idx++] = (double)im(i,j)/255.0;
-                     assert(_voxels[idx-1] < 1.1 and _voxels[idx-1] >= 0);
+                     assert(_voxels[idx-1] < 1.01 and _voxels[idx-1] >= 0);
     
                  }
 
@@ -284,7 +284,7 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
 {
     double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);
 
-    int dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), v) - dis_coord_size.begin() - 1;
+    long dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), v) - dis_coord_size.begin() - 1;
 
     if(dis < 0)dis = 0;
     double total = 0;

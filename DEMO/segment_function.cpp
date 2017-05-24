@@ -115,7 +115,7 @@ void segment_function::initialization_discrete_opt()
     
     // Optimize the labels of the tetrahedral
 #ifdef _DSC_ORIGIN_
-    int no_tets = 10000;
+    int no_tets = MAX_NUM_ELEMENT_MESH;
 #else
     int no_tets = _dsc->get_no_tets_buffer();
 #endif
@@ -433,7 +433,7 @@ void segment_function::work_around_on_boundary_vertices()
     
     // 1. Find boundary vertices
 #ifdef _DSC_ORIGIN_
-    int node_mem_size = 10000;
+    int node_mem_size = MAX_NUM_ELEMENT_MESH;
 #else
     auto node_mem_size = _dsc->get_no_nodes_buffer();
 #endif
