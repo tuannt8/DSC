@@ -197,6 +197,7 @@ void draw_helper::update_normal_vector_interface(dsc_class & dsc, int phase, vec
             }
 #ifdef DSC_CACHE
             auto nodes = *dsc.get_nodes_cache(f.key());
+            auto nodes_pos = dsc.get_pos(nodes);
 #else
             auto nodes = dsc.get_nodes(f.key());
             auto nodes_pos = dsc.get_pos(nodes);

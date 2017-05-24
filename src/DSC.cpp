@@ -59,7 +59,7 @@ template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
     
 }
 
-#ifndef _ORIGIN_DSC_CHECK_
+#ifdef DSC_CACHE
 
 #define FIND_MIN_COLOR \
 for (int i = 0; i < colors.size(); i++) \

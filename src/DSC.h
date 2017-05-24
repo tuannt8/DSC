@@ -20,6 +20,20 @@
 #include "attributes.h"
 #include "geometry.h"
 #include "mesh_io.h"
+#include <functional>
+#include <mutex>
+#include <thread>
+#include "profile.h"
+#include "cache.hpp"
+
+extern bool arg_b_build_table_origin;
+
+#define MAX_COLORS 30
+#define MAX_COLORS_TET 100
+
+#define LOG_DEBUG
+
+using namespace std;
 
 struct parameters {
     
@@ -48,6 +62,10 @@ struct parameters {
     real MAX_VOLUME;
 };
 
+#define NUM_THREAD_QUALITY 6
+#define MIN_Q(a,b) ((a)>(b)?(b):(a))
+
+
 namespace DSC {
     
     template <typename node_att = is_mesh::NodeAttributes, typename edge_att = is_mesh::EdgeAttributes, typename face_att = is_mesh::FaceAttributes, typename tet_att = is_mesh::TetAttributes>
@@ -73,18 +91,249 @@ namespace DSC {
         
         parameters pars;
         
+#pragma mark CACHE functions
+    private:
+        std::mutex m;
+        
+        int get_free_color(node_key nk);
+        int get_free_color(edge_key nk);
+        int get_free_color(tet_key nk);
+        
+        void init_vertices_color();
+        
+        template<typename keytype>
+        std::vector<int> get_colors(is_mesh::SimplexSet<keytype> nodes)
+        {
+            std::vector<int> colors;
+            for (auto n : nodes)
+            {
+                if(get_color(n) != NO_COLOR)
+                    colors.push_back(get_color(n));
+            }
+            std::sort(colors.begin(), colors.end());
+            return colors;
+        }
+        
+        
+        std::vector<int> get_colors_cache(is_mesh::SimplexSet<node_key> nodes)
+        {
+            std::vector<int> colors;
+            for (auto n : nodes)
+            {
+                if(cache.node_color[n])
+                    colors.push_back(*cache.node_color[n]);
+            }
+            std::sort(colors.begin(), colors.end());
+            return colors;
+        }
+        
+        std::vector<int> get_colors_cache(is_mesh::SimplexSet<edge_key> nodes)
+        {
+            std::vector<int> colors;
+            for (auto n : nodes)
+            {
+                if(cache.edge_color[n])
+                    colors.push_back(*cache.edge_color[n]);
+            }
+            std::sort(colors.begin(), colors.end());
+            return colors;
+        }
+        
+        //        std::vector<int> get_colors(is_mesh::SimplexSet<tet_key> tets)
+        //        {
+        //            std::vector<int> colors;
+        //            for (auto n : tets)
+        //            {
+        //                if(get_color(n) != NO_COLOR)
+        //                    colors.push_back(get_color(n));
+        //            }
+        //            std::sort(colors.begin(), colors.end());
+        //            return colors;
+        //        }
+    public:
+        // assign a color if not existed
+        int get_color_node(node_key nk)
+        {
+            //            int vv = get_color(nk);
+            //            if (get_color(nk) == NO_COLOR)
+            //            {
+            //                set_color(nk, get_free_color(nk));
+            //            }
+            //
+            //            return get_color(nk);
+            
+            if(!cache.node_color[nk])
+            {
+                cache.node_color[nk] = new int;
+                *cache.node_color[nk] = get_free_color(nk);
+            }
+            
+            return *cache.node_color[nk];
+        }
+        
+        int get_color_tet(tet_key tk)
+        {
+            if(get_color(tk) == NO_COLOR)
+                set_color(tk, get_free_color(tk));
+            
+            return get_color(tk);
+        }
+        
+        int get_color_edge(edge_key ek)
+        {
+            //            if(get_color(ek) == NO_COLOR)
+            //                set_color(ek, get_free_color(ek));
+            //
+            //            return get_color(ek);
+            if(!cache.edge_color[ek])
+            {
+                cache.edge_color[ek] = new int;
+                *cache.edge_color[ek] = get_free_color(ek);
+            }
+            
+            return *cache.edge_color[ek];
+        }
+        
+        dsc_cache cache;
+        
+        // This is not topological data
+        real quality_cache(tet_key t)
+        {
+            return quality(t);
+        }
+        
+        ///////////////////////////////////
+        // Cache
+#ifdef DSC_CACHE // get - set functions for cache
+        
+        
+//#define CACHE_HIT
+        
+#ifdef CACHE_HIT
+#define CACHE_MISS profile time("cache miss");
+#define CACHE_REFER profile time("cache refer");
+#else
+#define CACHE_MISS
+#define CACHE_REFER
+#endif
+        
+        
+        is_mesh::SimplexSet<tet_key> * get_tets_cache(is_mesh::NodeKey nid)
+        {
+            
+            if (!cache.tets_neighbor_node[nid])
+            {
+                cache.tets_neighbor_node[nid] = get_tets_ptr(nid);
+            }
+            
+            return cache.tets_neighbor_node[nid];
+        }
+        
+        inline  is_mesh::SimplexSet<face_key> * get_faces_cache(is_mesh::NodeKey nid)
+        {
+            if (!cache.faces_neighbor_node[nid])
+            {
+                cache.faces_neighbor_node[nid] = get_faces_ptr(nid);
+            }
+            
+            return cache.faces_neighbor_node[nid];
+        }
+        
+        inline is_mesh::SimplexSet<face_key> * get_link(node_key nk)
+        {
+            if (!cache.link_of_node[nk])
+            {
+                is_mesh::SimplexSet<tet_key> * tids = get_tets_cache(nk);
+                is_mesh::SimplexSet<face_key> fids = get_faces(*tids) - *get_faces_cache(nk);
+                
+                cache.link_of_node[nk] = new is_mesh::SimplexSet<is_mesh::FaceKey>;
+                *cache.link_of_node[nk] = fids;
+            }
+            return cache.link_of_node[nk];
+        }
+        
+        
+        template<typename key_type>
+        is_mesh::SimplexSet<is_mesh::NodeKey> get_nodes_cache(const is_mesh::SimplexSet<key_type> & keys)
+        {
+            is_mesh::SimplexSet<node_key> nids;
+            for(auto k : keys)
+            {
+                nids += *get_nodes_cache(k);
+            }
+            return nids;
+        }
+        
+        is_mesh::SimplexSet<node_key> * get_nodes_cache(is_mesh::NodeKey nid)
+        {
+            if (!cache.nodes_neighbor_node[nid])
+            {
+                is_mesh::SimplexSet<is_mesh::NodeKey> nidset; nidset.push_back(nid);
+                cache.nodes_neighbor_node[nid] = new is_mesh::SimplexSet<is_mesh::NodeKey>;
+                *cache.nodes_neighbor_node[nid] = get_nodes(get_edges(nid)) - nidset;
+            }
+            
+            return cache.nodes_neighbor_node[nid];
+        }
+        
+        is_mesh::SimplexSet<node_key> * get_nodes_cache(is_mesh::TetrahedronKey tk)
+        {
+            if(!cache.nodes_on_tet[tk])
+            {
+                cache.nodes_on_tet[tk] = new is_mesh::SimplexSet<node_key>;
+                *cache.nodes_on_tet[tk] = get_nodes(tk);
+            }
+            
+            return cache.nodes_on_tet[tk];
+        }
+        
+        is_mesh::SimplexSet<is_mesh::NodeKey> * get_nodes_cache(is_mesh::FaceKey fk)
+        {
+            if(!cache.node_on_face[fk])
+            {
+                cache.node_on_face[fk] = new is_mesh::SimplexSet<node_key>;
+                *cache.node_on_face[fk] = get_nodes(fk);
+            }
+            if(cache.node_on_face[fk]->size()!=3)
+            {
+                cout << "--Error: " << cache.node_on_face[fk]->size() << " on face:"
+                    << (int)fk << endl;
+                assert(0);
+            }
+            
+            return cache.node_on_face[fk];
+        }
+#endif
+        
         //////////////////////////
         // INITIALIZE FUNCTIONS //
         //////////////////////////
         
     public:
-        
+#pragma INITIALIZE FUNCTIONS
         /// SimplicialComplex constructor.
         DeformableSimplicialComplex(std::vector<vec3> & points, std::vector<int> & tets, const std::vector<int>& tet_labels):
-            is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>(points, tets, tet_labels)
+        is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>(points, tets, tet_labels)
         {
-            pars = {0.1, 0.5, 0.0005, 0.015, 0.02, 0.3, 0., 2., 0.2, 5., 0.2, INFINITY};
+            pars = {0.1,    //DEG_EDGE_QUALITY
+                    0.5,    //MIN_EDGE_QUALITY
+                
+                    0.0005, //DEG_FACE_QUALITY
+                    0.015,  //MIN_FACE_QUALITY
+                
+                    0.02,   //DEG_TET_QUALITY
+                    0.3,    //MIN_TET_QUALITY
+                
+                    0.,     //MIN_LENGTH
+                    2.,     //MAX_LENGTH
+                
+                    0.2,    //MIN_AREA
+                    5.,     //MAX_AREA
+                
+                    0.2,    //MIN_VOLUME
+                    INFINITY};//MAX_VOLUME
             set_avg_edge_length();
+            
         }
         
         ~DeformableSimplicialComplex()
@@ -92,44 +341,56 @@ namespace DSC {
             
         }
         
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::booking;
+        
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_label;
-
+        
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::nodes_begin;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::nodes_end;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::edges_begin;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::edges_end;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::faces_begin;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::faces;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::faces_end;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::tetrahedra_begin;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::tetrahedra_end;
-
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::tetrahedra;
+        
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_pos;
-
+        
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_nodes;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_edges;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_faces;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_tets;
-
+        
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_tets_ptr;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_faces_ptr;
+        
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_edge;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_face;
-
+        
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::validity_check;
-
-    protected:
+        
+    private:
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::get_color;
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::set_color;
+        
     public:
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::set_label;
-
-    private:
-
+        
+    public: //TUAN. Originally is private
+        
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::flip_22;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::flip_23;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::flip_32;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::flip_44;
-
+        
+        using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::multi_faces_remove;
+        
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::split;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::collapse;
-
+        
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::garbage_collect;
         using is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>::exists;
         
@@ -233,6 +494,8 @@ namespace DSC {
             std::cout << "];" << std::endl;
         }
         
+        
+#pragma mark Attibute functions
         /////////////////////////
         // ATTRIBUTE FUNCTIONS //
         /////////////////////////
@@ -284,7 +547,7 @@ namespace DSC {
         {
             return is_unsafe_editable(nid) && get(nid).is_interface() && !get(nid).is_crossing();
         }
-
+        
     protected:
         /**
          * Sets the position of node n.
@@ -297,6 +560,8 @@ namespace DSC {
                 get(nid).set_destination(p);
             }
         }
+        
+        
         
     public:
         /**
@@ -316,6 +581,8 @@ namespace DSC {
             }
         }
         
+        
+#pragma mark GETTERS
         /////////////
         // GETTERS //
         /////////////
@@ -356,21 +623,71 @@ namespace DSC {
             return design_domain;
         }
         
+#pragma mark fix mesh
         ////////////////////////
         // FIX MESH FUNCTIONS //
         ////////////////////////
     private:
+    public:
         
         //////////////////////////////
         // TOPOLOGICAL EDGE REMOVAL //
         //////////////////////////////
-        
+    
+
         /**
          * Build a table K for the dynamic programming method by Klincsek (see Shewchuk "Two Discrete Optimization Algorithms
          * for the Topological Improvement of Tetrahedral Meshes" article for details).
          */
         real build_table(const edge_key& e, const is_mesh::SimplexSet<node_key>& polygon, std::vector<std::vector<int>>& K)
         {
+//#ifdef _ORIGIN_DSC_CHECK_ // in build_table
+            if(arg_b_build_table_origin)
+            {
+                is_mesh::SimplexSet<node_key> nids = get_nodes(e);
+                
+                const int m = (int) polygon.size();
+                
+                auto Q = std::vector<std::vector<real>>(m-1, std::vector<real>(m, 0.));
+                K = std::vector<std::vector<int>>(m-1, std::vector<int>(m, 0) );
+                
+                for(int i = 0; i < m-1; i++)
+                {
+                    Q[i][i+1] = INFINITY;
+                }
+                
+                for (int i = m-3; i >= 0; i--)
+                {
+                    for (int j = i+2; j < m; j++)
+                    {
+                        for (int k = i+1; k < j; k++)
+                        {
+                            real q2 = Util::quality<real>(get_pos(polygon[i]), get_pos(polygon[k]), get_pos(nids[0]), get_pos(polygon[j]));
+                            real q1 = Util::quality<real>(get_pos(polygon[k]), get_pos(polygon[i]), get_pos(nids[1]), get_pos(polygon[j]));
+                            real q = Util::min(q1, q2);
+                            if (k < j-1)
+                            {
+                                q = Util::min(q, Q[k][j]);
+                            }
+                            if (k > i+1)
+                            {
+                                q = Util::min(q, Q[i][k]);
+                            }
+                            
+                            if (k == i+1 || q > Q[i][j])
+                            {
+                                Q[i][j] = q;
+                                K[i][j] = k;
+                            }
+                        }
+                    }
+                }
+                
+                return Q[0][m-1];
+            }
+            else
+            {
+//#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(e);
             
             const int m = (int) polygon.size();
@@ -383,15 +700,21 @@ namespace DSC {
                 Q[i][i+1] = INFINITY;
             }
             
+            // TUAN: Get pos first; It helps reduce 30% computation time
+            auto pt = get_pos(polygon);
+            auto pte = get_pos(nids);
+            
             for (int i = m-3; i >= 0; i--)
             {
                 for (int j = i+2; j < m; j++)
                 {
                     for (int k = i+1; k < j; k++)
                     {
-                        real q2 = Util::quality<real>(get_pos(polygon[i]), get_pos(polygon[k]), get_pos(nids[0]), get_pos(polygon[j]));
-                        real q1 = Util::quality<real>(get_pos(polygon[k]), get_pos(polygon[i]), get_pos(nids[1]), get_pos(polygon[j]));
+                        real q2 = Util::quality<real>(pt[i], pt[k], pte[0], pt[j]);
+                        real q1 = Util::quality<real>(pt[k], pt[i], pte[1], pt[j]);
+                        
                         real q = Util::min(q1, q2);
+                        
                         if (k < j-1)
                         {
                             q = Util::min(q, Q[k][j]);
@@ -411,6 +734,8 @@ namespace DSC {
             }
             
             return Q[0][m-1];
+//#endif
+            }
         }
         
         
@@ -428,6 +753,7 @@ namespace DSC {
             return is_mesh::NodeKey();
         }
         
+        //
         is_mesh::SimplexSet<node_key> get_polygon(is_mesh::SimplexSet<edge_key>& eids)
         {
             is_mesh::SimplexSet<node_key> polygon = {get_nodes(eids[0]).front()};
@@ -450,8 +776,10 @@ namespace DSC {
             return polygon;
         }
         
+        //#define USE_NEW_GET_POLYGON
         std::vector<is_mesh::SimplexSet<node_key>> get_polygons(const edge_key& eid)
         {
+#ifdef _ORIGIN_DSC_CHECK_ // in get_polygons
             std::vector<is_mesh::SimplexSet<tet_key>> tid_groups;
             for (auto t : get_tets(eid))
             {
@@ -490,6 +818,227 @@ namespace DSC {
             std::sort(polygons.begin(), polygons.end(), compare);
             
             return polygons;
+#else
+            struct {
+                bool operator()(const is_mesh::SimplexSet<node_key>& a, const is_mesh::SimplexSet<node_key>& b)
+                {
+                    return a.size() > b.size();
+                }
+            } compare;
+            
+#ifdef USE_NEW_GET_POLYGON
+            // Tuan
+            // We propose faster algorithm
+            // Find all vertices
+            // Sort the vertices by angle
+            // separate the vertices
+            // The new algorithm reduce 60% computation time
+            //      pp - New polygon: 1.124180 in 174366 iters; avg: 0.000006
+            //      pp - Old polygon: 2.543581 in 174366 iters; avg: 0.000015
+            
+            
+            std::vector<is_mesh::SimplexSet<node_key>> outp;
+            
+            auto node_on_edge = get_nodes(eid);
+            vec3 p0 = get_pos(node_on_edge[0]);
+            vec3 p1 = get_pos(node_on_edge[1]);
+            
+            vec3 x1, y1, z1;
+            z1 = p0 - p1; z1.normalize();
+            real xyr2 = sqrt(z1[0]*z1[0] + z1[1]*z1[1]);
+            if(xyr2 > 0.0001)
+            {
+                y1 = vec3(-z1[1], z1[0], 0) / xyr2;
+                //                    x1 = vec3(-z1[0]*z1[2]/xyr2, -z1[1]*z1[2]/xyr2, xyr2);
+                x1 = Util::cross(y1, z1);
+            }else{
+                y1 = vec3(0,1,0);
+                x1 = Util::cross(y1, z1);
+            }
+            
+            
+            auto fids = get_faces(eid);
+            struct __polygon
+            {
+                node_key nk;
+                real cos_angle;
+                real sin_angle;
+                bool is_boundary;
+                bool continuous;
+                vec3 pos;
+            };
+            
+            std::vector<__polygon> all_nodes;
+            for (auto f : fids)
+            {
+                auto tids = get_tets(f);
+#ifdef DSC_CACHE
+                auto other_nodes = *get_nodes_cache(f) - node_on_edge;
+#else
+                auto other_nodes = get_nodes(f) - node_on_edge;
+#endif
+                auto other_node = other_nodes[0];
+                
+                __polygon newp;
+                newp.nk = other_node;
+                vec3 px = get_pos(other_node) - p1; //px.normalize();
+                vec2 angle(Util::dot(y1, px), Util::dot(x1, px));angle.normalize();
+                newp.sin_angle = angle[0];
+                newp.cos_angle = angle[1];
+                
+                newp.continuous = !((tids.size()==1) || (get_label(tids[0]) != get_label(tids[1])));
+                newp.is_boundary = tids.size() == 1;
+                newp.pos = get_pos(other_node);
+                
+                all_nodes.push_back(newp);
+                
+            }
+            
+            struct {
+                bool operator()(const __polygon& a, const __polygon& b)
+                {
+                    // true if a is before b
+                    if (a.sin_angle >= 0)
+                    {
+                        if (b.sin_angle >= 0)
+                        {
+                            return a.cos_angle > b.cos_angle;
+                        }else
+                            return true; // a is before b
+                    }else
+                    {
+                        if (b.sin_angle >= 0)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            return a.cos_angle < b.cos_angle;
+                        }
+                    }
+                }
+            } compare1;
+            
+            std::sort(all_nodes.begin(), all_nodes.end(), compare1);
+            
+            // dont start with a boundary
+            int idx_nb = -1;
+            for (int i = 0; i < all_nodes.size(); i++)
+            {
+                if(!all_nodes[i].is_boundary)
+                {
+                    idx_nb = i;
+                    break;
+                }
+            }
+            assert(idx_nb != -1);
+            std::vector<__polygon> new_list;
+            for (int i = 0; i < all_nodes.size(); i++)
+            {
+                int idx = (i+idx_nb)%all_nodes.size();
+                
+                new_list.push_back(all_nodes[idx]);
+            }
+            all_nodes = new_list;
+            
+            outp.push_back(is_mesh::SimplexSet<node_key>());
+            int i = 0;
+            
+            if(! (all_nodes[0].is_boundary && all_nodes[1].is_boundary) )
+            {
+                i = 1;
+                outp.back().push_back(all_nodes[0].nk);
+            }
+            
+            for (; i < all_nodes.size(); i++)
+            {
+                outp.back().push_back(all_nodes[i].nk);
+                if (!all_nodes[i].continuous)
+                {
+                    if(all_nodes[i].is_boundary)
+                    {
+                        outp.push_back(is_mesh::SimplexSet<node_key>());
+                        outp.back().push_back(all_nodes[++i].nk);
+                    }
+                    else
+                    {
+                        outp.push_back(is_mesh::SimplexSet<node_key>());
+                        outp.back().push_back(all_nodes[i].nk);
+                    }
+                    
+                }
+            }
+            
+            
+            if (all_nodes[0].continuous
+                && outp.size() > 1)
+            {
+                // merge last and first
+                auto last = outp.back();
+                auto first = outp.front();
+                
+                last += first;
+                
+                outp.back() = last;
+                outp.erase(outp.begin());
+            }
+            if(!all_nodes[0].continuous && !all_nodes[0].is_boundary)
+            {
+                outp.back().push_back(all_nodes[0].nk);
+            }
+            
+            for (int i = 0; i < outp.size(); i++)
+            {
+                check_consistency(get_nodes(eid), outp[i]);
+            }
+            
+#ifdef DEBUG
+            for(auto aa : outp)
+                assert(aa.size() > 1);
+#endif
+            
+            
+            std::sort(outp.begin(), outp.end(), compare);
+            return outp;
+            
+#endif
+            // The old algorithm
+            
+            // 1. Separate neighbor tetrahedral to group of different labels
+            std::vector<is_mesh::SimplexSet<tet_key>> tid_groups;
+            for (auto t : get_tets(eid))
+            {
+                bool found = false;
+                for(auto& tids : tid_groups)
+                {
+                    if(get_label(t) == get_label(tids.front()))
+                    {
+                        tids += t;
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found)
+                {
+                    tid_groups.push_back({t});
+                }
+            }
+            
+            // 2. Separate oposite vertices to group of different labels
+            std::vector<is_mesh::SimplexSet<node_key>> polygons;
+            is_mesh::SimplexSet<edge_key> m_eids = get_edges(get_faces(eid));
+            for(auto& tids : tid_groups)
+            {
+                is_mesh::SimplexSet<edge_key> eids = get_edges(tids) - m_eids;
+                is_mesh::SimplexSet<node_key> polygon = get_polygon(eids);
+                check_consistency(get_nodes(eid), polygon);
+                polygons.push_back(polygon);
+            }
+            
+            std::sort(polygons.begin(), polygons.end(), compare);
+            
+            return polygons;
+#endif
         }
         
         void flip_23_recursively(const is_mesh::SimplexSet<node_key>& polygon, const node_key& n1, const node_key& n2, std::vector<std::vector<int>>& K, int i, int j)
@@ -510,26 +1059,68 @@ namespace DSC {
             flip_23_recursively(polygon, n1, n2, K, 0, k);
             flip_23_recursively(polygon, n1, n2, K, k, m-1);
             flip_32(get_edge(n1, n2));
+            
+            
         }
         
         /**
          * Attempt to remove edge e by mesh reconnection using the dynamic programming method by Klincsek (see Shewchuk "Two Discrete Optimization Algorithms
-         * for the Topological Improvement of Tetrahedral Meshes" article for details).
+         for the Topological Improvement of Tetrahedral Meshes" article for details).
          */
         bool topological_edge_removal(const edge_key& eid)
         {
             std::vector<is_mesh::SimplexSet<node_key>> polygon = get_polygons(eid);
-#ifdef DEBUG
-            assert(polygon.size() == 1 && polygon.front().size() > 2);
-#endif
-            
+//#ifdef DEBUG
+            if(!(polygon.size() == 1 && polygon.front().size() > 2))
+            {
+                auto tets = get_tets(eid);
+                std::cout << "-----Err: Fail to remove safe-edge. There are "<< tets.size() << " tets neighbor of edge " << (int)eid << endl;
+                assert(0);
+            }
+//#endif
+            //            time.change("te - build table");
             std::vector<std::vector<int>> K;
             real q_new = build_table(eid, polygon.front(), K);
             
+            //            time.change("te - compare ole");
             if (q_new > min_quality(get_tets(eid)))
             {
+                //                time.change("te - remove");
                 const is_mesh::SimplexSet<node_key>& nodes = get_nodes(eid);
+                
+                std::unique_lock<std::mutex> guard(m, std::defer_lock);
+                guard.lock(); // Should separate cache lock and topo lock
+                
+#ifdef DSC_CACHE // edge remove. Update cache
+                // Should update flag here, instead of inside topological_edge_removal(polygon.front(), nodes[0], nodes[1], K); function
+                
+                auto tets = get_tets(eid);
+                for (auto tkey : tets)
+                {
+                    cache.mark_dirty(tkey, true);
+                }
+                
+                auto faces = get_faces(tets);
+                for (auto fk : faces)
+                {
+                    cache.mark_dirty(fk, true);
+                }
+                
+                auto edges = get_edges(faces);
+                for (auto ek : edges)
+                {
+                    cache.mark_dirty(ek, true);
+                }
+                
+                auto dnodes = get_nodes(edges);
+                for(auto nk : dnodes)
+                {
+                    cache.mark_dirty(nk, true);
+                }
+#endif
                 topological_edge_removal(polygon.front(), nodes[0], nodes[1], K);
+                
+                guard.unlock(); // Because we modify the kernel
                 return true;
             }
             return false;
@@ -537,6 +1128,8 @@ namespace DSC {
         
         void topological_boundary_edge_removal(const is_mesh::SimplexSet<node_key>& polygon1, const is_mesh::SimplexSet<node_key>& polygon2, const edge_key& eid, std::vector<std::vector<int>>& K1, std::vector<std::vector<int>>& K2)
         {
+            
+            
             auto nids = get_nodes(eid);
             const int m1 = static_cast<int>(polygon1.size());
             const int m2 = static_cast<int>(polygon2.size());
@@ -546,11 +1139,13 @@ namespace DSC {
             
             if(m2 <= 2) {
                 // Find the faces to flip about.
+
                 face_key f1 = get_face(nids[0], nids[1], polygon1.front());
                 face_key f2 = get_face(nids[0], nids[1], polygon1.back());
-#ifdef DEBUG
+
+//#ifdef DEBUG
                 assert(get(f1).is_boundary() && get(f2).is_boundary());
-#endif
+//#endif
                 
                 if(precond_flip_edge(get_edge(f1, f2), f1, f2))
                 {
@@ -571,10 +1166,13 @@ namespace DSC {
                     flip_44(f1, f2);
                 }
             }
+            
+            
         }
         
         bool topological_boundary_edge_removal(const edge_key& eid)
         {
+            // 1. Separate opposite vertices to groups of different labels
             std::vector<is_mesh::SimplexSet<node_key>> polygons = get_polygons(eid);
             
             if(polygons.size() > 2 || polygons[0].size() <= 2)
@@ -582,6 +1180,7 @@ namespace DSC {
                 return false;
             }
             
+            // 2. Build table
             std::vector<std::vector<int>> K1, K2;
             real q_new = build_table(eid, polygons[0], K1);
             
@@ -596,11 +1195,47 @@ namespace DSC {
             
             if (q_new > min_quality(get_tets(eid)))
             {
+                std::unique_lock<std::mutex> guard(m, std::defer_lock);
+                guard.lock();
+                
+#ifdef DSC_CACHE // Bounadry edge removal. Update cache.
+                auto tets = get_tets(eid);// + get_tets(polygons[0]) + get_tets(polygons[1]);
+                for (auto tkey : tets)
+                {
+                    cache.mark_dirty(tkey, true);
+                }
+                
+                auto faces = get_faces(tets);
+                for (auto fk : faces)
+                {
+                    cache.mark_dirty(fk, true);
+                }
+                
+                auto edges = get_edges(faces);
+                for (auto ek : edges)
+                {
+                    cache.mark_dirty(ek, true);
+                }
+                
+                auto dnodes = get_nodes(edges);
+                for(auto nk : dnodes)
+                {
+                    cache.mark_dirty(nk, true);
+                }
+#endif
                 topological_boundary_edge_removal(polygons[0], polygons[1], eid, K1, K2);
+                
+                guard.unlock();
                 return true;
             }
             return false;
         }
+        
+        static void topological_edge_removal_worker(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<tet_key> *tet_list, int start_idx, int stop_idx);
+        void topological_edge_removal_parallel();
+        
+        static void topological_edge_removal_worker1(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<edge_key> *tet_list, int start_idx, int stop_idx);
+        void topological_edge_removal_parallel1();
         
         /**
          * Improve tetrahedra quality by the topological operation (re-connection) edge removal. It do so only for tetrahedra of quality lower than MIN_TET_QUALITY.
@@ -621,31 +1256,31 @@ namespace DSC {
             int i = 0, j = 0, k = 0;
             for (auto &t : tets)
             {
-                if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
-                {
-                    for (auto e : get_edges(t))
+                    if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
                     {
-                        if(is_safe_editable(e))
+                        for (auto e : get_edges(t))
                         {
-                            if(topological_edge_removal(e))
+                            if(is_safe_editable(e))
                             {
-                                i++;
-                                break;
+                                if(topological_edge_removal(e))
+                                {
+                                    i++;
+                                    break;
+                                }
+                            }
+                            else if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && is_flippable(e))
+                            {
+                                if(topological_boundary_edge_removal(e))
+                                {
+                                    k++;
+                                    break;
+                                }
                             }
                         }
-                        else if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && is_flippable(e))
-                        {
-                            if(topological_boundary_edge_removal(e))
-                            {
-                                k++;
-                                break;
-                            }
-                        }
+                        j++;
                     }
-                    j++;
-                }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Topological edge removals: " << i + k << "/" << j << " (" << k << " at interface)" << std::endl;
 #endif
             garbage_collect();
@@ -654,9 +1289,11 @@ namespace DSC {
         //////////////////////////////
         // TOPOLOGICAL FACE REMOVAL //
         //////////////////////////////
-        
+#ifdef _ORIGIN_DSC_CHECK_DIS // test neighbour
         is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& a, const node_key& b, const node_key& u, const node_key& w, real& q_old, real& q_new)
         {
+            
+
             edge_key e = get_edge(u,w);
             is_mesh::SimplexSet<face_key> g_set = get_faces(e) - get_faces(get_tets(f));
             real q = Util::quality<real>(get_pos(a), get_pos(b), get_pos(w), get_pos(u));
@@ -672,7 +1309,7 @@ namespace DSC {
                 if((V_uv >= EPSILON && V_vw >= EPSILON) || (V_vw >= EPSILON && V_wu >= EPSILON) || (V_wu >= EPSILON && V_uv >= EPSILON))
                 {
                     q_old = Util::min(Util::quality<real>(get_pos(a), get_pos(u), get_pos(w), get_pos(v)),
-                                     Util::quality<real>(get_pos(u), get_pos(v), get_pos(b), get_pos(w)));
+                                      Util::quality<real>(get_pos(u), get_pos(v), get_pos(b), get_pos(w)));
                     
                     real q_uv_old, q_uv_new, q_vw_old, q_vw_new;
                     is_mesh::SimplexSet<edge_key> uv_edges = test_neighbour(g, a, b, u, v, q_uv_old, q_uv_new);
@@ -694,12 +1331,67 @@ namespace DSC {
             q_new = q;
             return {};
         }
+#else
+is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& a, const node_key& b, const node_key& u, const node_key& w, real& q_old, real& q_new, is_mesh::SimplexSet<face_key> & face_to_rm)
+        {
+            vec3 pa = get_pos(a), pb = get_pos(b), pw = get_pos(w), pu = get_pos(u);
+            real q = Util::quality<real>(pa, pb, pw, pu);
+            
+            edge_key e = get_edge(u,w);
+            
+            auto faces_e = get_faces(e);
+//            if (faces_e.size() == 4)
+//            {
+            
+                is_mesh::SimplexSet<face_key> g_set = faces_e - get_faces(get_tets(f));
+                
+                if(g_set.size() == 1 && is_safe_editable(e))
+                {
+                    face_key g = g_set.front();
+                    node_key v = (get_nodes(g) - get_nodes(e)).front();
+                    auto pv = get_pos(v);
+                    real V_uv = Util::signed_volume<real>(pa, pb, pv, pu);
+                    real V_vw = Util::signed_volume<real>(pa, pb, pw, pv);
+                    real V_wu = Util::signed_volume<real>(pa, pb, pu, pw);
+                    
+                    if((V_uv >= EPSILON && V_vw >= EPSILON) || (V_vw >= EPSILON && V_wu >= EPSILON) || (V_wu >= EPSILON && V_uv >= EPSILON))
+                    {
+                        q_old = Util::min(Util::quality<real>(pa, pu, pw, pv),
+                                          Util::quality<real>(pu, pv, pb, pw));
+                        
+                        real q_uv_old, q_uv_new, q_vw_old, q_vw_new;
+                        is_mesh::SimplexSet<edge_key> uv_edges = test_neighbour(g, a, b, u, v, q_uv_old, q_uv_new, face_to_rm);
+                        is_mesh::SimplexSet<edge_key> vw_edges = test_neighbour(g, a, b, v, w, q_vw_old, q_vw_new, face_to_rm);
+                        
+                        q_old = Util::min(Util::min(q_old, q_uv_old), q_vw_old);
+                        q_new = Util::min(q_uv_new, q_vw_new);
+                        
+                        if(q_new > q_old || q_new > q)
+                        {
+                            is_mesh::SimplexSet<edge_key> edges = {get_edge(f, g)};
+                            edges += uv_edges;
+                            edges += vw_edges;
+                            
+                            face_to_rm += g;
+                            return edges;
+                        }
+                    }
+                }
+//            }
+            q_old = INFINITY;
+            q_new = q;
+            return {};
+
+        }
+        
+ #endif
         
         /**
          * Attempt to remove the faces sandwiched between the apices of f using multi-face removal. The face f is used as a starting point.
          */
-        bool topological_face_removal(const face_key& f)
+        bool topological_face_removal(const face_key& f, const is_mesh::SimplexSet<node_key> & apices_in)
         {
+#ifdef _ORIGIN_DSC_CHECK_DISABLE //topological face removal
             is_mesh::SimplexSet<node_key> nids = get_nodes(f);
             is_mesh::SimplexSet<node_key> apices = get_nodes(get_tets(f)) - nids;
             this->orient_cc(apices[0], nids);
@@ -730,6 +1422,80 @@ namespace DSC {
                 return true;
             }
             return false;
+#else
+            is_mesh::SimplexSet<node_key> nids = get_nodes(f);
+            this->orient_cc(apices_in[0], nids);
+            
+            
+            //TUAN: For updating cache
+            is_mesh::SimplexSet<face_key> face_to_rm;
+            face_to_rm += f;
+            //
+            
+            real q_01_new, q_01_old, q_12_new, q_12_old, q_20_new, q_20_old;
+            is_mesh::SimplexSet<edge_key> e01 = test_neighbour(f, apices_in[0], apices_in[1], nids[0], nids[1], q_01_old, q_01_new, face_to_rm);
+            is_mesh::SimplexSet<edge_key> e12 = test_neighbour(f, apices_in[0], apices_in[1], nids[1], nids[2], q_12_old, q_12_new, face_to_rm);
+            is_mesh::SimplexSet<edge_key> e20 = test_neighbour(f, apices_in[0], apices_in[1], nids[2], nids[0], q_20_old, q_20_new, face_to_rm);
+            
+            real q_old = Util::min(Util::min(Util::min(min_quality(get_tets(f)), q_01_old), q_12_old), q_20_old);
+            real q_new = Util::min(Util::min(q_01_new, q_12_new), q_20_new);
+            
+            if(q_new > q_old)
+            {
+                auto all_edges = e01 + e12 + e20;
+#ifdef DSC_CACHE // face removal
+                
+                auto tets = get_tets(all_edges) + get_tets(f);
+                
+                for (auto tkey : tets)
+                {
+                    cache.mark_dirty(tkey, true);
+                }
+                
+                auto faces = get_faces(tets);
+                for (auto fk : faces)
+                {
+                    cache.mark_dirty(fk, true);
+                }
+                
+                auto edges = get_edges(faces);
+                for (auto ek : edges)
+                {
+                    cache.mark_dirty(ek, true);
+                }
+                
+                auto dnodes = get_nodes(edges);
+                for(auto nk : dnodes)
+                {
+                    cache.mark_dirty(nk, true);
+                }
+#endif
+                
+                // TUAN - Non recursive code
+                // If it crash, disable this
+                //                multi_faces_remove(apices, all_edges, face_to_rm);
+                //
+                //                return true;
+                //
+                
+                
+                flip_23(f);
+                for(auto &e : e01)
+                {
+                    flip_32(e);
+                }
+                for(auto &e : e12)
+                {
+                    flip_32(e);
+                }
+                for(auto &e : e20)
+                {
+                    flip_32(e);
+                }
+                return true;
+            }
+            return false;
+#endif
         }
         
         /**
@@ -738,7 +1504,14 @@ namespace DSC {
          */
         bool topological_face_removal(const node_key& apex1, const node_key& apex2)
         {
+#ifdef DSC_CACHE
+            //            is_mesh::SimplexSet<face_key> fids = get_faces(*get_tets_cache(apex1)) & get_faces(*get_tets_cache(apex2));
+            
+            is_mesh::SimplexSet<face_key> fids = *get_link(apex1) & *get_link(apex2);
+            
+#else
             is_mesh::SimplexSet<face_key> fids = get_faces(get_tets(apex1)) & get_faces(get_tets(apex2));
+#endif
             vec3 p = get_pos(apex1);
             vec3 ray = get_pos(apex2) - p;
             for(auto f : fids)
@@ -751,7 +1524,9 @@ namespace DSC {
                     real t = Util::intersection_ray_triangle<real>(p, ray, get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]));
                     if(0. < t && t < 1.)
                     {
-                        if(topological_face_removal(f))
+                        is_mesh::SimplexSet<node_key> apices;
+                        apices.push_back(apex1); apices.push_back(apex2);
+                        if(topological_face_removal(f, apices))
                         {
                             return true;
                         }
@@ -770,38 +1545,43 @@ namespace DSC {
             std::vector<tet_key> tets;
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
-                if (quality(tit.key()) < pars.MIN_TET_QUALITY)
-                {
-                    tets.push_back(tit.key());
-                }
+                    if (quality(tit.key()) < pars.MIN_TET_QUALITY)
+                    {
+                        tets.push_back(tit.key());
+                    }
             }
+            
             
             // Attempt to remove each face of each remaining tetrahedron in tets using multi-face removal.
             // Accept if it increases the minimum quality locally.
             int i = 0, j = 0;
             for (auto &t : tets)
             {
-                if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
-                {
-                    for (auto f : get_faces(t))
+                    if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
                     {
-                        if (is_safe_editable(f))
+                        for (auto f : get_faces(t))
                         {
-                            auto apices = get_nodes(get_tets(f)) - get_nodes(f);
-                            if(topological_face_removal(apices[0], apices[1]))
+                            if (is_safe_editable(f))
                             {
-                                i++;
-                                break;
+#ifdef DSC_CACHE
+                                auto apices = get_nodes_cache(get_tets(f)) - *get_nodes_cache(f);
+#else
+                                auto apices = get_nodes(get_tets(f)) - get_nodes(f);
+#endif
+                                if(apices.size()==2 && topological_face_removal(apices[0], apices[1]))
+                                {
+                                    i++;
+                                    break;
+                                }
                             }
                         }
+                        j++;
                     }
-                    j++;
-                }
             }
-#ifdef DEBUG
+            
+#ifdef LOG_DEBUG
             std::cout << "Topological face removals: " << i << "/" << j << std::endl;
 #endif
-            
             garbage_collect();
         }
         
@@ -836,9 +1616,14 @@ namespace DSC {
                     i++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Thickening interface splits: " << i << std::endl;
 #endif
+        }
+        
+        void resize_interface()
+        {
+            
         }
         
         /**
@@ -859,6 +1644,7 @@ namespace DSC {
                     tetrahedra.push_back(tit.key());
                 }
             }
+            
             int i = 0;
             for(auto &t : tetrahedra)
             {
@@ -868,7 +1654,7 @@ namespace DSC {
                     i++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Thickening splits: " << i << std::endl;
 #endif
         }
@@ -904,7 +1690,7 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Thinning interface collapses: " << i << "/" << j << std::endl;
 #endif
         }
@@ -927,6 +1713,7 @@ namespace DSC {
                     tetrahedra.push_back(tit.key());
                 }
             }
+            
             int i = 0, j = 0;
             for(auto &t : tetrahedra)
             {
@@ -939,9 +1726,9 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+            #ifdef LOG_DEBUG
             std::cout << "Thinning collapses: " << i << "/" << j << std::endl;
-#endif
+            #endif
         }
         
         /////////////////////////
@@ -972,7 +1759,7 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate edges" << std::endl;
 #endif
             garbage_collect();
@@ -1009,7 +1796,7 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate faces" << std::endl;
 #endif
             garbage_collect();
@@ -1017,35 +1804,37 @@ namespace DSC {
         
         void remove_degenerate_tets()
         {
+           
             std::vector<tet_key> tets;
             
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
-                if (quality(tit.key()) < pars.DEG_TET_QUALITY)
-                {
-                    tets.push_back(tit.key());
-                }
+                    if (quality(tit.key()) < pars.DEG_TET_QUALITY)
+                    {
+                        tets.push_back(tit.key());
+                    }
             }
+            
             int i = 0, j = 0;
             for (auto &t : tets)
             {
-                if (exists(t) && quality(t) < pars.DEG_TET_QUALITY && !collapse(t))
-                {
-                    if(collapse(t, false))
+                    if (exists(t) && quality(t) < pars.DEG_TET_QUALITY && !collapse(t))
                     {
-                        i++;
-                    }
-                    else {
-                        edge_key e = longest_edge(get_edges(t));
-                        if(length(e) > AVG_LENGTH)
+                        if(collapse(t, false))
                         {
-                            split(e);
+                            i++;
                         }
+                        else {
+                            edge_key e = longest_edge(get_edges(t));
+                            if(length(e) > AVG_LENGTH)
+                            {
+                                split(e);
+                            }
+                        }
+                        j++;
                     }
-                    j++;
-                }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " degenerate tets" << std::endl;
 #endif
             garbage_collect();
@@ -1080,7 +1869,7 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " low quality edges" << std::endl;
 #endif
             garbage_collect();
@@ -1159,7 +1948,7 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " low quality faces" << std::endl;
 #endif
             garbage_collect();
@@ -1324,24 +2113,24 @@ namespace DSC {
             
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
-                if (quality(tit.key()) < pars.MIN_TET_QUALITY)
-                {
-                    tets.push_back(tit.key());
-                }
+                    if (quality(tit.key()) < pars.MIN_TET_QUALITY)
+                    {
+                        tets.push_back(tit.key());
+                    }
             }
             int i = 0, j=0;
             for (auto &tet : tets)
             {
-                if (is_unsafe_editable(tet) && quality(tet) < pars.MIN_TET_QUALITY)
-                {
-                    if(remove_tet(tet))
+                    if (is_unsafe_editable(tet) && quality(tet) < pars.MIN_TET_QUALITY)
                     {
-                        i++;
+                        if(remove_tet(tet))
+                        {
+                            i++;
+                        }
+                        j++;
                     }
-                    j++;
-                }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Removed " << i <<"/"<< j << " low quality tets" << std::endl;
 #endif
             garbage_collect();
@@ -1354,24 +2143,7 @@ namespace DSC {
         /**
          * Performs Laplacian smoothing if it improves the minimum tetrahedron quality locally.
          */
-        bool smart_laplacian(const node_key& nid, real alpha = 1.)
-        {
-            is_mesh::SimplexSet<tet_key> tids = get_tets(nid);
-            is_mesh::SimplexSet<face_key> fids = get_faces(tids) - get_faces(nid);
-            
-            vec3 old_pos = get_pos(nid);
-            vec3 avg_pos = get_barycenter(get_nodes(fids));
-            vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
-            
-            real q_old, q_new;
-            min_quality(fids, old_pos, new_pos, q_old, q_new);
-            if(q_new > pars.MIN_TET_QUALITY || q_new > q_old)
-            {
-                set_pos(nid, new_pos);
-                return true;
-            }
-            return false;
-        }
+        bool smart_laplacian(const node_key& nid, real alpha = 1.);
         
         void smooth()
         {
@@ -1387,10 +2159,13 @@ namespace DSC {
                     j++;
                 }
             }
-#ifdef DEBUG
+#ifdef LOG_DEBUG
             std::cout << "Smoothed: " << i << "/" << j << std::endl;
 #endif
         }
+        
+        static void smooth_worker(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<node_key> *node_list, int start_idx, int stop_idx);
+        void smooth_parallel();
         
         ///////////////////
         // FIX FUNCTIONS //
@@ -1398,30 +2173,51 @@ namespace DSC {
         
         void fix_complex()
         {
-            smooth();
+            {
+#ifdef DSC_CACHE
+//                smooth();
+                smooth_parallel();
+#else
+                smooth();
+#endif
+            }
             
-            topological_edge_removal();
-            topological_face_removal();
+            {
+#ifdef DSC_CACHE
+//                            topological_edge_removal();
+                topological_edge_removal_parallel1();
+#else
+                topological_edge_removal();
+#endif
+
+            }
             
-//            remove_tets();
-//            remove_faces();
-//            remove_edges();
+            {
+                topological_face_removal() ;
+
+            }
+            
             
             remove_degenerate_tets();
             remove_degenerate_faces();
             remove_degenerate_edges();
+
         }
         
         void resize_complex()
         {
-            thickening_interface();
-            
-            thinning_interface();
-            
-            thickening();
-            
-            thinning();
-            
+            {
+                
+                //                resize_interface();
+                
+                thickening_interface();
+                
+                thinning_interface();
+                
+                thickening();
+                
+                thinning();
+            }
             fix_complex();
         }
         
@@ -1434,51 +2230,74 @@ namespace DSC {
          */
         void deform(int num_steps = 10)
         {
-#ifdef DEBUG
-            validity_check();
-            std::cout << std::endl << "********************************" << std::endl;
-#endif
+            //#ifdef DEBUG
+            //            validity_check();
+            //            std::cout << std::endl << "********************************" << std::endl;
+            //#endif
+            
+
+            
             int missing;
             int step = 0;
             do {
+#ifdef LOG_DEBUG
                 std::cout << "\n\tMove vertices step " << step << std::endl;
-                missing = 0;
-                int movable = 0;
-                for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
-                {
-                    if (is_movable(nit.key()))
-                    {
-                        if(!move_vertex(nit.key()))
-                        {
-                            missing++;
-                        }
-                        movable++;
-                    }
-                }
-                std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
-                fix_complex();
-#ifdef DEBUG
-                validity_check();
 #endif
+                missing = 0;
+                
+                cout << ".";
+                
+                int movable = 0;
+                {
+                    for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
+                    {
+                        if (is_movable(nit.key()))
+                        {
+                            if(!move_vertex(nit.key()))
+                            {
+                                missing++;
+                            }
+                            movable++;
+                        }
+                    }
+                    
+                }
+                
+#ifdef LOG_DEBUG
+                std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
+#endif
+                
+                {
+                    fix_complex();
+                }
+                
                 ++step;
             } while (missing > 0 && step < num_steps);
+            
+            //#ifdef DEBUG
+//                        validity_check();
+            //#endif
             
             resize_complex();
             
             garbage_collect();
+            
             for (auto nit = nodes_begin(); nit != nodes_end(); nit++)
             {
                 nit->set_destination(nit->get_pos());
             }
-#ifdef DEBUG
-            validity_check();
-#endif
+            
+
+            cout << endl;
+            //#ifdef DEBUG
+            //            validity_check();
+            //#endif
         }
         
     private:
         
         /**
-         * Tries moving the node n to the new position new_pos. Returns true if it succeeds.
+         * Try moving the node n to the new position new_pos. Returns true if it moves to the destination.
          */
         bool move_vertex(const node_key & n)
         {
@@ -1499,6 +2318,7 @@ namespace DSC {
             {
                 return true;
             }
+            
             return false;
         }
         
@@ -1512,9 +2332,13 @@ namespace DSC {
         {
             vec3 pos = get_pos(n);
             vec3 ray = destination - pos;
-
+            
             real min_t = INFINITY;
+#ifdef DSC_CACHE
+            auto fids = *get_link(n);
+#else
             auto fids = get_faces(get_tets(n)) - get_faces(n);
+#endif
             for(auto f : fids)
             {
                 auto face_pos = get_pos(get_nodes(f));
@@ -1524,9 +2348,9 @@ namespace DSC {
                     min_t = Util::min(t, min_t);
                 }
             }
-#ifdef DEBUG
+//#ifdef DEBUG
             assert(min_t < INFINITY);
-#endif
+//#endif
             return min_t;
         }
         
@@ -1540,6 +2364,7 @@ namespace DSC {
          */
         bool is_flat(const is_mesh::SimplexSet<face_key>& fids)
         {
+#ifdef _ORIGIN_DSC_CHECK_ // is flat
             for (const face_key& f1 : fids) {
                 if (get(f1).is_interface() || get(f1).is_boundary())
                 {
@@ -1557,6 +2382,32 @@ namespace DSC {
                 }
             }
             return true;
+#else
+            ////TUAN: New algorithm that is faster
+            //      We just need to compare all triangle with the first triangle
+            //      Dont need to compare n*(n-1) 
+            vec3 norm = get_normal(fids[0]);
+            bool inited = false;
+            for (const face_key& f1 : fids)
+            {
+                if (get(f1).is_interface() || get(f1).is_boundary())
+                {
+                    vec3 normal1 = get_normal(f1);
+                    if(!inited)
+                    {
+                        inited = true;
+                        norm = normal1;
+                        continue;
+                    }
+                    
+                    if(std::abs(dot(normal1, norm)) < FLIP_EDGE_INTERFACE_FLATNESS)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+#endif
         }
         
         /**
@@ -1566,6 +2417,7 @@ namespace DSC {
         bool is_flippable(const edge_key & eid)
         {
             is_mesh::SimplexSet<face_key> fids;
+
             for(auto f : get_faces(eid))
             {
                 if (get(f).is_interface() || get(f).is_boundary())
@@ -1579,7 +2431,12 @@ namespace DSC {
             }
             
             is_mesh::SimplexSet<node_key> e_nids = get_nodes(eid);
+#ifdef DSC_CACHE
+            is_mesh::SimplexSet<node_key> new_e_nids = (*get_nodes_cache(fids[0]) + *get_nodes_cache(fids[1])) - e_nids;
+#else
             is_mesh::SimplexSet<node_key> new_e_nids = (get_nodes(fids[0]) + get_nodes(fids[1])) - e_nids;
+#endif
+            
 #ifdef DEBUG
             assert(new_e_nids.size() == 2);
 #endif
@@ -1593,7 +2450,7 @@ namespace DSC {
             // Check that the edge is not a feature edge if it is a part of the interface or boundary.
             if(get(eid).is_interface() || get(eid).is_boundary())
             {
-                return is_flat(fids);
+                return is_flat(fids);     
             }
             
             return true;
@@ -1677,6 +2534,33 @@ namespace DSC {
                 destination = Util::barycenter(get(nids[0]).get_destination(), get(nids[1]).get_destination());
             }
             
+#ifdef DSC_CACHE // Split edge. Update cache
+            auto tets = get_tets(eid);
+            
+            for (auto tkey : tets)
+            {
+                cache.mark_dirty(tkey, true);
+            }
+            
+            auto faces = get_faces(tets);
+            for (auto fk : faces)
+            {
+                cache.mark_dirty(fk, true);
+            }
+            
+            auto edges = get_edges(faces);
+            for (auto ek : edges)
+            {
+                cache.mark_dirty(ek, true);
+            }
+            
+            auto dnodes = get_nodes(edges);
+            for(auto nk : dnodes)
+            {
+                cache.mark_dirty(nk, true);
+            }
+#endif
+            
             split(eid, pos, destination);
         }
         
@@ -1701,7 +2585,11 @@ namespace DSC {
             }
             if(get(eid).is_boundary() || get(eid).is_interface())
             {
+#ifdef DSC_CACHE
+                return is_flat(*get_faces_cache(nid));
+#else
                 return is_flat(get_faces(nid));
+#endif
             }
             return false;
         }
@@ -1722,6 +2610,8 @@ namespace DSC {
             {
                 return false;
             }
+            
+            
             std::vector<real> test_weights;
             if (!n0_is_editable || !n1_is_editable)
             {
@@ -1735,9 +2625,18 @@ namespace DSC {
                 test_weights = {0., 0.5, 1.};
             }
             
+            //            t.change("collapse e - get info");
+#ifdef DSC_CACHE
+            is_mesh::SimplexSet<tet_key> e_tids = get_tets(eid);
+            is_mesh::SimplexSet<face_key> fids0 = get_faces(*get_tets_cache(nids[0]) - e_tids) - *get_faces_cache(nids[0]);
+            is_mesh::SimplexSet<face_key> fids1 = get_faces(*get_tets_cache(nids[1]) - e_tids) - *get_faces_cache(nids[1]);
+#else
+            
             is_mesh::SimplexSet<tet_key> e_tids = get_tets(eid);
             is_mesh::SimplexSet<face_key> fids0 = get_faces(get_tets(nids[0]) - e_tids) - get_faces(nids[0]);
             is_mesh::SimplexSet<face_key> fids1 = get_faces(get_tets(nids[1]) - e_tids) - get_faces(nids[1]);
+#endif
+            //            t.change("collapse e - test weight");
             
             real q_max = -INFINITY;
             real weight;
@@ -1755,8 +2654,40 @@ namespace DSC {
             
             if(q_max > EPSILON)
             {
+                //                t.change("collapse e - check shoudl collapse");
+                
                 if(!safe || q_max > Util::min(min_quality(get_tets(nids[0]) + get_tets(nids[1])), pars.MIN_TET_QUALITY) + EPSILON)
                 {
+#ifdef DSC_CACHE // collapse edge
+                    //                    t.change("collapse e - cache overhead");
+                    
+                    auto tets = get_tets(get_nodes(eid));
+                    
+                    for (auto tkey : tets)
+                    {
+                        cache.mark_dirty(tkey, true);
+                    }
+                    
+                    auto faces = get_faces(tets);
+                    for (auto fk : faces)
+                    {
+                        cache.mark_dirty(fk, true);
+                    }
+                    
+                    auto edges = get_edges(faces);
+                    for (auto ek : edges)
+                    {
+                        cache.mark_dirty(ek, true);
+                    }
+                    
+                    auto dnodes = get_nodes(edges);
+                    for(auto nk : dnodes)
+                    {
+                        cache.mark_dirty(nk, true);
+                    }
+#endif
+                    //                    t.change("collapse e - collapse");
+                    
                     collapse(eid, nids[1], weight);
                     return true;
                 }
@@ -1811,22 +2742,22 @@ namespace DSC {
         }
         
         /**
+        For multi phase
+        The normal of the phase that contains the tetrahedral
+        Will go out the tetrahedral
+        */
+        vec3 get_normal(const face_key& fid, const tet_key &tid)
+        {
+            auto pos = get_pos(this->get_sorted_nodes(fid, tid));
+            return Util::normal_direction(pos[0], pos[1], pos[2]);
+        }
+        
+        /**
          Returns the normal to interface face fid.
          */
         vec3 get_normal(const face_key& fid)
         {
             auto pos = get_pos(this->get_sorted_nodes(fid));
-            return Util::normal_direction(pos[0], pos[1], pos[2]);
-        }
-        
-        /**
-         For multi phase
-         The normal of the phase that contains the tetrahedral
-         Will go out the tetrahedral
-         */
-        vec3 get_normal(const face_key& fid, const tet_key &tid)
-        {
-            auto pos = get_pos(this->get_sorted_nodes(fid, tid));
             return Util::normal_direction(pos[0], pos[1], pos[2]);
         }
         
@@ -1921,7 +2852,11 @@ namespace DSC {
         
         real volume(const tet_key& tid)
         {
+#ifdef DSC_CACHE
+            is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(tid);
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(tid);
+#endif
             return Util::volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), get_pos(nids[3]));
         }
         
@@ -1953,10 +2888,16 @@ namespace DSC {
             return Util::barycenter(get(nids[0]).get_destination(), get(nids[1]).get_destination(), get(nids[2]).get_destination(), get(nids[3]).get_destination());
         }
         
+        
         real quality(const tet_key& tid)
         {
+#ifdef DSC_CACHE
+            is_mesh::SimplexSet<node_key> * nids = get_nodes_cache(tid);
+            return std::abs(Util::quality<real>(get_pos(nids->operator[](0)), get_pos(nids->operator[](1)), get_pos(nids->operator[](2)), get_pos(nids->operator[](3))));
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(tid);
             return std::abs(Util::quality<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), get_pos(nids[3])));
+#endif
         }
         
         real min_angle(const face_key& fid)
@@ -1973,8 +2914,15 @@ namespace DSC {
         
         real quality(const face_key& fid)
         {
+#ifdef DSC_CACHE
+            is_mesh::SimplexSet<node_key> * nids = get_nodes_cache(fid);
+            
+            auto angles = Util::cos_angles<real>(get_pos(nids->operator[](0)), get_pos(nids->operator[](1)), get_pos(nids->operator[](2)));
+#else
             is_mesh::SimplexSet<node_key> nids = get_nodes(fid);
+            
             auto angles = Util::cos_angles<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]));
+#endif
             real worst_a = -INFINITY;
             for(auto a : angles)
             {
@@ -2098,9 +3046,17 @@ namespace DSC {
         {
             min_q_old = INFINITY;
             min_q_new = INFINITY;
+            
             for (auto f : fids)
             {
+#ifdef DSC_CACHE
+                
+                is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(f);
+#else
                 is_mesh::SimplexSet<node_key> nids = get_nodes(f);
+#endif
+                assert(nids.size()==3);
+                
                 if(Util::sign(Util::signed_volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos_old)) !=
                    Util::sign(Util::signed_volume<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos_new)))
                 {
@@ -2112,7 +3068,6 @@ namespace DSC {
                 min_q_new = Util::min(min_q_new, std::abs(Util::quality<real>(get_pos(nids[0]), get_pos(nids[1]), get_pos(nids[2]), pos_new)));
             }
         }
-        
         
     private:
         
@@ -2195,7 +3150,7 @@ namespace DSC {
                         for (unsigned int k = 0; k < verts.size(); k++) {
                             if(k != i && k != j)
                             {
-                                apices.push_back(k);   
+                                apices.push_back(k);
                             }
                         }
                         angles.push_back(Util::cos_dihedral_angle<real>(verts[i], verts[j], verts[apices[0]], verts[apices[1]]));
@@ -2343,6 +3298,8 @@ namespace DSC {
         }
         
     public:
+        
+        
         void test_split_collapse()
         {
             is_mesh::SimplexSet<edge_key> eids;
@@ -2363,43 +3320,43 @@ namespace DSC {
                 }
             }
             
-//            int j = 0;
-//            std::cout << "Split test # = " << eids.size();
-//            is_mesh::SimplexSet<edge_key> new_eids;
-//            std::vector<node_key> old_nids;
-//            for (auto e : eids) {
-//                auto nids = get_nodes(e);
-//                auto new_nid = split(e);
-//                auto new_eid = (get_edges(nids) & get_edges(new_nid)) - e;
-//                assert(new_eid.size() == 1);
-//                new_eids += new_eid[0];
-//                auto old_nid = get_nodes(new_eid) - new_nid;
-//                assert(old_nid.size() == 1);
-//                old_nids.push_back(old_nid.front());
-//                j++;
-//                if(j%1000 == 0)
-//                {
-//                    std::cout << ".";
-//                }
-//            }
-//            std::cout << " DONE" << std::endl;
-//            garbage_collect();
-//            validity_check();
-//            
-//            std::cout << "Collapse test # = " << new_eids.size();
-//            j = 0;
-//            for (unsigned int i = 0; i < new_eids.size(); i++) {
-//                assert(exists(new_eids[i]));
-//                auto nids = get_nodes(new_eids[i]);
-//                collapse(new_eids[i], old_nids[i], 0.);
-//                assert(nids[0].is_valid());
-//                
-//                j++;
-//                if(j%1000 == 0)
-//                {
-//                    std::cout << ".";
-//                }
-//            }
+            //            int j = 0;
+            //            std::cout << "Split test # = " << eids.size();
+            //            is_mesh::SimplexSet<edge_key> new_eids;
+            //            std::vector<node_key> old_nids;
+            //            for (auto e : eids) {
+            //                auto nids = get_nodes(e);
+            //                auto new_nid = split(e);
+            //                auto new_eid = (get_edges(nids) & get_edges(new_nid)) - e;
+            //                assert(new_eid.size() == 1);
+            //                new_eids += new_eid[0];
+            //                auto old_nid = get_nodes(new_eid) - new_nid;
+            //                assert(old_nid.size() == 1);
+            //                old_nids.push_back(old_nid.front());
+            //                j++;
+            //                if(j%1000 == 0)
+            //                {
+            //                    std::cout << ".";
+            //                }
+            //            }
+            //            std::cout << " DONE" << std::endl;
+            //            garbage_collect();
+            //            validity_check();
+            //
+            //            std::cout << "Collapse test # = " << new_eids.size();
+            //            j = 0;
+            //            for (unsigned int i = 0; i < new_eids.size(); i++) {
+            //                assert(exists(new_eids[i]));
+            //                auto nids = get_nodes(new_eids[i]);
+            //                collapse(new_eids[i], old_nids[i], 0.);
+            //                assert(nids[0].is_valid());
+            //
+            //                j++;
+            //                if(j%1000 == 0)
+            //                {
+            //                    std::cout << ".";
+            //                }
+            //            }
             std::cout << " DONE" << std::endl;
             garbage_collect();
             validity_check();
@@ -2527,6 +3484,8 @@ namespace DSC {
             }
         }
         
+        
+        
         void test_flip22()
         {
             is_mesh::SimplexSet<edge_key> eids;
@@ -2590,6 +3549,7 @@ namespace DSC {
                 validity_check();
             }
         }
+        
         
     };
     

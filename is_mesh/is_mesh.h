@@ -847,7 +847,7 @@ namespace is_mesh {
          */
         FaceKey get_face(const NodeKey& nid1, const NodeKey& nid2, const NodeKey& nid3)
         {
-#ifdef _ORIGIN_DSC_CHECK_
+#ifdef _ORIGIN_DSC_CHECK_ // get face from 3 nodes
             //
             // Old
             SimplexSet<FaceKey> fids1 = get_faces(nid1);

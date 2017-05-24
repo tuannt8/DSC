@@ -18,26 +18,63 @@
 #include <iostream>
 using namespace std;
 
-// 0: No interface, for linux cluster; 1: Use interface
-#define _USE_INTERFACE 1
+// Will display OpenGL window for visualization
+bool arg_b_display = true;
+string arg_b_no_display_command = "-no_display";
+
+// Max iteration to run, in case we dont have a display
+int arg_i_num_iters = 1000;
+string arg_i_num_iters_command = "-max_iter";
+
+// Flag: Use original DSC in build table function
+bool arg_b_build_table_origin = true;
+string arg_b_build_table_origin_command = "-build_table";
 
 
-#if _USE_INTERFACE == 0
-int num_iters = 1000;
-int main(int argc, char** argv)
+
+void parse_arg(int argc, char** argv)
 {
-    UI ui;
-    for(int i = 0; i < num_iters; i++)
+    try
     {
-        ui._seg.segment();
+        for (int i = 1; i < argc; i++)
+        {
+            if (strcmp(argv[i], arg_b_no_display_command.c_str())==0)
+            {
+                arg_b_display = false;
+            }
+            else if (strcmp(argv[i], arg_i_num_iters_command.c_str())==0)
+            {
+                arg_i_num_iters = atoi(argv[++i]);
+            }
+            else if (strcmp(argv[i], arg_b_build_table_origin_command.c_str())==0)
+            {
+                arg_b_build_table_origin = false;
+            }
+        }
+    }
+    catch (exception e)
+    {
+        cout << "Error in input arguments";
+        exit(1);
     }
 }
-#else
+
 int main(int argc, char** argv)
 {
-    UI ui(argc, argv);
-//    printMenu();
-    glutMainLoop();
+    parse_arg(argc, argv);
+    
+    if(arg_b_display)
+    {
+        UI ui(argc, argv);
+        glutMainLoop();
+    }
+    else{
+        UI ui;
+        for(int i = 0; i < arg_i_num_iters; i++)
+        {
+            ui._seg.segment();
+        }
+    }
+    
     return 0;
 }
-#endif
