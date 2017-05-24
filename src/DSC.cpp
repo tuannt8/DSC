@@ -15,6 +15,51 @@ using namespace std;
 typedef DSC::DeformableSimplicialComplex<> dsc_class;
 
 
+template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
+{
+#ifdef DSC_CACHE // laplacian smooth
+    auto fids = get_link(nid);
+    
+    
+    vec3 old_pos = get_pos(nid);
+    
+    vec3 avg_pos = get_barycenter(*get_nodes_cache(nid));
+    vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
+    
+    real q_old, q_new;
+    
+    min_quality(*fids, old_pos, new_pos, q_old, q_new);
+    
+#else
+    
+    is_mesh::SimplexSet<tet_key> tids1 = get_tets(nid);
+    is_mesh::SimplexSet<face_key> fids1 = get_faces(tids1) - get_faces(nid);
+    
+    
+    vec3 old_pos = get_pos(nid);
+    
+    vec3 avg_pos = get_barycenter(get_nodes(fids1));
+    vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
+    
+    
+    real q_old, q_new;
+    
+    min_quality(fids1, old_pos, new_pos, q_old, q_new);
+#endif
+    
+    
+    
+    if(q_new > pars.MIN_TET_QUALITY || q_new > q_old)
+    {
+        set_pos(nid, new_pos);
+        
+        return true;
+    }
+    return false;
+    
+}
+
+#ifndef _ORIGIN_DSC_CHECK_
 
 #define FIND_MIN_COLOR \
 for (int i = 0; i < colors.size(); i++) \
@@ -165,50 +210,6 @@ void min_quality_parallel(DSC::DeformableSimplicialComplex<> * dsc, const is_mes
     {
         min_q_old = INFINITY;
     }
-}
-
-template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
-{
-#ifdef DSC_CACHE // laplacian smooth
-    auto fids = get_link(nid);
-
-    
-    vec3 old_pos = get_pos(nid);
-    
-    vec3 avg_pos = get_barycenter(*get_nodes_cache(nid));
-    vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
-
-    real q_old, q_new;
-    
-    min_quality(*fids, old_pos, new_pos, q_old, q_new);
-       
-#else
-    
-    is_mesh::SimplexSet<tet_key> tids1 = get_tets(nid);
-    is_mesh::SimplexSet<face_key> fids1 = get_faces(tids1) - get_faces(nid);
-
-    
-    vec3 old_pos = get_pos(nid);
-
-    vec3 avg_pos = get_barycenter(get_nodes(fids1));
-    vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
-    
-    
-    real q_old, q_new;
-    
-    min_quality(fids1, old_pos, new_pos, q_old, q_new);
-#endif
-    
-    
-
-    if(q_new > pars.MIN_TET_QUALITY || q_new > q_old)
-    {
-        set_pos(nid, new_pos);
-        
-        return true;
-    }
-    return false;
-
 }
 
 
@@ -465,3 +466,5 @@ template<> void dsc_class:: smooth_parallel()
 
 //    validity_check();
 }
+
+#endif
