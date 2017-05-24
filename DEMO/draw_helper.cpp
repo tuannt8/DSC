@@ -15,6 +15,7 @@
 #include <string>
 #include <SOIL/SOIL.h>
 #include <fstream>
+#include "define.h"
 
 void draw_helper::draw_image_slice(const image3d & im)
 {
@@ -177,7 +178,7 @@ std::vector<vec3> draw_helper::node_normal_vector;
 void draw_helper::update_normal_vector_interface(dsc_class & dsc, int phase, vec3 eye_pos)
 {
 #ifdef _DSC_ORIGIN_
-    std::vector<int> neighbor_faces_count(10000, 0);
+    std::vector<int> neighbor_faces_count(MAX_NUM_ELEMENT_MESH, 0);
 #else
     node_normal_vector = std::vector<vec3>(dsc.get_no_nodes_buffer(), vec3(0.0));
     std::vector<int> neighbor_faces_count(dsc.get_no_nodes_buffer(), 0);

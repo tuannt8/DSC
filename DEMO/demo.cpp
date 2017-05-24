@@ -22,7 +22,7 @@ using namespace std;
 #define _USE_INTERFACE 1
 
 
-#if _USE_INTERFACE == 1
+#if _USE_INTERFACE == 0
 int num_iters = 1000;
 int main(int argc, char** argv)
 {

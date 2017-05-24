@@ -22,7 +22,7 @@
 #define ALPHA 0.1 //The coefficient for Mumford-Shah
 
 
-#define MAX_NUM_ELEMENT_MESH 1000000
+
 
 struct intersect_pt
 {

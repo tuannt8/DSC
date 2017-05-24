@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cassert>
 #include <limits>
+#include <string.h>
 
 #include <CGLA/Vec2d.h>
 #include <CGLA/Vec3d.h>
@@ -181,6 +182,7 @@ namespace Util
         return m;
     }
     
+    
     /**
      * Calculate the cosine of angles in the triangle defined by the vertices a, b and c.
      */
@@ -291,6 +293,7 @@ namespace Util
 #ifdef DEBUG
         assert(std::abs(denom) > EPSILON);
 #endif
+        
         std::vector<real> coords(3);
         coords[1] = (d11 * d20 - d01 * d21) / denom;
         coords[2] = (d00 * d21 - d01 * d20) / denom;
@@ -298,6 +301,35 @@ namespace Util
         
         return coords;
     }
+    
+//    template <typename real, typename vec3>
+//    inline std::vector<real> barycentric_coords_1(const vec3& p, const vec3& a, const vec3& b, const vec3& c)
+//    {
+//        vec3 v0 = b - a;
+//        vec3 v1 = c - a;
+//        vec3 v2 = p - a;
+//        real d00 = dot(v0, v0);
+//        real d01 = dot(v0, v1);
+//        real d11 = dot(v1, v1);
+//        real d20 = dot(v2, v0);
+//        real d21 = dot(v2, v1);
+//        real denom = d00 * d11 - d01 * d01;
+//#ifdef DEBUG
+//        assert(std::abs(denom) > EPSILON);
+//#endif
+//        if (std::abs(denom) > EPSILON)
+//        {
+//            throw std::runtime_error("triangle exception");
+//        }
+//        
+//        std::vector<real> coords(3);
+//        coords[1] = (d11 * d20 - d01 * d21) / denom;
+//        coords[2] = (d00 * d21 - d01 * d20) / denom;
+//        coords[0] = 1. - coords[1] - coords[2];
+//        
+//        return coords;
+//    }
+//    
     
     /**
      * Calculates the barycentric coordinates of a point v in a tetrahedron spanned by the four vertices a, b, c and d.

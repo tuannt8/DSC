@@ -9,6 +9,7 @@
 #ifndef define_h
 #define define_h
 
-#define _DSC_ORIGIN_
+//#define _DSC_ORIGIN_
+#define MAX_NUM_ELEMENT_MESH 1000000
 
 #endif /* define_h */
