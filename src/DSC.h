@@ -548,7 +548,7 @@ namespace DSC {
             return is_unsafe_editable(nid) && get(nid).is_interface() && !get(nid).is_crossing();
         }
         
-    protected:
+    public:
         /**
          * Sets the position of node n.
          */
@@ -1092,7 +1092,6 @@ namespace DSC {
                 guard.lock(); // Should separate cache lock and topo lock
                 
 #ifdef DSC_CACHE // edge remove. Update cache
-                // Should update flag here, instead of inside topological_edge_removal(polygon.front(), nodes[0], nodes[1], K); function
                 
                 auto tets = get_tets(eid);
                 for (auto tkey : tets)

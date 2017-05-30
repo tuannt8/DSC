@@ -67,6 +67,7 @@ int main(int argc, char** argv)
     {
         UI ui(argc, argv);
         glutMainLoop();
+
     }
     else{
         UI ui;

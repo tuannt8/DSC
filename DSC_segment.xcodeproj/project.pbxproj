@@ -301,6 +301,7 @@
 		A65A0C2C1C15E018005A8106 /* image3d.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = image3d.cpp; sourceTree = "<group>"; };
 		A65A0C2D1C15E018005A8106 /* image3d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = image3d.h; sourceTree = "<group>"; };
 		A66650721ED5661E005CBE85 /* define.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = define.h; sourceTree = "<group>"; };
+		A66650731ED6B1C5005CBE85 /* test_cache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = test_cache.h; sourceTree = "<group>"; };
 		A681F1851C19CFB400831E2E /* tetgen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tetgen.h; path = TetGen/tetgen.h; sourceTree = SOURCE_ROOT; };
 		A6C736181ECD769500A6EB65 /* predicates.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = predicates.cpp; path = TetGen/predicates.cpp; sourceTree = SOURCE_ROOT; };
 		A6C736191ECD769500A6EB65 /* tetgen.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tetgen.cpp; path = TetGen/tetgen.cpp; sourceTree = SOURCE_ROOT; };
@@ -590,6 +591,7 @@
 				A6FF2BB71C6A47BC00EDC141 /* tet_dis_coord.cpp */,
 				A6FF2BB81C6A47BC00EDC141 /* tet_dis_coord.hpp */,
 				A66650721ED5661E005CBE85 /* define.h */,
+				A66650731ED6B1C5005CBE85 /* test_cache.h */,
 			);
 			path = DEMO;
 			sourceTree = "<group>";

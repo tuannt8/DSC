@@ -22,6 +22,7 @@
 #include "tetralizer.h"
 #include "glut_menu.h"
 
+#include "test_cache.h"
 
 #include <math.h>       /* for cos(), sin(), and sqrt() */
 
@@ -567,6 +568,8 @@ void UI::keyboard(unsigned char key, int x, int y) {
         case 'u':
             draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);
             break;
+        case 't':
+            test_dsc::reduce_mesh_quality_by_moving_vertices(*dsc);
         default:
             break;
     }
