@@ -294,9 +294,9 @@ namespace DSC {
                 cache.node_on_face[fk] = new is_mesh::SimplexSet<node_key>;
                 *cache.node_on_face[fk] = get_nodes(fk);
             }
-            if(cache.node_on_face[fk]->size()!=3)
+            if(cache.node_on_face[fk]->size() != 3)
             {
-                cout << "--Error: " << cache.node_on_face[fk]->size() << " on face:"
+                cout << "--Error: " << cache.node_on_face[fk]->size() << " nodes on face:"
                     << (int)fk << endl;
                 assert(0);
             }
@@ -587,6 +587,7 @@ namespace DSC {
         // GETTERS //
         /////////////
     public:
+ 
         
         vec3 get_center() const
         {
@@ -2183,8 +2184,8 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             
             {
 #ifdef DSC_CACHE
-//                            topological_edge_removal();
-                topological_edge_removal_parallel1();
+                            topological_edge_removal();
+//                topological_edge_removal_parallel1();
 #else
                 topological_edge_removal();
 #endif

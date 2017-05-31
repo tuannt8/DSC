@@ -514,13 +514,21 @@ void segment_function::work_around_on_boundary_vertices()
     
     cout << "Max displacement: " << max_displacement_real << endl;
 }
+
+void segment_function::compute_internal_force()
+{
+    // Find all neighbor interface faces of vertex
+    
+
+}
+
 void segment_function::compute_external_force()
 {
     auto c = _mean_intensities;
     
     // Array to store temporary forces
     // Use fixxed array for better performance. Suppose that we have less than 10000 vertices
-    std::vector<vec3> forces = std::vector<vec3>(30000, vec3(0.0));
+    std::vector<vec3> forces = std::vector<vec3>(_dsc->get_no_nodes_buffer(), vec3(0.0));
     
     // Loop on interface faces
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
@@ -731,7 +739,13 @@ void segment_function::update_average_intensity()
                     
                     try
                     {
-                        auto bc = Util::barycentric_coords<double>(vec3(x+0.5, y+0.5, 0), pts[0], pts[1], pts[2]);
+                        bool bError;
+                        auto bc = Util::barycentric_coords<double>(vec3(x+0.5, y+0.5, 0), pts[0], pts[1], pts[2], &bError);
+                        
+                        if (bError)
+                        {
+                            continue;
+                        }
                         
                         if (bc[0] > -EPSILON && bc[1] > -EPSILON && bc[2] > -EPSILON)
                         { // inside

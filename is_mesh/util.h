@@ -279,7 +279,7 @@ namespace Util
      * Finds the barycentric coordinates of point v in a triangle spanned by the vertices a, b and c.
      */
     template <typename real, typename vec3>
-    inline std::vector<real> barycentric_coords(const vec3& p, const vec3& a, const vec3& b, const vec3& c)
+    inline std::vector<real> barycentric_coords(const vec3& p, const vec3& a, const vec3& b, const vec3& c, bool * error = nullptr)
     {
         vec3 v0 = b - a;
         vec3 v1 = c - a;
@@ -290,6 +290,16 @@ namespace Util
         real d20 = dot(v2, v0);
         real d21 = dot(v2, v1);
         real denom = d00 * d11 - d01 * d01;
+        
+        if(error)
+        {
+            *error = false;
+            if(std::abs(denom) < EPSILON)
+            {
+                *error = true;
+                return std::vector<real>();
+            }
+        }
 #ifdef DEBUG
         assert(std::abs(denom) > EPSILON);
 #endif

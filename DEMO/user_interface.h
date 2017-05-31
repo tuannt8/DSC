@@ -100,7 +100,7 @@ public:
     
 private:
 public:
-    double m_edge_length = 5;
+    double m_edge_length = 7;
     float gl_dis_max;
     vec3 _obj_dim;
     vec3 _dsc_dim; // contain boundary gap

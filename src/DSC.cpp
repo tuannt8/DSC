@@ -304,7 +304,7 @@ template<> void dsc_class::topological_edge_removal_parallel1()
 template<> void dsc_class::smooth_worker(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<node_key> *node_list, int start_idx, int stop_idx)
 {
 //        printf("Thread launched %d to %d \n", start_idx, stop_idx);
-    
+
     // smooth it
     for (int i = start_idx; i < stop_idx; i++)
     {
