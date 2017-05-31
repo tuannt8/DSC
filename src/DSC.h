@@ -153,10 +153,10 @@ namespace DSC {
             return colors;
         }
         
-        std::vector<int> get_colors_cache(is_mesh::SimplexSet<edge_key> nodes)
+        std::vector<int> get_colors_cache(is_mesh::SimplexSet<edge_key> edges)
         {
             std::vector<int> colors;
-            for (auto n : nodes)
+            for (auto n : edges)
             {
                 if(cache.edge_color[n])
                     colors.push_back(*cache.edge_color[n]);
@@ -1324,91 +1324,104 @@ namespace DSC {
          */
         void topological_edge_removal()
         {
+            profile time("Serial edge removal");
 //            profile time("erm - Get low qual tet");
             std::vector<tet_key> tets;
             for (auto tit = tetrahedra_begin(); tit != tetrahedra_end(); tit++)
             {
-#ifdef DSC_CACHE
-                if (quality_cache(tit.key()) < pars.MIN_TET_QUALITY)
-                {
-                    tets.push_back(tit.key());
-                }
-#else
                 if (quality(tit.key()) < pars.MIN_TET_QUALITY)
                 {
                     tets.push_back(tit.key());
                 }
-#endif
             }
-
-            // Attempt to remove each edge of each tetrahedron in tets. Accept if it increases the minimum quality locally.
-            int i = 0, j = 0, k = 0;
+            
+            
+            is_mesh::SimplexSet<edge_key> edge_list;
+            std::vector<bool> touched(allocated_edge(), false);
             for (auto &t : tets)
             {
-//                time.change("erm - check tet again");
-#ifdef DSC_CACHE
-                if (is_unsafe_editable(t) && quality_cache(t) < pars.MIN_TET_QUALITY)
-#else
-                if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
-#endif
+                auto ets = get_edges(t);
+                for (auto e : ets)
                 {
-#ifdef DSC_CACHE
-                    auto ets = get_edges(t);
-                    for (auto e : ets)
+                    if(!touched[e])
                     {
-                        if(is_safe_editable(e))
-                        {
-                            //time.change("erm 1");
-                            if(topological_edge_removal(e))
-                            {
-                                i++;
-                                break;
-                            }
-                        }
-                        else
-                        {
-//                            time.change("erm - flipable");
-                            bool bf = is_flippable(e);
-                            
-                            if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && bf)
-                            {
-//                                time.change("erm - bound rm");
-                                if(topological_boundary_edge_removal(e))
-                                {
-                                    k++;
-                                    break;
-                                }
-                            }
-                        }
+                        edge_list.push_back(e);
                     }
-#else
-                    for (auto e : get_edges(t))
-                    {
-                        if(is_safe_editable(e))
-                        {
-                            if(topological_edge_removal(e))
-                            {
-                                i++;
-                                break;
-                            }
-                        }
-                        else if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && is_flippable(e))
-                        {
-                            if(topological_boundary_edge_removal(e))
-                            {
-                                k++;
-                                break;
-                            }
-                        }
-                    }
-#endif
-                    j++;
+                    touched[e] = true;
                 }
             }
-#ifdef DEBUG
+            
+            std::cout << "Low quality edges: " << edge_list.size() << std::endl;
+            
+            int i = 0, j = 0, k = 0;
+            for (auto e : edge_list)
+            {
+                if (!exists(e))
+                {
+                    std::cout << "Not exist ";
+                    continue;
+                }
+                
+                if(is_safe_editable(e))
+                {
+                    if(topological_edge_removal(e))
+                    {
+                        i++;
+                    }
+                }
+                else
+                {
+                    bool bf = is_flippable(e);
+                    
+                    if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && bf)
+                    {
+                        if(topological_boundary_edge_removal(e))
+                        {
+                            k++;
+                        }
+                    }
+                }
+                
+                j++;
+            }
+            
             std::cout << "Topological edge removals: " << i + k << "/" << j << " (" << k << " at interface)" << std::endl;
-#endif
+            
             garbage_collect();
+            
+
+//            // Attempt to remove each edge of each tetrahedron in tets. Accept if it increases the minimum quality locally.
+//            int i = 0, j = 0, k = 0;
+//            for (auto &t : tets)
+//            {
+////                time.change("erm - check tet again");
+//                if (is_unsafe_editable(t) && quality(t) < pars.MIN_TET_QUALITY)
+//                {
+//                    for (auto e : get_edges(t))
+//                    {
+//                        if(is_safe_editable(e))
+//                        {
+//                            if(topological_edge_removal(e))
+//                            {
+//                                i++;
+//                                break;
+//                            }
+//                        }
+//                        else if(exists(e) && (get(e).is_interface() || get(e).is_boundary()) && is_flippable(e))
+//                        {
+//                            if(topological_boundary_edge_removal(e))
+//                            {
+//                                k++;
+//                                break;
+//                            }
+//                        }
+//                    }
+//                    j++;
+//                }
+//            }
+//            std::cout << "Topological edge removals: " << i + k << "/" << j << " (" << k << " at interface)" << std::endl;
+//            garbage_collect();
+            
         }
         
         //////////////////////////////
@@ -2305,8 +2318,8 @@ namespace DSC {
             
             {
 //                profile t("Fix: Edge remove");
-            topological_edge_removal();
-//            topological_edge_removal_parallel1();
+//            topological_edge_removal();
+            topological_edge_removal_parallel1();
             }
 
             {

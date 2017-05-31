@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include "DSC.h"
 
-#define NUM_THREADS 1
+#define NUM_THREADS 4
 
 using namespace std;
 typedef DSC::DeformableSimplicialComplex<> dsc_class;
@@ -50,30 +50,9 @@ template<> int dsc_class::get_free_color(node_key nk)
 
 template<> int dsc_class::get_free_color(edge_key ek)
 {
-//    if ((size_t)ek == 22014
-//        || (size_t)ek == 9628)
-//    {
-//        auto ffs = get_faces(ek);
-//        is_mesh::SimplexSet<tet_key> tids;
-//        for(const face_key& f : get_faces(ek))
-//        {
-//            tids += get_tets(f);
-//        }
-//        
-//        auto tts = get_tets(ek);
-//        for (auto ts:tts)
-//        {
-//            if ((size_t)ts == 29648)
-//            {
-//                auto eks = get_edges(ts);
-//            }
-//        }
-//    }
-    
     auto nids = get_nodes(ek);
-
-//    auto colors = get_colors_cache(get_edges(get_faces (ek)));
     auto colors = get_colors_cache(get_edges(get_tets(ek)));
+    
 //    auto colors = get_colors_cache(get_edges(get_tets(ek)) + get_edges(nids[0]) + get_edges(nids[1]));
     
 //    auto colors = get_colors_cache(get_edges(get_tets(nids[0]) + get_tets(nids[1])));
@@ -471,7 +450,6 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
         {
             if(dsc->topological_edge_removal(e))
             {
-                break;
             }
         }
         else
@@ -482,7 +460,6 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
             {
                 if(dsc->topological_boundary_edge_removal(e))
                 {
-                    break;
                 }
             }
         }
@@ -555,7 +532,7 @@ template<> void dsc_class::topological_edge_removal_parallel1()
         }
     }
     
-
+    garbage_collect();
 }
 
 

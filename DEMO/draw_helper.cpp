@@ -29,11 +29,10 @@ void draw_helper::dsc_draw_edge(dsc_class &dsc)
     glEnable(GL_LIGHTING);
 }
 
-std::vector<vec3> get_random_color()
+std::vector<vec3> get_random_color(int N = 5)
 {
-    std::vector<vec3> cc = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1), vec3(1, 1, 0), vec3(1,0,1), vec3(0,1,1)};
+    std::vector<vec3> cc = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1), vec3(1, 1, 0), vec3(1,0,1), vec3(0,1,1),};
     size_t Nc = cc.size();
-    int N = 5;
     double dl = 1.0/(double)N;
     for (int i = 0; i < N; i++)
     {
@@ -45,6 +44,39 @@ std::vector<vec3> get_random_color()
     }
     
     return cc;
+}
+
+void draw_helper::dsc_draw_edges_colors(dsc_class & dsc)
+{
+    static std::vector<vec3> colors = get_random_color(10);
+    glPointSize(2.5);
+    glDisable(GL_LIGHTING);
+    glBegin(GL_LINES);
+    int max_color = 0;
+    for (auto eit = dsc.edges_begin(); eit != dsc.edges_end(); eit++)
+    {
+        auto pts = dsc.get_pos(dsc.get_nodes(eit.key()));
+        if(//!eit->is_interface() &&
+           (pts[0][2] < DISPLAY_LIM || pts[1][2] < DISPLAY_LIM))
+           continue;
+        
+        if (dsc.get_color_edge(eit.key()) >= 0)
+        {
+            glColor3dv(colors[dsc.get_color_edge(eit.key())].get());
+            glVertex3dv(pts[0].get());
+            glVertex3dv(pts[1].get());
+            
+            if (max_color < dsc.get_color_edge(eit.key()))
+            {
+                max_color = dsc.get_color_edge(eit.key());
+            }
+        }
+    }
+    
+//    std::cout << max_color << std::endl;
+    
+    glEnd();
+    glEnable(GL_LIGHTING);
 }
 
 void draw_helper::dsc_draw_node_color(dsc_class & dsc)

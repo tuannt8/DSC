@@ -411,7 +411,7 @@ void UI::display()
     update_gl();
     setup_light();
     
-//    draw_helper::dsc_draw_node_color(*dsc);
+
 
     if(mode == 0)
     {
@@ -445,6 +445,28 @@ void UI::display()
         draw_dsc_layer_1(DISPLAY_LIM);
     }
     
+    //    draw_helper::dsc_draw_node_color(*dsc);
+    draw_helper::dsc_draw_edges_colors(*dsc);
+    
+    // test. Get color the first time
+    static bool bRun = false;
+    if (!bRun)
+    {
+        profile t("get color serial");
+        
+        bRun = true;
+        int max_color = 0;
+        for (auto eit = dsc->edges_begin(); eit != dsc->edges_end(); eit++)
+        {
+            if (max_color < dsc->get_color_edge(eit.key()))
+            {
+                max_color = dsc->get_color_edge(eit.key());
+            }
+        }
+        std::cout << max_color << std::endl;
+        
+        
+    }
     
     glutSwapBuffers();
 //    update_title();
