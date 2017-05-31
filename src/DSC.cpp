@@ -237,7 +237,6 @@ template<> void dsc_class::topological_edge_removal_worker(dsc_class *dsc, is_me
                 {
                     if(dsc->topological_edge_removal(e))
                     {
-                        break;
                     }
                 }
                 else
@@ -248,7 +247,6 @@ template<> void dsc_class::topological_edge_removal_worker(dsc_class *dsc, is_me
                     {
                         if(dsc->topological_boundary_edge_removal(e))
                         {
-                            break;
                         }
                     }
                 }
