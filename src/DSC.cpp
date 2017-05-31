@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include "DSC.h"
 
-#define NUM_THREADS 4
+#define NUM_THREADS 6
 
 using namespace std;
 typedef DSC::DeformableSimplicialComplex<> dsc_class;
@@ -214,97 +214,6 @@ void min_quality_parallel(DSC::DeformableSimplicialComplex<> * dsc, const is_mes
 
 
 
-template<> void dsc_class::topological_edge_removal_worker(dsc_class *dsc, is_mesh::SimplexSet<dsc_class::tet_key> *tet_list, int start_idx, int stop_idx)
-{
-    printf("Edge rm, %d to %d\n", start_idx, stop_idx);
-    
-    for (int i = start_idx; i < stop_idx; i++)
-    {
-        tet_key t = (*tet_list)[i];
-        
-        if (!dsc->exists(t))
-        {
-            continue;
-        }
-        
-        if (dsc->quality(t) < dsc->pars.MIN_TET_QUALITY
-            && dsc->is_unsafe_editable(t))
-        {
-            auto ets = dsc->get_edges(t);
-            for (auto e : ets)
-            {
-                if(dsc->is_safe_editable(e))
-                {
-                    if(dsc->topological_edge_removal(e))
-                    {
-                    }
-                }
-                else
-                {
-                    bool bf = dsc->is_flippable(e);
-                    
-                    if(dsc->exists(e) && (dsc->get(e).is_interface() || dsc->get(e).is_boundary()) && bf)
-                    {
-                        if(dsc->topological_boundary_edge_removal(e))
-                        {
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-template<> void dsc_class::topological_edge_removal_parallel()
-{
-    std::vector<is_mesh::SimplexSet<tet_key>> colored_list(MAX_COLORS_TET, is_mesh::SimplexSet<tet_key>());
-    for(auto n =tetrahedra_begin(); n!=tetrahedra_end(); n++)
-    {
-        if (quality(n.key()) < pars.MIN_TET_QUALITY)
-        {
-            int c = get_color_tet(n.key());
-            colored_list[c].push_back(n.key());
-        }
-    }
-    
-    // Start thread
-    // Simple solution first
-    int idx = 0;
-    for (auto & cc : colored_list)
-    {
-        if (cc.size() > 0)
-        {
-            int num_thread = NUM_THREADS;
-            if (cc.size() < 100)
-            {
-                num_thread = 1;
-            }
-            
-            printf("Start threads %d, %d element\n", idx++ , cc.size());
-            
-            std::thread th[NUM_THREADS];
-            int stride = (cc.size())/num_thread + 1;
-            for (int i = 0; i < num_thread; i++)
-            {
-                int start_idx = std::min(i*stride, (int)cc.size()-1);
-                int stop_idx = std::min((int)(i+1)*stride-1, (int)cc.size()-1);
-                
-//                topological_edge_removal_worker(this, &cc, start_idx, stop_idx);
-                th[i] = std::thread(topological_edge_removal_worker, this, &cc, start_idx, stop_idx);
-            }
-            
-            for (int i = 0; i < num_thread; i++)
-            {
-                th[i].join();
-            }
-            
-            printf("Done threads\n");
-        }
-    }
-    
-    garbage_collect();
-}
-
 template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<edge_key> *tet_list, int start_idx, int stop_idx)
 {
     for (int i = start_idx; i < stop_idx; i++)
@@ -314,22 +223,11 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
         {
             continue;
         }
-//        {
-//            std::unique_lock<std::mutex> guard(dsc->m, std::defer_lock);
-//            guard.lock();
-//            if (!dsc->cache.edge_color[e]) // the neighbor has been modified
-//            {
-//                guard.unlock();
-//                continue;
-//            }
-//            guard.unlock();
-//        }
         
         if(dsc->is_safe_editable(e))
         {
             if(dsc->topological_edge_removal(e))
             {
-                break;
             }
         }
         else
@@ -340,7 +238,6 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
             {
                 if(dsc->topological_boundary_edge_removal(e))
                 {
-                    break;
                 }
             }
         }
