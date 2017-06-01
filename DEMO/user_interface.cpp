@@ -416,6 +416,10 @@ void UI::display()
     std::chrono::duration<real> t = std::chrono::system_clock::now() - init_time;
     total_time += t.count();
     init_time = std::chrono::system_clock::now();
+    
+    //Debug
+    is_mesh::NodeKey(656);
+    
 
     //
     if (glut_menu::get_state("Ray line", 0))

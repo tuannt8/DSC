@@ -227,7 +227,10 @@ void draw_helper::update_normal_vector_interface(dsc_class & dsc, int phase, vec
     }
 }
 
-
+void draw_helper::dsc_draw_debug_node(is_mesh::NodeKey nk)
+{
+    
+}
 
 void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
 {

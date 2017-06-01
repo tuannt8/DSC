@@ -69,6 +69,7 @@ private:
     
     std::vector<int> _vertex_stability_map;
     std::vector<vec3> _forces;
+    std::vector<vec3> _internal_forces;
     void compute_external_force();
     void compute_internal_force();
     

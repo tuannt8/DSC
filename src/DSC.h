@@ -431,7 +431,7 @@ namespace DSC {
             }
         }
         
-    private:
+    public:
         
         // For debugging!
         void print(const node_key& n)
@@ -448,7 +448,8 @@ namespace DSC {
                 auto verts = get_pos(get_nodes(e));
                 vec3 p1 = verts[0];
                 vec3 p2 = verts[1];
-                std::cout << p1[0] << ", " << p1[1] << ", " << p1[2] << "; " << std::endl;
+//                std::cout << (int)e << " : ";
+                std::cout << p1[0] << ", " << p1[1] << ", " << p1[2] << "; "<< std::endl;
                 std::cout << p2[0] << ", " << p2[1] << ", " << p2[2] << "; " << std::endl;
             }
             std::cout << "];" << std::endl;
@@ -458,28 +459,31 @@ namespace DSC {
             {
                 if(get(e).is_interface())
                 {
+                    
                     auto verts = get_pos(get_nodes(e));
                     vec3 p1 = verts[0];
                     vec3 p2 = verts[1];
-                    std::cout << p1[0] << ", " << p1[1] << ", " << p1[2] << "; " << std::endl;
+//                    std::cout << (int)e << " : ";
+                    std::cout << p1[0] << ", " << p1[1] << ", " << p1[2] << "; "<< std::endl;
                     std::cout << p2[0] << ", " << p2[1] << ", " << p2[2] << "; " << std::endl;
                 }
             }
             std::cout << "];" << std::endl;
             
-            std::cout << "\nedges = [";
+            std::cout << "\nLink_edges = [";
             auto eids = get_edges(get_tets(n)) - get_edges(n);
             for(auto e : eids)
             {
                 auto verts = get_pos(get_nodes(e));
                 vec3 p1 = verts[0];
                 vec3 p2 = verts[1];
-                std::cout << p1[0] << ", " << p1[1] << ", " << p1[2] << "; " << std::endl;
+//                std::cout << (int)e << " : ";
+                std::cout << p1[0] << ", " << p1[1] << ", " << p1[2] << "; "<< std::endl;
                 std::cout << p2[0] << ", " << p2[1] << ", " << p2[2] << "; " << std::endl;
             }
             std::cout << "];" << std::endl;
             
-            std::cout << "\nIedges = [";
+            std::cout << "\nLink_Iedges = [";
             for(auto e : eids)
             {
                 if(get(e).is_interface())
@@ -490,6 +494,28 @@ namespace DSC {
                     std::cout << p1[0] << ", " << p1[1] << ", " << p1[2] << "; " << std::endl;
                     std::cout << p2[0] << ", " << p2[1] << ", " << p2[2] << "; " << std::endl;
                 }
+            }
+            std::cout << "];" << std::endl;
+            
+            std::cout << "\ntets_center = [";
+            for(auto t : get_tets(n))
+            {
+                auto nds = get_nodes(t);
+                vec3 pt(0.0);
+                for(auto nn : nds)
+                {
+                    pt += get_pos(nn);
+
+                }
+                pt /= 4;
+                std::cout << pt[0] << ", " << pt[1] << ", " << pt[2] << "; " << std::endl;
+            }
+            std::cout << "];" << std::endl;
+            
+            std::cout << "\ntets_label = [";
+            for(auto t : get_tets(n))
+            {
+                std::cout << get_label(t) << "; " << std::endl;
             }
             std::cout << "];" << std::endl;
         }
@@ -587,7 +613,120 @@ namespace DSC {
         // GETTERS //
         /////////////
     public:
- 
+
+        is_mesh::SimplexSet<is_mesh::NodeKey> * extract_node_around( node_key n, is_mesh::SimplexSet<is_mesh::FaceKey> faces)
+        {
+            auto dsc = this;
+            // 1. Build nodes around
+            is_mesh::SimplexSet<is_mesh::NodeKey> * node_around = new is_mesh::SimplexSet<is_mesh::NodeKey>;
+            
+            // Find edges around
+            is_mesh::SimplexSet<is_mesh::EdgeKey> edges_around = get_edges(faces) - get_edges(n);
+
+            // Sort the edge
+            assert(edges_around.size() > 0);
+            auto e0 = edges_around[0];
+            auto n0 = dsc->get_nodes(e0);
+            node_around->push_back(n0[0]);
+            node_around->push_back(n0[1]);
+            edges_around -= e0;
+            
+            while (edges_around.size() > 1)
+            {
+                // find next edge
+                auto n_cur = node_around->back();
+                
+                auto e_n = edges_around.begin();
+                bool found = false;
+                for (; e_n != edges_around.end(); e_n++)
+                {
+                    auto nns = dsc->get_nodes(*e_n);
+                    if (nns[0] == n_cur || nns[1] == n_cur)
+                    {
+                        found = true;
+                        
+                        break;
+                    }
+                }
+                
+                if(!found)
+                {
+                    // irregular surface
+                    return nullptr;
+                }
+                
+                auto nns = dsc->get_nodes(*e_n);
+                node_around->push_back( (nns[0] == n_cur)? nns[1] : nns[0] );
+                
+                edges_around -= *e_n;
+            }
+            
+            return node_around;
+        }
+        
+        is_mesh::SimplexSet<is_mesh::NodeKey> * node_on_one_ring(node_key n)
+        {
+            assert(!get(n).is_crossing() && !get(n).is_boundary());
+            
+            auto dsc = this;
+            // 1. Build nodes around
+            is_mesh::SimplexSet<is_mesh::NodeKey> * node_around = new is_mesh::SimplexSet<is_mesh::NodeKey>;
+            
+            // Find edges around
+            is_mesh::SimplexSet<is_mesh::EdgeKey> edges_around;
+            auto faces = get_faces(n);
+            for (auto f : faces)
+            {
+                if (get(f).is_interface())
+                {
+                    auto edges = dsc->get_edges(f);
+                    for (auto e : edges)
+                    {
+                        auto ns = dsc->get_nodes(e);
+                        if (ns[0] != n && ns[1] != n)
+                        {
+                            edges_around.push_back(e);
+                            break;
+                        }
+                    }
+                }
+            }
+            // Sort the edge
+            assert(edges_around.size() > 0);
+            auto e0 = edges_around[0];
+            auto n0 = dsc->get_nodes(e0);
+            node_around->push_back(n0[0]);
+            node_around->push_back(n0[1]);
+            edges_around -= e0;
+            
+            while (edges_around.size() > 1)
+            {
+                // find next edge
+                auto n_cur = node_around->back();
+                
+                auto e_n = edges_around.begin();
+                bool found = false;
+                for (; e_n != edges_around.end(); e_n++)
+                {
+                    auto nns = dsc->get_nodes(*e_n);
+                    if (nns[0] == n_cur || nns[1] == n_cur)
+                    {
+                        found = true;
+                        
+                        break;
+                    }
+                }
+                
+                assert(found);
+                auto nns = dsc->get_nodes(*e_n);
+                node_around->push_back( (nns[0] == n_cur)? nns[1] : nns[0] );
+                
+                edges_around -= *e_n;
+            }
+            
+            return node_around;
+        }
+
         
         vec3 get_center() const
         {
