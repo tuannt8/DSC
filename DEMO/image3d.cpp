@@ -16,6 +16,8 @@
 #include <istream>
 #include <streambuf>
 
+#include <dirent.h>
+
 using namespace std;
 
 
@@ -31,35 +33,30 @@ image3d::~image3d()
 
 void image3d::load(std::string path)
 {
-
-//     if(!boost::filesystem::exists(path))
-//     {
-//         cout << path << " - Directory  does not exist" << endl;
-//         exit(0);
-//     }
-//    
-//     std::vector<cimg_byte> _images;
-//    
-//     vector<boost::filesystem::path> files;
-//     for ( boost::filesystem::directory_iterator it(path);
-//          it != boost::filesystem::directory_iterator(); ++it )
-//     {
-//         if (it->path().extension() == ".png")
-//         {
-//             files.push_back(it->path());
-//         }
-//     }
-//    
-//     size_t count = files.size();
-//     for (int i = 0; i < count; i++)
-//     {
-//         ostringstream name;
-//         name << path << "/im_" << i << ".png";
-//         files[i] = name.str();
-//     }
+    
+    DIR *dir;
+    struct dirent *ent;
+    int count = 0;
+    if ((dir = opendir (path.c_str())) != NULL) {
+        /* print all the files and directories within directory */
+        while ((ent = readdir (dir)) != NULL) {
+            std::string filename = ent->d_name;
+            if(filename.size() < 4)
+                continue;
+            
+            auto ext = filename.substr(filename.size()-4, filename.size()-1);
+            if(strcasecmp(ext.c_str(), ".PNG") == 0){
+                count++;
+            }
+        }
+        closedir (dir);
+    } else {
+        /* could not open directory */
+        throw "Image directory not found";
+    }
     
     std::vector<string> files;
-    for (int i = 0; i<=100; i++)
+    for (int i = 0; i< count; i++)
     {
         ostringstream is;
         is << path << "/im_" << i << ".png";

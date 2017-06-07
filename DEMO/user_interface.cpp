@@ -31,6 +31,7 @@
 #include <ctime>
 #include <chrono>
 #include <mutex>
+#include <cctype>
 
 #include "profile.h"
 
@@ -146,6 +147,52 @@ void UI::setup_light()
 
 }
 
+extern string config_file;
+void UI::load_config_file()
+{
+    try
+    {
+        // 1. Read the configuration file
+        ifstream infile(config_file);
+        
+        std::map<std::string, std::string> options;
+        
+        for (std::string line; std::getline(infile, line); )
+        {
+            line.erase(std::remove(line.begin(),line.end(),' '),line.end());
+            
+            if (line.empty() || line[0] == '#')
+            {
+                continue;
+            }
+            
+            size_t pos = line.find_first_of("=");
+            if(pos > line.size() -1)
+                throw "Syntax error";
+            
+            string key = line.substr(0, pos);
+            string val = line.substr(pos+1, line.size()-1);
+            
+            options[key] = val;
+        }
+        
+        //2. Set property
+        _seg._directory_path = options["directory-path"];
+        _seg._dt = stof(options["time-step"]);
+        _seg.NB_PHASE = stoi(options["number-of-phase"]);
+        _seg.VARIATION_THRES_FOR_RELABELING = stof(options["Variation-threshold-for-relabeling"]);
+        _seg.ALPHA = stof(options["length-penalty-coefficient"]);
+
+        m_edge_length = stof(options["average-edge-length"]);
+
+    }
+    catch (std::exception e)
+    {
+        cout << "Fail to read config file " << config_file << " with error " << e.what() << endl;
+    }
+
+}
+
 void UI::update_draw_list()
 {
 }
@@ -157,6 +204,9 @@ UI::UI()
 
 void UI::init_data()
 {
+    // Load setting file
+    load_config_file();
+    
     // Load cross sections
     _seg.init();
     _obj_dim = _seg._img.dimension_v();
@@ -567,7 +617,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             profile::close();
             break;
         case 'v':// Change surface type
-            phase_draw = (phase_draw+1) % 3;
+            phase_draw = (phase_draw+1) % _seg.NB_PHASE;
             break;
         case 'u':
             draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);

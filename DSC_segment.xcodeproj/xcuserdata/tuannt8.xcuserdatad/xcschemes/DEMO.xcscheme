@@ -17,7 +17,7 @@
                BlueprintIdentifier = "7AE27B0417675CDA000F8238"
                BuildableName = "DEMO"
                BlueprintName = "DEMO"
-               ReferencedContainer = "container:DSC.xcodeproj">
+               ReferencedContainer = "container:DSC_segment.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>

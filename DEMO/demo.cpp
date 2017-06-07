@@ -30,6 +30,8 @@ string arg_i_num_iters_command = "-max_iter";
 bool arg_b_build_table_origin = true;
 string arg_b_build_table_origin_command = "-build_table";
 
+string config_file = "square_arg.YAML";
+string config_file_command = "-config_file";
 
 
 void parse_arg(int argc, char** argv)
@@ -49,6 +51,10 @@ void parse_arg(int argc, char** argv)
             else if (strcmp(argv[i], arg_b_build_table_origin_command.c_str())==0)
             {
                 arg_b_build_table_origin = false;
+            }
+            else if (strcmp(argv[i], config_file_command.c_str())==0)
+            {
+                config_file = atoi(argv[++i]);;
             }
         }
     }

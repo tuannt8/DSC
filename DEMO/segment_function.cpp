@@ -27,15 +27,9 @@ using namespace std;
 
 void segment_function::init()
 {
-    //_img.load("data/sphere_drill");
-//    _img.load("../Large_data/hamster");
-    cout << "Load 3D data" << endl;
-#ifdef __APPLE__
-    _img.load("../Large_data/fuel_cells_smaller");
-#else
-    _img.load("../../Large_data/fuel_cells_smaller");
-#endif
-    cout << "Done loading " << endl;
+    _img.load(_directory_path);
+
+    cout << "Done loading " << _directory_path << endl;
 }
 
 void segment_function::random_initialization()
@@ -94,7 +88,12 @@ std::vector<int> obstu_recursive(std::vector<int> input, int nb_phase)
 {
     std::vector<int> thres_T1; thres_T1.push_back(0);
     std::vector<int> thres_T2; thres_T2.push_back(255);
-    Obstu_threshold(thres_T1, thres_T2, input, int((nb_phase-1)/2));
+    int nb_iter = int((nb_phase-1)/2);
+    if (nb_iter == 0)
+    {
+        nb_iter = 1;
+    }
+    Obstu_threshold(thres_T1, thres_T2, input, nb_iter);
     
     if (nb_phase %2 == 0)
     {

@@ -15,13 +15,7 @@
 
 #include "define.h"
 
-#define NB_PHASE 3
-
-#define VARIATION_THRES_FOR_RELABELING 0.3
-
-#define ALPHA 0.1 //The coefficient for Mumford-Shah
-
-
+//#define NB_PHASE 3
 
 
 struct intersect_pt
@@ -55,8 +49,14 @@ public:
     
     void segment();
     
-public:
+public:// Configuration parametters
+    int NB_PHASE;
+    double VARIATION_THRES_FOR_RELABELING;
+    double ALPHA;
     double _dt = 1;
+    std::string _directory_path;
+    
+public:// Variables
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
     
