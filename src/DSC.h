@@ -2317,8 +2317,8 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         {
             {
 #ifdef DSC_CACHE
-//                smooth();
-                smooth_parallel();
+                smooth();
+//                smooth_parallel(); // Crash if we move interface vertices
 #else
                 smooth();
 #endif

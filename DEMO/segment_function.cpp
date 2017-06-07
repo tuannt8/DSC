@@ -490,7 +490,10 @@ void segment_function::work_around_on_boundary_vertices()
                 
             }
 //            auto dis = _forces[nid.key()]*_dt;
-            auto dis = _internal_forces[nid.key()]*1;
+//            auto dis = _internal_forces[nid.key()]*1;
+            
+            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
+            
             assert(!isnan(dis.length()));
             
             // limit it
@@ -548,11 +551,6 @@ void segment_function::compute_internal_force()
     {
         if(!(nit->is_interface() && !nit->is_boundary()))
             continue;
-        
-        if((long)nit.key() == 1787)
-        {
-            _dsc->print(nit.key());
-        }
             
         
         auto tets = _dsc->get_tets(nit.key());
