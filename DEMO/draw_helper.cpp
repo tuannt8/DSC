@@ -66,6 +66,102 @@ void draw_helper::draw_image_slice(const image3d & im)
     glEnd();
 }
 
+void RenderString(vec3 pos, const std::string &string)
+{
+    glColor3d(1.0, 0.0, 0.0);
+    glRasterPos3d(pos[0], pos[1], pos[2]);
+    for (int n=0; n<string.size(); ++n) {
+        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_10, string[n]);
+    }
+}
+
+void draw_helper::draw_dsc_interface_vertices_indices( dsc_class &dsc, int phase)
+{
+    std::vector<bool> bIs_interface_nodes(dsc.get_no_nodes_buffer(), false);
+    for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+    {
+        if (f->is_interface() && !f->is_boundary())
+        {
+            auto tets = dsc.get_tets(f.key());
+            if (!(dsc.get_label(tets[0]) == phase
+                  or dsc.get_label(tets[1]) == phase))
+            {
+                continue;
+            }
+            
+#ifdef DSC_CACHE
+            auto nodes=*dsc.get_nodes_cache(f.key());
+#else
+            auto nodes=dsc.get_nodes(f.key());
+#endif
+            for (auto n : nodes)
+            {
+                bIs_interface_nodes[n] = true;
+            }
+        }
+    }
+    
+    for (auto nit = dsc.nodes_begin(); nit != dsc.nodes_end(); nit++)
+    {
+        if (bIs_interface_nodes[nit.key()])
+        {
+            auto pos = nit->get_pos();
+            RenderString(pos, std::to_string((int)nit.key()));
+        }
+    }
+}
+
+void draw_helper::draw_boundary_destination(segment_function &_seg, dsc_class *dsc)
+{
+    glDisable(GL_LIGHTING);
+    glBegin(GL_LINES);
+    glColor3f(1, 0, 0);
+    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+    {
+        if (_seg.d_is_image_boundary[nit.key()])
+        {
+            glVertex3dv(nit->get_pos().get());
+            glVertex3dv((nit->get_pos() + _seg.boundary_vertices_displacements[nit.key()]).get());
+        }
+    }
+    glEnd();
+}
+
+void draw_helper::draw_boundary_direction(segment_function &_seg, dsc_class *dsc)
+{
+    glDisable(GL_LIGHTING);
+    glBegin(GL_LINES);
+    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+    {
+        if (_seg.d_is_image_boundary[nit.key()])
+        {
+            auto state = _seg.d_direction_state[nit.key()];
+            
+            auto a = (state & X_direction).to_ulong();
+            
+            if ((state & X_direction).to_ulong() != 0)
+            {
+                glColor3f(1, 0, 0);
+                glVertex3dv(nit->get_pos().get());
+                glVertex3dv((nit->get_pos() + vec3(4,0,0)).get());
+            }
+            if ((state & Y_direction).to_ulong() != 0)
+            {
+                glColor3f(0, 1, 0);
+                glVertex3dv(nit->get_pos().get());
+                glVertex3dv((nit->get_pos() + vec3(0,4,0)).get());
+            }
+            if ((state & Z_direction).to_ulong() != 0)
+            {
+                glColor3f(0, 0, 1);
+                glVertex3dv(nit->get_pos().get());
+                glVertex3dv((nit->get_pos() + vec3(0,0,4)).get());
+            }
+        }
+    }
+    glEnd();
+}
+
 void draw_helper::draw_coord(float length)
 {
     glBegin(GL_LINES);

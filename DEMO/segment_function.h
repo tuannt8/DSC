@@ -15,7 +15,7 @@
 
 #include "define.h"
 
-//#define NB_PHASE 3
+extern std::bitset<4> X_direction, Y_direction, Z_direction;
 
 
 struct intersect_pt
@@ -86,6 +86,9 @@ public:
     
     // For debuging
     std::vector<vec3> boundary_vertices_displacements;
+    
+    std::vector<unsigned int> d_is_image_boundary;
+    std::vector<std::bitset<4>> d_direction_state;
 };
 
 #endif /* segment_function_hpp */

@@ -23,6 +23,7 @@
 #include "image3d.h"
 #include <stdio.h>
 #include "DSC.h"
+#include "segment_function.h"
 
 #include "define.h"
 
@@ -65,6 +66,13 @@ public:
      */
     static void draw_coord(float length);
     
+    /*
+     Debuging
+     */
+    static void draw_boundary_destination(segment_function &_seg, dsc_class *dsc);
+    static void draw_boundary_direction(segment_function &seg, dsc_class*);
+    
+    static void draw_dsc_interface_vertices_indices(dsc_class&, int phase);
 public:
     CGLA::Vec3i _cur_cross_poss = CGLA::Vec3i(0,0,0);
     

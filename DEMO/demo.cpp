@@ -67,6 +67,15 @@ void parse_arg(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+//    std::bitset<4> a("0001");
+//    std::bitset<4> b("0010");
+//    std::bitset<4> a1 = a | b;
+//    
+//    auto c = a1 & b;
+//    cout << c << " : " << c.to_ulong();
+//    
+//    return 0;
+//    
     parse_arg(argc, argv);
     
     if(arg_b_display)

@@ -23,7 +23,13 @@
 #include <GL/glut.h>
 #endif
 
+
 using namespace std;
+
+
+std::bitset<4> X_direction("0001");
+std::bitset<4> Y_direction("0010");
+std::bitset<4> Z_direction("0100");
 
 void segment_function::init()
 {
@@ -320,24 +326,22 @@ void segment_function::update_vertex_stability()
     }
 }
 
-#define X_direction 0x001
-#define Y_direction 0x010
-#define Z_direction 0x100
 
-inline std::uint8_t get_direction(vec3 a)
+
+inline std::bitset<4> get_direction(vec3 a)
 {
-    std::uint8_t d = 0x0;
+    std::bitset<4> d("0000");
     if (std::abs(a[0]) > 0.8)
     {
-        d = d & X_direction;
+        d = d | X_direction;
     }
     if (std::abs(a[1]) > 0.8)
     {
-        d = d & Y_direction;
+        d = d | Y_direction;
     }
     if (std::abs(a[2]) > 0.8)
     {
-        d = d & Z_direction;
+        d = d | Z_direction;
     }
     
     return d;
@@ -438,7 +442,7 @@ void segment_function::work_around_on_boundary_vertices()
     auto node_mem_size = _dsc->get_no_nodes_buffer();
 #endif
     std::vector<unsigned int> is_bound_vertex(node_mem_size,0);
-    std::vector<std::uint8_t> direction_state(node_mem_size,0x0);
+    std::vector<std::bitset<4>> direction_state(node_mem_size,std::bitset<4>("0000"));
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
         if (fid->is_interface() && !fid->is_boundary())
@@ -449,17 +453,21 @@ void segment_function::work_around_on_boundary_vertices()
             {
                 auto nodes_on_face = _dsc->get_nodes(fid.key());
                 auto norm = _dsc->get_normal(fid.key());
-                std::uint8_t direction = get_direction(norm);
+                std::bitset<4> direction = get_direction(norm);
                 
                 for (auto n : nodes_on_face)
                 {
 //                    bound_nodes += n; //
                     is_bound_vertex[(unsigned int)n] = 1;
-                    direction_state[(unsigned int)n] = direction_state[(unsigned int)n] & direction;
+                    direction_state[(unsigned int)n] = direction_state[(unsigned int)n] | direction;
                 }
             }
         }
     }
+    
+    // For debuging
+    d_direction_state = direction_state;
+    d_is_image_boundary = is_bound_vertex;
     
     // 2. Align the boundary vertices to the boundary
     auto domain_dim = _img.dimension();
@@ -472,12 +480,17 @@ void segment_function::work_around_on_boundary_vertices()
     
     for (auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
     {
+        
         if ( (nid->is_interface() or nid->is_crossing())
-            and _dsc->is_movable(nid.key())
+            && _dsc->exists(nid.key())
             and !nid->is_boundary())
         {
+            if((long)nid.key() == 1787)
+            {
+                
+            }
 //            auto dis = _forces[nid.key()]*_dt;
-            auto dis = _internal_forces[nid.key()]*3;
+            auto dis = _internal_forces[nid.key()]*1;
             assert(!isnan(dis.length()));
             
             // limit it
@@ -491,22 +504,27 @@ void segment_function::work_around_on_boundary_vertices()
             vec3 destination = nid->get_pos() + dis;
             auto threshold = _dsc->get_avg_edge_length();
             // Align boundary
-            if (is_bound_vertex[nid.key()] == 1){
+            if (is_bound_vertex[nid.key()])
+            {
                 auto direct = direction_state[nid.key()];
-                if (direct | X_direction){
-                    destination[0] = (std::abs(destination[0]) < threshold)? 0 : domain_dim[0];
+                auto pos = nid->get_pos();
+                if ((direct & X_direction).to_ulong() != 0)
+                {
+                    destination[0] = (std::abs(pos[0]) < threshold)? 0 : domain_dim[0];
                 }
-                if (direct | Y_direction){
-                    destination[1] = (std::abs(destination[1]) < threshold)? 0 : domain_dim[1];
+                if ((direct & Y_direction).to_ulong() != 0){
+                    destination[1] = (std::abs(pos[1]) < threshold)? 0 : domain_dim[1];
                 }
-                if (direct | Z_direction){
-                    destination[2] = (std::abs(destination[2]) < threshold)? 0 : domain_dim[2];
+                if ((direct & Z_direction).to_ulong() != 0){
+                    destination[2] = (std::abs(pos[2]) < threshold)? 0 : domain_dim[2];
                 }
                 
                 boundary_vertices_displacements[nid.key()] = destination - nid->get_pos();
+                
+                dis = destination - nid->get_pos();
             }
             
-            _dsc->set_destination(nid.key(), nid->get_pos() + dis);
+            _dsc->set_destination(nid.key(), destination);
             
             if (max_displacement_real < dis.length())
             {
@@ -531,12 +549,13 @@ void segment_function::compute_internal_force()
         if(!(nit->is_interface() && !nit->is_boundary()))
             continue;
         
-        if((int)nit.key() == 756)
+        if((long)nit.key() == 1787)
+        {
             _dsc->print(nit.key());
+        }
+            
         
         auto tets = _dsc->get_tets(nit.key());
-        
-//        std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>> connected_region;
         
         while (tets.size() != 0)
         {
@@ -599,32 +618,6 @@ void segment_function::compute_internal_force()
         }
     }
     
-    
-//    
-//    vector<bool> is_image_bound (_dsc->get_no_nodes_buffer(), false);
-//    
-//    for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
-//    {
-//        if(fit->is_interface() && !fit->is_boundary())
-//        {
-//            auto tets = _dsc->get_tets(fit.key());
-//            auto pts = _dsc->get_nodes(fit.key());
-//            
-//            for (auto node : pts)
-//            {
-//                if(_dsc->get_label(tets[0]) != BOUND_LABEL)
-//                    interface_faces_around_node[node][_dsc->get_label(tets[0])] += fit.key();
-//                else
-//                    is_image_bound[node] = true;
-//                
-//                if(_dsc->get_label(tets[1]) != BOUND_LABEL)
-//                    interface_faces_around_node[node][_dsc->get_label(tets[1])] += fit.key();
-//                else
-//                    is_image_bound[node] = true;
-//            }
-//        }
-//    }
-    
     //-----------------
     // Now compute the mean curvature
 //    std::vector<double> node_cur(_dsc->get_no_nodes_buffer(), 0);
@@ -637,22 +630,14 @@ void segment_function::compute_internal_force()
     {
         if(n->is_interface() && !n->is_boundary())
         {
-            if ((int)n.key() == 756)
+            // 1. Build nodes around
+            
+            if((long)n.key() == 1787)
             {
                 
             }
-            // 1. Build nodes around
             
             auto face_around = interface_faces_around_node[n.key()];
-            
-//            std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>> real_face_around;
-//            for (auto fs : face_around)
-//            {
-//                if (fs.size() > 0)
-//                {
-//                    real_face_around.push_back(fs);
-//                }
-//            }
             
             for (auto fs : face_around)
             {

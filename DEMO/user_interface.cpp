@@ -73,6 +73,29 @@ void mouse_(int button, int state, int x, int y){
     UI::get_instance()->mouse(button, state, x, y);
 }
 
+vec3 GetOGLPos(int x, int y)
+{
+    GLint viewport[4];
+    GLdouble modelview[16];
+    GLdouble projection[16];
+    GLfloat winX, winY, winZ;
+    GLdouble posX, posY, posZ;
+    
+    glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
+    glGetDoublev( GL_PROJECTION_MATRIX, projection );
+    glGetIntegerv( GL_VIEWPORT, viewport );
+    
+    winX = (float)x;
+    winY = (float)viewport[3] - (float)y;
+    glReadPixels( x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
+    
+    gluUnProject( winX, winY, winZ, modelview, projection, viewport, &posX, &posY, &posZ);
+    
+//    gluUnProject( x - viewport[0], y-viewport[1], 0, modelview, projection, viewport, &posX, &posY, &posZ);
+    
+    return vec3(posX, posY, posZ);
+}
+
 void UI::mouse(int button, int state, int x, int y)
 {
     if (button == GLUT_LEFT_BUTTON) {
@@ -84,8 +107,16 @@ void UI::mouse(int button, int state, int x, int y)
         if (state == GLUT_UP) {
             moving = 0;
         }
+        
+        if(state == GLUT_UP && glutGetModifiers() == GLUT_ACTIVE_SHIFT)
+        {
+            _mouse_pos = GetOGLPos(x, y);
+            cout << _mouse_pos << endl;
+        }
     }
 }
+
+
 
 void UI::motion(int x, int y)
 {
@@ -97,6 +128,8 @@ void UI::motion(int x, int y)
         starty = y;
         glutPostRedisplay();
     }
+    
+
 }
 
 UI* UI::instance = NULL;
@@ -436,9 +469,9 @@ void UI::update_gl()
     vec3 head = vec3(-sin(angle)*cos(angle2),
                      -sin(angle)*sin(angle2),
                      cos(angle));
-    gluLookAt(eye[0], eye[1], eye[2], /* eye is at (0,8,60) */
-              center[0], center[1], center[2],      /* center is at (0,8,0) */
-              head[0], head[1], head[2]);      /* up is in postivie Y direction */
+    gluLookAt(eye[0], eye[1], eye[2],
+              center[0], center[1], center[2],
+              head[0], head[1], head[2]);
     
     int size = std::min(WIN_SIZE_Y, WIN_SIZE_X);
     glViewport((WIN_SIZE_X-size)/2.0, (WIN_SIZE_Y-size)/2.0, size, size);
@@ -446,6 +479,7 @@ void UI::update_gl()
     glClearColor(1.0, 1.0, 1.0, 1.0);
     
     eye_pos = eye;
+    center_pos = center;
 }
 
 void UI::display()
@@ -466,10 +500,6 @@ void UI::display()
     std::chrono::duration<real> t = std::chrono::system_clock::now() - init_time;
     total_time += t.count();
     init_time = std::chrono::system_clock::now();
-    
-    //Debug
-    is_mesh::NodeKey(656);
-    
 
     //
     if (glut_menu::get_state("Ray line", 0))
@@ -569,10 +599,21 @@ void UI::display()
         draw_helper::draw_image_slice(_seg._img);
     }
     
-    // Debug boundary force
+    if (glut_menu::get_state("Draw boundary direction", 0))
+    {
+        draw_helper::draw_boundary_direction(_seg, &*dsc);
+    }
     
-    // End debug
+    if (glut_menu::get_state("Draw boundary destination", 0))
+    {
+        draw_helper::draw_boundary_destination(_seg, &*dsc);
+    }
     
+    if (glut_menu::get_state("Interface Vertices indices", 0))
+    {
+        draw_helper::draw_dsc_interface_vertices_indices(*dsc, phase_draw);
+    }
+  
     glutSwapBuffers();
     
     std::ostringstream os;

@@ -45,6 +45,8 @@ public:
     std::string model_file_name = "armadillo";
     
     vec3 eye_pos = {70., 30., 70.};
+    vec3 center_pos; // look at
+    
     vec3 camera_pos = {30., 30., 70.};
     vec3 light_pos = {0., 0., 70.};
     
@@ -109,6 +111,8 @@ public:
     GLfloat angle2 = 30;   /* in degrees */
     int moving, startx, starty;
     int animation = 1;
+    
+    vec3 _mouse_pos;
     
     int phase_draw = 0;//Which phase to draw the interface
     void init_dsc();
