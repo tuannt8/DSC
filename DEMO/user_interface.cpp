@@ -177,6 +177,8 @@ void UI::setup_light()
 
 }
 
+int num_images;
+
 extern string config_file;
 void UI::load_config_file()
 {
@@ -214,6 +216,8 @@ void UI::load_config_file()
         _seg.ALPHA = stof(options["length-penalty-coefficient"]);
 
         m_edge_length = stof(options["average-edge-length"]);
+        
+        num_images = stoi(options["number_images"]);
 
     }
     catch (std::exception e)

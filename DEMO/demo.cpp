@@ -36,6 +36,7 @@ string config_file = "fuel_cells_smaller.properties";
 string config_file_command = "-config_file";
 
 
+
 void parse_arg(int argc, char** argv)
 {
     try

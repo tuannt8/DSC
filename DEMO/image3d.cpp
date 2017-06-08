@@ -31,12 +31,15 @@ image3d::~image3d()
 
 }
 
+extern int num_images;
 void image3d::load(std::string path)
 {
-    
+    int count = num_images;
+    if(num_images == 0)
+    {
     DIR *dir;
     struct dirent *ent;
-    int count = 0;
+
     if ((dir = opendir (path.c_str())) != NULL) {
         /* print all the files and directories within directory */
         while ((ent = readdir (dir)) != NULL) {
@@ -53,6 +56,9 @@ void image3d::load(std::string path)
     } else {
         /* could not open directory */
         throw "Image directory not found";
+    }
+    
+    std::cout << "Found " << count << " images " << std::endl;
     }
     
     std::vector<string> files;
