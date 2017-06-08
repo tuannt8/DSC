@@ -33,6 +33,8 @@ extern bool arg_b_build_table_origin;
 
 #define LOG_DEBUG
 
+#define PARALLEL_SMOOTH
+
 using namespace std;
 
 struct parameters {
@@ -2317,8 +2319,12 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         {
             {
 #ifdef DSC_CACHE
+#ifdef PARALLEL_SMOOTH
+                smooth_parallel(); // Crash if we move interface vertices
+#else
                 smooth();
-//                smooth_parallel(); // Crash if we move interface vertices
+#endif
+
 #else
                 smooth();
 #endif
@@ -3191,8 +3197,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             
             for (auto f : fids)
             {
-#ifdef DSC_CACHE
-                
+#if defined(DSC_CACHE) && !defined(PARALLEL_SMOOTH)
                 is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(f);
 #else
                 is_mesh::SimplexSet<node_key> nids = get_nodes(f);

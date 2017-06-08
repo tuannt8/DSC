@@ -539,7 +539,7 @@ void segment_function::work_around_on_boundary_vertices()
     cout << "Max displacement: " << max_displacement_real << endl;
 }
 
-// Discrete Differential-Geometry Oper ators for Triangulated 2-Manifolds
+// Discrete Differential-Geometry Operators for Triangulated 2-Manifolds
 void segment_function::compute_internal_force()
 {
  
