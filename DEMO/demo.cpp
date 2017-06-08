@@ -30,7 +30,7 @@ string arg_i_num_iters_command = "-max_iter";
 bool arg_b_build_table_origin = true;
 string arg_b_build_table_origin_command = "-build_table";
 
-string config_file = "square_arg.YAML";
+string config_file = "square_round_arg.properties";
 string config_file_command = "-config_file";
 
 
@@ -67,15 +67,7 @@ void parse_arg(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-//    std::bitset<4> a("0001");
-//    std::bitset<4> b("0010");
-//    std::bitset<4> a1 = a | b;
-//    
-//    auto c = a1 & b;
-//    cout << c << " : " << c.to_ulong();
-//    
-//    return 0;
-//    
+ 
     parse_arg(argc, argv);
     
     if(arg_b_display)

@@ -145,32 +145,29 @@ void UI::setup_light()
     GLfloat light_position[] = { (GLfloat)eye[0], (GLfloat)eye[1], (GLfloat)eye[2], 0.0 };
     glShadeModel (GL_SMOOTH);
     
-    GLfloat amb = 0.2, diff = 0.3, spec = 0.6;
-    
-    //PointLight(10,10,10);
-    //PointLight(0,0,0, 0, 1, 1);
+    GLfloat amb = 0.2, diff = 1., spec = 1.;
     
     GLfloat light_ambient[] = { amb,amb,amb, 1.0 };
     GLfloat light_diffuse[] = {diff, diff, diff, 1.0 };
     GLfloat light_specular[] = {spec, spec, spec, 1.0 };
     
-    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+//    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+//    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+//    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
     
-    GLfloat g_amb = .2;
-    GLfloat global_ambient[] = {g_amb, g_amb, g_amb, 0.1};
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
+//    GLfloat g_amb = .0;
+//    GLfloat global_ambient[] = {g_amb, g_amb, g_amb, 0.1};
+//    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
     
     
-    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-    GLfloat mat_shininess[] = { 50.0 };
-    
+//    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+//    GLfloat mat_shininess[] = { 5.0 };
+//    
 //    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 //    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
     
