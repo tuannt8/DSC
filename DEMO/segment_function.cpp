@@ -378,6 +378,12 @@ double segment_function::get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, in
     return energy;
 }
 
+void segment_function::adapt_tetrahedra()
+{
+    // Split tetrahedron if there is something inside
+    
+}
+
 void segment_function::relabel_tetrahedra()
 {
     cout << "Relabeling --" << endl;
@@ -1056,6 +1062,9 @@ void segment_function::update_average_intensity()
                     {
                         int z1 = intersect_ps[2*j].z;
                         int z2 = intersect_ps[2*j + 1].z;
+                        
+                        if(z2 < z1)
+                            z2 = z1;
                         
                         area[i] += z2 - z1;
                         _mean_intensities[i] += _img.sum_line_z(r.x, r.y, z1, z2);

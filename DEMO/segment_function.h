@@ -84,6 +84,7 @@ private:
     void relabel_tetrahedra();
     
     void face_split();
+    void adapt_tetrahedra();
 public:
     std::vector<ray_z> _d_rayz;
     
