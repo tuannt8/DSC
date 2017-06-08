@@ -44,39 +44,45 @@ namespace is_mesh {
     {
         std::ifstream file(filename.data());
         
-        while (!file.eof())
+        if (file.is_open())
         {
-            char c;
-            file >> c;
-            if (c == 'v')
+            while (!file.eof())
             {
-                real x,y,z; // The (x,y,z) coordinates of a vertex.
-                file >> x;
-                file >> y;
-                file >> z;
-                points.push_back(vec3(x,y,z));
+                char c;
+                file >> c;
+                if (c == 'v')
+                {
+                    real x,y,z; // The (x,y,z) coordinates of a vertex.
+                    file >> x;
+                    file >> y;
+                    file >> z;
+                    points.push_back(vec3(x,y,z));
+                }
+                else if (c == 't')
+                {
+                    int v1, v2, v3, v4; // The indeces of the four vertices of a tetrahedron.
+                    int label; // The label of a tetrahedron.
+                    file >> v1;
+                    file >> v2;
+                    file >> v3;
+                    file >> v4;
+                    file >> label;
+                    
+                    tets.push_back(v1);
+                    tets.push_back(v2);
+                    tets.push_back(v3);
+                    tets.push_back(v4);
+                    
+                    tet_labels.push_back(label);
+                }
+                c = '\n';
             }
-            else if (c == 't')
-            {
-                int v1, v2, v3, v4; // The indeces of the four vertices of a tetrahedron.
-                int label; // The label of a tetrahedron.
-                file >> v1;
-                file >> v2;
-                file >> v3;
-                file >> v4;
-                file >> label;
-                
-                tets.push_back(v1);
-                tets.push_back(v2);
-                tets.push_back(v3);
-                tets.push_back(v4);
-                
-                tet_labels.push_back(label);
-            }
-            c = '\n';
+            file.close();
+    //        scale(points, 3.);
         }
-        file.close();
-//        scale(points, 3.);
+        else{
+            std::cout << "--Error loading file: " << filename << std::endl;
+        }
     }
     
     void import_surface_mesh(const std::string& filename, std::vector<vec3>& points, std::vector<int>& faces)

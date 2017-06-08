@@ -30,8 +30,9 @@ string arg_i_num_iters_command = "-max_iter";
 bool arg_b_build_table_origin = true;
 string arg_b_build_table_origin_command = "-build_table";
 
-//string config_file = "fuel_cells_smaller.properties";
-string config_file = "square_arg.properties";
+string config_file = "fuel_cells_smaller.properties";
+//string config_file = "square_arg.properties";
+//string config_file = "square_round_arg.properties";
 string config_file_command = "-config_file";
 
 

@@ -105,21 +105,34 @@ void image3d::load(std::string path)
 void image3d::build_sum_table()
 {
     _sum_table.resize(_voxels.size());
-
-    for (int z = 0; z < _dim[2]; z++)
+// This code is for rectagle integration
+//    for (int z = 0; z < _dim[2]; z++)
+//    {
+//        for (int y = 0; y < _dim[1]; y++)
+//        {
+//            for (int x = 0; x < _dim[0]; x++)
+//            {
+//                auto vv = _voxels[index(x, y, z)];
+//                double v = _voxels[index(x, y, z)]
+//                    + sum_area(x, y, z-1)
+//                    + sum_area(x-1, y, z) - sum_area(x-1, y, z-1)
+//                    + sum_area(x, y-1, z) - sum_area(x, y-1, z - 1)
+//                    - (sum_area(x-1, y-1, z) - sum_area(x-1, y-1, z-1));
+//                _sum_table[index(x, y, z)] = v;
+//                assert(v >= 0);
+//            }
+//        }
+//    }
+    
+    // We just need line integration
+    for (int x = 0; x < _dim[0]; x++)
     {
-        for (int y = 0; y < _dim[1]; y++)
+        for(int y = 0; y < _dim[1]; y++)
         {
-            for (int x = 0; x < _dim[0]; x++)
+            _sum_table[index(x, y, 0)] = _voxels[index(x, y, 0)];
+            for (int z = 1; z < _dim[2]; z++)
             {
-                auto vv = _voxels[index(x, y, z)];
-                double v = _voxels[index(x, y, z)]
-                    + sum_area(x, y, z-1)
-                    + sum_area(x-1, y, z) - sum_area(x-1, y, z-1)
-                    + sum_area(x, y-1, z) - sum_area(x, y-1, z - 1)
-                    - (sum_area(x-1, y-1, z) - sum_area(x-1, y-1, z-1));
-                _sum_table[index(x, y, z)] = v;
-                assert(v >= 0);
+                _sum_table[index(x, y, z)] = _sum_table[index(x, y, z-1)] + _voxels[index(x, y, z)];
             }
         }
     }
@@ -127,10 +140,28 @@ void image3d::build_sum_table()
 
 double image3d::sum_line_z(int x, int y, int z1, int z2)
 {
-    double l2 = sum_area(x, y, z2) - sum_area(x-1, y, z2) - sum_area(x, y - 1, z2) + sum_area(x-1, y - 1, z2);
-    double l1 = sum_area(x, y, z1) - sum_area(x-1, y, z1) - sum_area(x, y - 1, z1) + sum_area(x-1, y - 1, z1);
+//    double l2 = sum_area(x, y, z2) - sum_area(x-1, y, z2) - sum_area(x, y - 1, z2) + sum_area(x-1, y - 1, z2);
+//    double l1 = sum_area(x, y, z1) - sum_area(x-1, y, z1) - sum_area(x, y - 1, z1) + sum_area(x-1, y - 1, z1);
+//
+//    return l2 - l1;
+    
+    assert(x >= 0 && x < _dim[0]
+           && y >= 0 && y < _dim[1]
+           && z1 >= 0
+           && z2 >= z1); // Tuan: Remove it later for performance
+    
+    if (z2 >= _dim[2])
+    {
+        z2 = _dim[2] -1;
+        
+        if (z1 >= _dim[2])
+        {
+            z1 = _dim[2] - 1;
+        }
+    }
 
-    return l2 - l1;
+    
+    return _sum_table[index(x, y, z2)] - _sum_table[index(x, y, z1)];
 }
 
 double image3d::sum_area(int x, int y, int z)

@@ -2659,6 +2659,20 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         }
         
         /**
+         Split a faces for segmentation
+         */
+        void split_face(const face_key& fid)
+        {
+            is_mesh::SimplexSet<edge_key> eids = get_edges(fid);
+            edge_key eid = longest_edge(eids);
+            // Check if the edge is too short
+            if(length(eid) > pars.MIN_EDGE_QUALITY * AVG_LENGTH)
+            {
+                split(eid);
+            }
+        }
+        
+        /**
          * Split a face f and returns the new node which is positioned at the barycenter of the vertices of f.
          */
         void split(const face_key& fid)

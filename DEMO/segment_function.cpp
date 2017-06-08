@@ -513,13 +513,13 @@ void segment_function::work_around_on_boundary_vertices()
                 auto pos = nid->get_pos();
                 if ((direct & X_direction).to_ulong() != 0)
                 {
-                    destination[0] = (std::abs(pos[0]) < threshold)? 0 : domain_dim[0];
+                    destination[0] = (std::abs(pos[0]) < threshold)? 0 : domain_dim[0] - 1;
                 }
                 if ((direct & Y_direction).to_ulong() != 0){
-                    destination[1] = (std::abs(pos[1]) < threshold)? 0 : domain_dim[1];
+                    destination[1] = (std::abs(pos[1]) < threshold)? 0 : domain_dim[1] -1;
                 }
                 if ((direct & Z_direction).to_ulong() != 0){
-                    destination[2] = (std::abs(pos[2]) < threshold)? 0 : domain_dim[2];
+                    destination[2] = (std::abs(pos[2]) < threshold)? 0 : domain_dim[2] -1;
                 }
                 
                 boundary_vertices_displacements[nid.key()] = destination - nid->get_pos();
@@ -819,59 +819,73 @@ void segment_function::face_split()
     auto c = _mean_intensities;
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (fid->is_interface())
+        if (_dsc->exists(fid.key()) && fid->is_interface())
         {
-            // check if it is stable first
-            auto nodes = _dsc->get_nodes(fid.key());
-            if (!(_vertex_stability_map[nodes[0]] == 1
-                and _vertex_stability_map[nodes[1]] == 1
-              and _vertex_stability_map[nodes[2]] == 1))
+            auto tets = _dsc->get_tets(fid.key());
+            if (_dsc->get_label(tets[0]) == BOUND_LABEL ||
+                _dsc->get_label(tets[1]) == BOUND_LABEL )
             {
+                // Ignore the faces on the boundary.
+                // This ignorian should be considered later
+                // We may also assess the boundary faces
                 continue;
             }
             
-            double var = 0.0;
-            // Normal
-            auto tets = _dsc->get_tets(fid.key());
             auto verts = _dsc->get_nodes(fid.key());
             auto pts = _dsc->get_pos(verts);
             
             double c0 = c[_dsc->get_label(tets[0])];
             double c1 = c[_dsc->get_label(tets[1])];
             
-            vec3 Norm = _dsc->get_normal(fid.key());
-            auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
-            Norm = Norm*dot(Norm, l01);// modify normal direction
-            Norm.normalize();
-            
             // Discretize the face
             double area = Util::area<double>(pts[0], pts[1], pts[2]);
             
-            size_t n = std::ceil( sqrt(area) );
-            if (n >= tri_coord_size.size())
+            size_t tri_sample_index = std::ceil( sqrt(area) ) - 1;
+            if (tri_sample_index >= tri_coord_size.size())
             {
-                n = tri_coord_size.size() - 1;
+                tri_sample_index = tri_coord_size.size() - 1;
+            }
+            if(tri_sample_index < 1)tri_sample_index = 1;
+            
+            auto a = tri_dis_coord[tri_sample_index - 1];
+            
+            if(a.size() > 1 && a.size() > _dsc->area(fid.key()))
+            {
+                std::cout << "--Error in triangle decomposition. Each sample point represents the area < 1 pixel^2 ----: "
+                << a.size() << " - " << _dsc->area(fid.key()) << std::endl;
             }
             
-            auto a = tri_dis_coord[n - 1];
+            std::vector<double> forces_distribute(a.size(), 0.0);
+            int idx = 0;
+            
             for (auto coord : a)
             {
                 auto p = get_coord_tri(pts, coord);
                 auto g = _img.get_value_f(p);
                 
-                //                auto f = - Norm* ((c1 - c0)*(2*g - c0 - c1) / area);
-                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area);
+                auto f = - ((2*g - c0 - c1) / (c1-c0) / area);
                 
-                // add
-                var += f.length();
+                forces_distribute[idx++] = f;
             }
             
-            var = var / a.size();
-            
-            if (var > 0.1) // The face want to move
+            /*
+             Analyze the force distribution
+             */
+            double magnitude_mean = 0, signed_mean = 0;
+            for (auto & force : forces_distribute)
             {
-                cout << "Split face " << fid.key() << ", var = " << var << endl;
-                _dsc->split(fid.key());
+                magnitude_mean += std::abs(force);
+                signed_mean += force;
+            }
+            
+            magnitude_mean /= forces_distribute.size();
+            signed_mean /= forces_distribute.size();
+            
+            if(std::abs(signed_mean) < ratio_signed_and_mag_mean * magnitude_mean )
+            {
+                // This face cover an inhomogineous area
+                // Consider split it
+                _dsc->split_face(fid.key());
             }
         }
     }
@@ -972,11 +986,18 @@ void segment_function::update_average_intensity()
                         { // inside
                             auto p = pts3[0]*bc[0] + pts3[1]*bc[1] + pts3[2]*bc[2];
                             
+                            auto zz = std::nearbyint(p[2]);
                             
                             if(phase0 != BOUND_LABEL)
-                                ray_intersect[phase0][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), !in_1));
+                            {
+                                ray_intersect[phase0][y*dim[0] + x].intersects.push_back(intersect_pt(zz, !in_1));
+                                
+                            }
                             if(phase1 != BOUND_LABEL)
-                                ray_intersect[phase1][y*dim[0] + x].intersects.push_back(intersect_pt(std::floor(p[2]), in_1));
+                            {
+                                ray_intersect[phase1][y*dim[0] + x].intersects.push_back(intersect_pt(zz, in_1));
+                                
+                            }
                         }
                     }
                     catch (std::exception e)
@@ -993,7 +1014,7 @@ void segment_function::update_average_intensity()
     
     std::fill(_mean_intensities.begin(), _mean_intensities.end(), 0.0);
     vector<double> area(_mean_intensities.size(), 0.0);
-    for (int i = 0; i < nb_phase; i++) // we dont compute the background
+    for (int i = 0; i < nb_phase; i++)
     {
         int count = 0;
         for (auto r : ray_intersect[i])
@@ -1034,7 +1055,9 @@ void segment_function::update_average_intensity()
                         area[i] += z2 - z1;
                         _mean_intensities[i] += _img.sum_line_z(r.x, r.y, z1, z2);
                         
-                    
+                        if(_img.sum_line_z(r.x, r.y, z1, z2) < 0){
+                            _img.sum_line_z(r.x, r.y, z1, z2);
+                        }
                     }
                 }
                 else{}//???
@@ -1057,7 +1080,7 @@ void segment_function::update_average_intensity()
     cout << "Mean intensity: ";
     for (int i = 0; i < nb_phase; i++)
     {
-        cout << _mean_intensities[i] << " -- ";
+        cout << _mean_intensities[i] << " ; ";
     }
     cout << endl;
 
@@ -1094,7 +1117,8 @@ void segment_function::segment()
      */
     if (iteration % 5 == 0)
     {
-//        relabel_tetrahedra();
+        face_split();
+        relabel_tetrahedra();
     }
     
     t.done();

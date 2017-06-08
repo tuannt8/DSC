@@ -242,7 +242,7 @@ void UI::init_data()
     _obj_dim = _seg._img.dimension_v();
     _dsc_dim = _obj_dim + vec3(2*m_edge_length);
     
-    cout << "Image dimension" << _obj_dim[0] << " " << _obj_dim[1] << " " <<  _obj_dim[2] << " " ;
+    cout << "Image dimension " << _obj_dim[0] << " " << _obj_dim[1] << " " <<  _obj_dim[2] << " " ;
     
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
@@ -381,6 +381,11 @@ void UI::init_dsc()
     
         cout << "Compute point" << NX << " " << NY << " " << NZ << "\n";
 
+    double deltax = _dsc_dim[0]/(double)(NX-1);
+    double deltay = _dsc_dim[1]/(double)(NY - 1);
+    double deltaz = _dsc_dim[2]/(double)(NZ - 1);
+    
+    
     // points
     for (int iz = 0; iz < NZ; iz++)
     {
@@ -388,7 +393,7 @@ void UI::init_dsc()
         {
             for (int ix = 0; ix < NX; ix++)
             {
-                points.push_back(vec3(ix, iy, iz)*delta - vec3(m_edge_length));
+                points.push_back(vec3(ix*deltax, iy*deltay, iz*deltaz) - vec3(m_edge_length));
             }
         }
     }
@@ -519,6 +524,11 @@ void UI::display()
         glEnd();
         glEnable(GL_LIGHTING);
     }
+    
+    if (glut_menu::get_state("Triple interface", 0))
+    {
+        draw_helper::draw_triple_interface(*dsc);
+    }
 
     if (glut_menu::get_state("Ray cross section", 0))
     {
@@ -549,13 +559,13 @@ void UI::display()
         draw_helper::dsc_draw_one_interface(*dsc, phase_draw);
     }
 
-    if (glut_menu::get_state("Draw tripple edge", 0))
-    {
-        glDisable(GL_CULL_FACE);
-        glEnable(GL_LIGHTING);
-        glColor3f(1, 0, 0);
-        draw_helper::dsc_draw_triple_edge(*dsc);
-    }
+//    if (glut_menu::get_state("Draw tripple edge", 0))
+//    {
+//        glDisable(GL_CULL_FACE);
+//        glEnable(GL_LIGHTING);
+//        glColor3f(1, 0, 0);
+//        draw_helper::dsc_draw_triple_edge(*dsc);
+//    }
 
 
     if (glut_menu::get_state("Draw DSC edges", 0))
@@ -650,6 +660,9 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case 's':
             save_model();
+            break;
+        case 'l':
+            load_model("./LOG/fuelcells_smaller0.dsc");
             break;
         case 'p':// Display time counter
             profile::close();

@@ -73,6 +73,8 @@ public:
     static void draw_boundary_direction(segment_function &seg, dsc_class*);
     
     static void draw_dsc_interface_vertices_indices(dsc_class&, int phase);
+    
+    static void draw_triple_interface(dsc_class &);
 public:
     CGLA::Vec3i _cur_cross_poss = CGLA::Vec3i(0,0,0);
     

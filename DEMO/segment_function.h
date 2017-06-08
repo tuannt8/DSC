@@ -56,6 +56,9 @@ public:// Configuration parametters
     double _dt = 1;
     std::string _directory_path;
     
+    // Face plit
+    double ratio_signed_and_mag_mean = 0.2;
+    
 public:// Variables
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc

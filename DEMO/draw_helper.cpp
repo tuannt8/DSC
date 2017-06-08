@@ -376,6 +376,43 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
     }
 }
 
+void draw_helper::draw_triple_interface(dsc_class &dsc)
+{
+    std::vector<double> is_triple_edges(dsc.get_no_edges_buffer(), 0);
+    for (auto fit = dsc.faces_begin(); fit != dsc.faces_end(); fit++)
+    {
+        if(fit->is_interface())
+        {
+            auto tets = dsc.get_tets(fit.key());
+            double w = 1;
+            if(dsc.get_label(tets[0]) == BOUND_LABEL || dsc.get_label(tets[1]) == BOUND_LABEL)
+            {
+                w = 0.4;
+            }
+            
+            for(auto e : dsc.get_edges(fit.key()))
+            {
+                is_triple_edges[e] += w;
+            }
+        }
+        
+    }
+    
+    glDisable(GL_LIGHTING);
+    glBegin(GL_LINES);
+    glColor3f(1, 0, 0);
+    for (auto eit = dsc.edges_begin(); eit != dsc.edges_end(); eit++)
+    {
+        if (is_triple_edges[eit.key()] > 2)
+        {
+            auto pts = dsc.get_pos(dsc.get_nodes(eit.key()));
+            glVertex3dv(pts[0].get());
+            glVertex3dv(pts[1].get());
+        }
+    }
+    glEnd();
+}
+
 void draw_helper::dsc_draw_interface(dsc_class & dsc)
 {
     for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
