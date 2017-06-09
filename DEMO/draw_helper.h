@@ -51,11 +51,14 @@ public:
     static std::vector<vec3> node_normal_vector;
     static void update_normal_vector_interface(dsc_class & dsc, int phase, vec3 eye_pos);
     static void dsc_draw_one_interface(dsc_class & dsc, int phase);
+    static void dsc_draw_one_interface_edge(dsc_class & dsc, int phase);
     
     static void dsc_draw_interface(dsc_class & dsc);
     static void dsc_draw_interface_edge(dsc_class & dsc);
     static void dsc_draw_face_norm(dsc_class & dsc);
     static void dsc_draw_triple_edge(dsc_class & dsc);
+    
+    static void dsc_draw_node_arrow(dsc_class & dsc, std::vector<vec3> arrow);
     
     static void save_painting(int WIDTH, int HEIGHT, std::string folder = std::string("LOG"));
     

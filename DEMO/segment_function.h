@@ -53,6 +53,7 @@ public:// Configuration parametters
     int NB_PHASE;
     double VARIATION_THRES_FOR_RELABELING;
     double ALPHA;
+    double QALPHA = 0.2;
     double _dt = 1;
     std::string _directory_path;
     
@@ -63,7 +64,7 @@ public:// Variables
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
     
-private:
+public:
     std::vector<double> _mean_intensities;
     std::vector<double> _total_intensities; // To update mean intensity during relabeling
     std::vector<double> _phase_volume;
@@ -73,8 +74,12 @@ private:
     std::vector<int> _vertex_stability_map;
     std::vector<vec3> _forces;
     std::vector<vec3> _internal_forces;
+    std::vector<vec3> _quality_control_forces; // curvature based force
+    std::vector<vec3> _quality_angle_forces; // angle based
+    
     void compute_external_force();
     void compute_internal_force();
+    void compute_mesh_quality_control_force();
     
     void work_around_on_boundary_vertices();
     void update_vertex_stability();

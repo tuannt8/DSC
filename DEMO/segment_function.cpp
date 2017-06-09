@@ -231,7 +231,9 @@ void segment_function::initialization_discrete_opt()
             continue;
         }
         
-        const int mean_inten_tet = (int)(mean_inten_per_tet[tit.key()]*255);
+        int mean_inten_tet = (int)(mean_inten_per_tet[tit.key()]*255);
+        if(mean_inten_tet >= 255) mean_inten_tet = 254;
+        
         int label = 0;
         for (; label < thres_hold_array.size(); label++)
         {
@@ -240,7 +242,7 @@ void segment_function::initialization_discrete_opt()
                 break;
             }
         }
-        
+        assert(label < NB_PHASE+1);
         _dsc->set_label(tit.key(), label-1); // -1 because the thres_array start from threshold = 0
     }
 }
@@ -496,14 +498,12 @@ void segment_function::work_around_on_boundary_vertices()
             && _dsc->exists(nid.key())
             and !nid->is_boundary())
         {
-            if((long)nid.key() == 1787)
-            {
-                
-            }
 //            auto dis = _forces[nid.key()]*_dt;
 //            auto dis = _internal_forces[nid.key()]*1;
             
-            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
+            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()] + _quality_control_forces[nid.key()]*QALPHA)*_dt;
+            
+//            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
             
             assert(!isnan(dis.length()));
             
@@ -548,6 +548,112 @@ void segment_function::work_around_on_boundary_vertices()
     }
     
     cout << "Max displacement: " << max_displacement_real << endl;
+}
+
+void segment_function::compute_mesh_quality_control_force()
+{
+    // Adaptive force based on curvature
+    std::vector<vec3> adaptive_force(_dsc->get_no_nodes_buffer(), vec3(0));
+    
+    for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface() && !nit->is_crossing() && !nit->is_boundary())
+        {
+#ifdef DSC_CACHE
+            auto nodes_around = *_dsc->get_nodes_cache(nit.key());
+#else
+            auto tids1 = get_tets(nid);
+            auto fids1 = get_faces(tids1) - get_faces(nid);
+            auto nodes_around = get_nodes(fids1);
+#endif
+            
+            // It may be more complicated
+            
+            auto node_curvature = _internal_forces[nit.key()].length();
+            int count = 0;
+            vec3 ff(0.0);
+            for (int idx = 0; idx < nodes_around.size(); idx++)
+            {
+                auto curvature =  _internal_forces[nodes_around[idx]].length();
+                if(curvature > node_curvature)
+                {
+                    auto direct = _dsc->get_pos(nodes_around[idx]) - _dsc->get_pos(nit.key());
+//                    double shortest_edge = _dsc->pars.MIN_EDGE_QUALITY*_dsc->AVG_LENGTH;
+//                    if (direct.length() > shortest_edge)
+//                    {
+//                        direct = Util::normalize(direct)*(direct.length() - shortest_edge);
+//                    }
+                    ff += direct*(curvature - node_curvature);
+                    count++;
+                    
+                    // What is its counter forces?
+                }
+            }
+            
+            if(count > 0)
+            {
+                ff = ff *0.1/ count;
+                adaptive_force[nit.key()] = ff;
+            }
+        }
+    }
+    
+    // Smooth force based on triange angle
+    // Maximize minimal angle
+    std::vector<vec3> angle_force(_dsc->get_no_nodes_buffer(), vec3(0));
+    std::vector<int> count(_dsc->get_no_nodes_buffer(), 0);
+    for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
+    {
+        if (fit->is_interface() && !fit->is_boundary())
+        {
+#ifdef DSC_CACHE
+            is_mesh::SimplexSet<is_mesh::NodeKey> nids = *_dsc->get_nodes_cache(fit.key());
+#else
+            is_mesh::SimplexSet<node_key> nids = _dsc->get_nodes(fit.key());
+#endif
+            static double cos_60 = cos(3.14159/3.0);
+            auto nodes_pos = _dsc->get_pos(nids);
+            
+            for (int i = 0; i < 3; i++)
+            {
+                int i1 = (i+1)%3, i2 = (i+2)%3;
+                auto cos_angle = Util::cos_angle<real>(nodes_pos[i], nodes_pos[i1], nodes_pos[i2]);
+                
+                vec3 f = ((nodes_pos[i1] + nodes_pos[i2])/2. - nodes_pos[i])*(cos_angle - cos_60);
+                
+                angle_force[nids[i]] += f;
+                count[nids[i]]++;
+            }
+        }
+    }
+    // angle forces should be perpendicular with normal
+    for (int i = 0; i < angle_force.size(); i++)
+    {
+        if(count[i] > 0)
+        {
+            auto n = _internal_forces[i];
+            if (n.length() > 0.1)
+            {
+                n.normalize();
+                auto f = angle_force[i];
+                vec3 f1 = n*Util::dot(n, f);
+                vec3 f2 = f - f1;
+                
+                angle_force[i] = f2/count[i];
+            }
+            
+            angle_force[i] *= 0.1;
+
+//            _quality_angle_forces[i] = angle_force[i];
+        }
+    }
+    _quality_angle_forces = angle_force;
+    _quality_control_forces = adaptive_force;
+    
+    for (int i = 0; i < _quality_control_forces.size(); i++)
+    {
+        _quality_control_forces[i] += _quality_angle_forces[i];
+    }
 }
 
 // Discrete Differential-Geometry Operators for Triangulated 2-Manifolds
@@ -732,7 +838,7 @@ void segment_function::compute_internal_force()
         }
     }
     
-    double scale = 1./max_f;
+    double scale = 5./max_f;
     for (auto & f : _internal_forces)
     {
         f *= scale;
@@ -827,7 +933,47 @@ void segment_function::compute_external_force()
 
 void segment_function::face_split()
 {
+    // try to adapt the flat surface
+    compute_internal_force();
+    
+    for(auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
+    {
+        if (_dsc->exists(nit.key()) && nit->is_interface() && !nit->is_crossing() && !nit->is_boundary())
+        {
+            if (_internal_forces[nit.key()].length() < 0.1)
+            {
+                // collapsing edge
+                auto edges = _dsc->get_edges(nit.key());
+                int min_idx = -1;
+                double shortest_length = INFINITY;
+                for (int i = 0; i < edges.size(); i++)
+                {
+                    if (_dsc->get(edges[i]).is_interface() && !_dsc->get(edges[i]).is_boundary())
+                    {
+                        if (shortest_length > _dsc->length(edges[i]))
+                        {
+                            shortest_length = _dsc->length(edges[i]);
+                            min_idx = i;
+                        }
+                    }
+                }
+                
+                if(min_idx != -1)
+                {
+                    auto other_node = (_dsc->get_nodes(edges[min_idx]) - nit.key()).front();
+                    _dsc->collapse(edges[min_idx]);
+                }
+            }
+        }
+    }
+    
+    return;
+    
     auto c = _mean_intensities;
+    
+    std::vector<int> related_edges(_dsc->get_no_edges_buffer(), 0);
+    
+    int i = 0, j = 0;
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
         if (_dsc->exists(fid.key()) && fid->is_interface())
@@ -897,10 +1043,50 @@ void segment_function::face_split()
                 // This face cover an inhomogineous area
                 // Consider split it
                 _dsc->split_face(fid.key());
+//                for(auto ee : _dsc->get_edges(fid.key()))
+//                {
+//                    related_edges[ee] = 1;
+//                }
+                i++;
+                
             }
+            j++;
         }
     }
+    
+    cout << "Adaptive split " << i << "/" << j << " triangles" << endl;
+    
+    _dsc->remove_interface_faces();
 
+//    struct edge_sort{
+//        double length;
+//        is_mesh::EdgeKey ekey;
+//    };
+//    // Split the related edge, longest first
+//    std::vector<edge_sort> edges_list;
+//    for(int i = 0; i < related_edges.size(); i++)
+//    {
+//        if (related_edges[i] == 1)
+//        {
+//            edges_list.push_back({_dsc->length(is_mesh::EdgeKey(i)), is_mesh::EdgeKey(i)});
+//        }
+//    }
+//    
+//    std::sort(edges_list.begin(), edges_list.end(), [](edge_sort const& a, edge_sort const& b){return a.length > b.length;});
+//    
+//    for (auto ee : edges_list)
+//    {
+//        if (related_edges[ee.ekey] == 1 && _dsc->exists(ee.ekey))
+//        {
+//            auto edges_around = _dsc->get_edges(_dsc->get_faces(ee.ekey));
+//            for(auto ea : edges_around)
+//            {
+//                related_edges[ea] = 0;
+//            }
+//            
+//            _dsc->split(ee.ekey);
+//        }
+//    }
 }
 
 
@@ -1116,6 +1302,7 @@ void segment_function::segment()
     // 2. Compute external force
     compute_external_force();
     compute_internal_force();
+    compute_mesh_quality_control_force(); // Must be after internal force
     
     // 3. Work around to align boundary vertices
     //  including set displacement for interface vertices
@@ -1128,7 +1315,7 @@ void segment_function::segment()
      */
     if (iteration % 5 == 0)
     {
-        face_split();
+//        face_split();
         relabel_tetrahedra();
     }
     

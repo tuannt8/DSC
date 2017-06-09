@@ -560,13 +560,24 @@ void UI::display()
         glEnd();
         glEnable(GL_LIGHTING);
     }
+    
+    if (glut_menu::get_state("Draw DSC single interface edge", 1))
+    {
+//        glDisable(GL_CULL_FACE);
+        glDisable(GL_LIGHTING);
+        glColor3f(0.5, 0.3, 1.0);
+        draw_helper::dsc_draw_one_interface_edge(*dsc, phase_draw);
+    }
 
     if (glut_menu::get_state("Draw DSC single interface", 1))
     {
-        glDisable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
-        glColor3f(0.7, 0.7, 0.7);
+        glEnable(GL_BLEND);
+        glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glColor4f(0.7, 0.7, 0.7, 0.4);
         draw_helper::dsc_draw_one_interface(*dsc, phase_draw);
+        glDisable(GL_BLEND);
     }
 
 //    if (glut_menu::get_state("Draw tripple edge", 0))
@@ -616,9 +627,22 @@ void UI::display()
         draw_helper::draw_image_slice(_seg._img);
     }
     
-    if (glut_menu::get_state("Draw boundary direction", 0))
+    if (glut_menu::get_state("Draw internal force", 0))
     {
-        draw_helper::draw_boundary_direction(_seg, &*dsc);
+        glColor3f(1, 0, 0);
+        draw_helper::dsc_draw_node_arrow(*dsc, _seg._internal_forces);
+    }
+    
+    if (glut_menu::get_state("Draw topo control force", 0))
+    {
+        glColor3f(0, 0, 1);
+        draw_helper::dsc_draw_node_arrow(*dsc, _seg._quality_control_forces);
+    }
+    
+    if (glut_menu::get_state("Draw topo angle force", 0))
+    {
+        glColor3f(0, 1, 1);
+        draw_helper::dsc_draw_node_arrow(*dsc, _seg._quality_angle_forces);
     }
     
     if (glut_menu::get_state("Draw boundary destination", 0))
@@ -673,6 +697,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case 'l':
             load_model("./LOG/fuelcells_smaller0.dsc");
+            _seg._dsc = &*dsc;
             break;
         case 'p':// Display time counter
             profile::close();
@@ -684,7 +709,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);
             break;
         case 't':
-            test_dsc::reduce_mesh_quality_by_moving_vertices(*dsc);
+            _seg.face_split();
         default:
             break;
     }

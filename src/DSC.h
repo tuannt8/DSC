@@ -80,7 +80,7 @@ namespace DSC {
         typedef is_mesh::FaceKey      face_key;
         typedef is_mesh::TetrahedronKey       tet_key;
         
-    protected:
+    public:
         is_mesh::MultipleGeometry design_domain;
         
         // Input parameter
@@ -320,8 +320,8 @@ namespace DSC {
             pars = {0.1,    //DEG_EDGE_QUALITY
                     0.5,    //MIN_EDGE_QUALITY
                 
-                    0.0005, //DEG_FACE_QUALITY
-                    0.015,  //MIN_FACE_QUALITY
+                    0.0005, //DEG_FACE_QUALITY 0.0005 = 2 degree
+                    0.015,  //MIN_FACE_QUALITY : 0.06 = 20 degree; 0.015 = 10 degree
                 
                     0.02,   //DEG_TET_QUALITY
                     0.3,    //MIN_TET_QUALITY
@@ -2031,14 +2031,40 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             node_key apex = (get_nodes(fid) - get_nodes(eid)).front();
             // Find the projected position of the apex
             auto verts = get_pos(get_nodes(eid));
-            vec3 p = Util::project_point_line(get_pos(apex), verts[1] - verts[0]);
+            vec3 p = Util::project_point_linesegment<vec3>(get_pos(apex), verts[1], verts[0]);
             
             // Split longest edge
+#ifdef DSC_CACHE // Split edge. Update cache
+            auto tets = get_tets(eid);
+            
+            for (auto tkey : tets)
+            {
+                cache.mark_dirty(tkey, true);
+            }
+            
+            auto faces = get_faces(tets);
+            for (auto fk : faces)
+            {
+                cache.mark_dirty(fk, true);
+            }
+            
+            auto edges = get_edges(faces);
+            for (auto ek : edges)
+            {
+                cache.mark_dirty(ek, true);
+            }
+            
+            auto dnodes = get_nodes(edges);
+            for(auto nk : dnodes)
+            {
+                cache.mark_dirty(nk, true);
+            }
+#endif
             node_key n = split(eid, p, p);
             
             // Collapse new edge
             edge_key e_rem = get_edge(apex, n);
-            return collapse(e_rem);
+            return collapse(e_rem); // cache update included
         }
         
         /**
@@ -2064,6 +2090,40 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             }
             return remove_needle(f);
         }
+        
+        /**
+         * Attempts to remove degenerate faces (faces with a minimum angle smaller than MIN_ANGLE).
+         */
+        void remove_interface_faces()
+        {
+            std::list<face_key> faces;
+            
+            for (auto fit = faces_begin(); fit != faces_end(); fit++)
+            {
+                if(fit->is_interface() && quality(fit.key()) < pars.MIN_FACE_QUALITY)
+                {
+                    faces.push_back(fit.key());
+                }
+            }
+            
+            int i = 0, j = 0;
+            for (auto &f : faces)
+            {
+                if (is_unsafe_editable(f) && quality(f) < pars.MIN_FACE_QUALITY)
+                {
+                    if(remove_face(f))
+                    {
+                        i++;
+                    }
+                    j++;
+                }
+            }
+#ifdef LOG_DEBUG
+            std::cout << "Removed " << i <<"/"<< j << " low quality faces" << std::endl;
+#endif
+            garbage_collect();
+        }
+        
         
         /**
          * Attempts to remove degenerate faces (faces with a minimum angle smaller than MIN_ANGLE).
@@ -2658,18 +2718,60 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             split(eid);
         }
         
+        bool should_split(edge_key ekey, face_key fkey)
+        {
+            auto nodes = get_nodes(ekey);
+            auto other_node = get_nodes(fkey) - nodes;
+            
+            auto nodes_pos = get_pos(nodes);
+            auto other_node_pos = get_pos(other_node[0]);
+        
+            static double min_quality_to_split = cos(35*3.14159/180);
+            
+            return (Util::cos_angle<real>(other_node_pos, nodes_pos[0], nodes_pos[1]) < min_quality_to_split);
+        }
+        
         /**
          Split a faces for segmentation
          */
         void split_face(const face_key& fid)
         {
+            // Check if it create needle triangles
+            
+            
             is_mesh::SimplexSet<edge_key> eids = get_edges(fid);
-            edge_key eid = longest_edge(eids);
-            // Check if the edge is too short
-            if(length(eid) > pars.MIN_EDGE_QUALITY * AVG_LENGTH)
+            
+            for (auto e : eids)
             {
-                split(eid);
+                // Find interface faces
+                is_mesh::SimplexSet<is_mesh::FaceKey> interface_faces;
+                for(auto f : get_faces(e))
+                {
+                    if(get(f).is_interface())
+                        interface_faces.push_back(f);
+                }
+                
+                // check quality
+                bool can_split = true;
+                for(auto i_f : interface_faces)
+                {
+                    if(!should_split(e, i_f))
+                        can_split = false;
+                }
+                if(can_split)
+                {
+                    split(e);
+                    return;
+                }
             }
+            
+            
+//            edge_key eid = longest_edge(eids);
+//            // Check if the edge is too short
+//            if(length(eid) > pars.MIN_EDGE_QUALITY * AVG_LENGTH)
+//            {
+//                split(eid);
+//            }
         }
         
         /**
@@ -2729,7 +2831,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         ///////////////
         // COLLAPSES //
         ///////////////
-    private:
+    public:
         bool is_collapsable(const edge_key& eid, const node_key& nid, bool safe)
         {
             if(safe)

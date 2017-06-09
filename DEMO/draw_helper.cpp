@@ -111,6 +111,22 @@ void draw_helper::draw_dsc_interface_vertices_indices( dsc_class &dsc, int phase
     }
 }
 
+void draw_helper::dsc_draw_node_arrow(dsc_class & dsc, std::vector<vec3> arrow)
+{
+    glDisable(GL_LIGHTING);
+    glBegin(GL_LINES);
+    
+    for (auto nit = dsc.nodes_begin(); nit != dsc.nodes_end(); nit++)
+    {
+        if (arrow[nit.key()].length() > 0.1)
+        {
+            glVertex3dv(nit->get_pos().get());
+            glVertex3dv((nit->get_pos() + arrow[nit.key()]).get());
+        }
+    }
+    glEnd();
+}
+
 void draw_helper::draw_boundary_destination(segment_function &_seg, dsc_class *dsc)
 {
     glDisable(GL_LIGHTING);
@@ -324,6 +340,51 @@ void draw_helper::dsc_draw_debug_node(is_mesh::NodeKey nk)
     
 }
 
+void draw_helper::dsc_draw_one_interface_edge(dsc_class & dsc, int phase)
+{
+    for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+    {
+        if (f->is_interface() && !f->is_boundary())
+        {
+            auto tets = dsc.get_tets(f.key());
+            if (!(dsc.get_label(tets[0]) == phase
+                  or dsc.get_label(tets[1]) == phase)
+                //                || dsc.get_label(tets[0]) == BOUND_LABEL
+                //                || dsc.get_label(tets[1]) == BOUND_LABEL
+                )
+            {
+                continue;
+            }
+#ifdef DSC_CACHE
+            auto nodes=*dsc.get_nodes_cache(f.key());
+#else
+            auto nodes=dsc.get_nodes(f.key());
+#endif
+            auto pts = dsc.get_pos(nodes);
+            
+            // normalize the normal to the eye
+            is_mesh::TetrahedronKey other_tet = (dsc.get_label(tets[0]) == phase)? tets[0] : tets[1];
+            
+            
+            auto norm = dsc.get_normal(f.key(), other_tet);
+            
+            // Draw triangle
+            glBegin(GL_LINES);
+            for (int i =0; i < 3; i++)
+            {
+                auto v0 = pts[i];
+                auto v1 = pts[(i+1)%3];
+                
+                glVertex3dv(v0.get());
+                glVertex3dv(v1.get());
+            }
+            glEnd();
+            
+            
+        }
+    }
+}
+
 void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
 {
     
@@ -353,10 +414,7 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
             
             auto norm = dsc.get_normal(f.key(), other_tet);
             
-//            auto other_node = dsc.get_nodes(other_tet) - nodes;
-//            vec3 direct = dsc.get_pos(other_node[0]) - pts[0];
-//            direct = Util::normalize(direct);
-//            norm = norm*Util::dot(norm, direct);
+
             
             // Draw triangle
             glBegin(GL_TRIANGLES);
