@@ -75,6 +75,7 @@ public:
     static void draw_dsc_interface_vertices_indices(dsc_class&, int phase);
     
     static void draw_triple_interface(dsc_class &);
+    static void draw_transparent_surface(dsc_class &, int);
 public:
     CGLA::Vec3i _cur_cross_poss = CGLA::Vec3i(0,0,0);
     

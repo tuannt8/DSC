@@ -529,6 +529,11 @@ void UI::display()
         glEnable(GL_LIGHTING);
     }
     
+    if (glut_menu::get_state("Transparent surface", 0))
+    {
+        draw_helper::draw_transparent_surface(*dsc, _seg.NB_PHASE);
+    }
+    
     if (glut_menu::get_state("Triple interface", 0))
     {
         draw_helper::draw_triple_interface(*dsc);
@@ -560,6 +565,7 @@ void UI::display()
     {
         glDisable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
+        glColor3f(0.7, 0.7, 0.7);
         draw_helper::dsc_draw_one_interface(*dsc, phase_draw);
     }
 

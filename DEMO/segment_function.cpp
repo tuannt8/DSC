@@ -1063,15 +1063,12 @@ void segment_function::update_average_intensity()
                         int z1 = intersect_ps[2*j].z;
                         int z2 = intersect_ps[2*j + 1].z;
                         
+                        if(z1 < 0) z1 = 0;
                         if(z2 < z1)
                             z2 = z1;
                         
                         area[i] += z2 - z1;
                         _mean_intensities[i] += _img.sum_line_z(r.x, r.y, z1, z2);
-                        
-                        if(_img.sum_line_z(r.x, r.y, z1, z2) < 0){
-                            _img.sum_line_z(r.x, r.y, z1, z2);
-                        }
                     }
                 }
                 else{}//???

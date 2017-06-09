@@ -151,10 +151,12 @@ double image3d::sum_line_z(int x, int y, int z1, int z2)
 //
 //    return l2 - l1;
     
-    assert(x >= 0 && x < _dim[0]
-           && y >= 0 && y < _dim[1]
-           && z1 >= 0
-           && z2 >= z1); // Tuan: Remove it later for performance
+    assert(x >= 0);
+    assert(x < _dim[0]);
+    assert( y >= 0);
+    assert( y < _dim[1]);
+    assert(z1 >= 0);
+    assert(z2 >= z1);
     
     if (z2 >= _dim[2])
     {

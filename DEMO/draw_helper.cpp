@@ -333,7 +333,10 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
         {
             auto tets = dsc.get_tets(f.key());
             if (!(dsc.get_label(tets[0]) == phase
-                  or dsc.get_label(tets[1]) == phase))
+                  or dsc.get_label(tets[1]) == phase)
+//                || dsc.get_label(tets[0]) == BOUND_LABEL
+//                || dsc.get_label(tets[1]) == BOUND_LABEL
+                )
             {
                 continue;
             }
@@ -356,7 +359,6 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
 //            norm = norm*Util::dot(norm, direct);
             
             // Draw triangle
-            glColor3f(0.7, 0.7, 0.7);
             glBegin(GL_TRIANGLES);
             for (int i =0; i < 3; i++)
             {
@@ -374,6 +376,30 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
             
         }
     }
+}
+
+void draw_helper::draw_transparent_surface(dsc_class & dsc, int nb_phase)
+{
+    std::vector<vec3> color = {vec3(0), vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
+ 
+//    glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    for(int i = 1; i< nb_phase; i++)
+    {
+        auto c = color[i];
+        glColor4f(c[0], c[1], c[2], 0.3);
+        
+        dsc_draw_one_interface(dsc, i);
+    }
+    
+//    glColor3f(1.0, 0.0, 0.0);
+//    dsc_draw_one_interface(dsc, 1);
+//    
+//    glColor4f(0.0, 0.0, 1.0, 0.4);
+//    dsc_draw_one_interface(dsc, 2);
+    
+    glDisable(GL_BLEND);
 }
 
 void draw_helper::draw_triple_interface(dsc_class &dsc)
