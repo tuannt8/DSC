@@ -490,11 +490,11 @@ void UI::update_gl()
 
 void UI::display()
 {
-    if (CONTINUOUS)
-    {
-        _seg.segment();
-        m_iters++;
-    }
+//    if (CONTINUOUS)
+//    {
+//        _seg.segment();
+//        m_iters++;
+//    }
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -571,22 +571,14 @@ void UI::display()
 
     if (glut_menu::get_state("Draw DSC single interface", 1))
     {
-        glEnable(GL_CULL_FACE);
+//        glEnable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
-        glEnable(GL_BLEND);
+//        glEnable(GL_BLEND);
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glColor4f(0.7, 0.7, 0.7, 0.4);
         draw_helper::dsc_draw_one_interface(*dsc, phase_draw);
         glDisable(GL_BLEND);
     }
-
-//    if (glut_menu::get_state("Draw tripple edge", 0))
-//    {
-//        glDisable(GL_CULL_FACE);
-//        glEnable(GL_LIGHTING);
-//        glColor3f(1, 0, 0);
-//        draw_helper::dsc_draw_triple_edge(*dsc);
-//    }
 
 
     if (glut_menu::get_state("Draw DSC edges", 0))
@@ -662,6 +654,40 @@ void UI::display()
     glutSetWindowTitle(os.str().c_str());
 
     check_gl_error();
+    
+    
+//    static int state = 0;
+//    if (CONTINUOUS)
+//    {
+//        switch (state) {
+//            case 0:
+//                _seg.segment();
+//    m_iters++;
+//                break;
+//            case 1:
+//                draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
+//                phase_draw = (phase_draw+1) % _seg.NB_PHASE;
+//                break;
+//            case 2:
+//                draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
+//                phase_draw = (phase_draw+1) % _seg.NB_PHASE;
+//                break;
+//            case 3:
+//                draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
+//                phase_draw = (phase_draw+1) % _seg.NB_PHASE;
+//                break;
+//            default:
+//                break;
+//        }
+//        
+//        state = (state+1)%4;
+//    }
+    
+    if(CONTINUOUS)
+    {
+        _seg.segment();
+        m_iters++;
+    }
 }
 
 void UI::reshape(int width, int height)
