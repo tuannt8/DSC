@@ -337,19 +337,26 @@ void segment_function::update_vertex_stability()
 
 inline std::bitset<4> get_direction(vec3 a)
 {
+    static double norm_length = 0.99;
+    
+    int count = 0;
     std::bitset<4> d("0000");
-    if (std::abs(a[0]) > 0.8)
+    if (std::abs(a[0]) > norm_length)
     {
+        count ++;
         d = d | X_direction;
     }
-    if (std::abs(a[1]) > 0.8)
+    if (std::abs(a[1]) > norm_length)
     {
+        count++;
         d = d | Y_direction;
     }
-    if (std::abs(a[2]) > 0.8)
+    if (std::abs(a[2]) > norm_length)
     {
+        count++;
         d = d | Z_direction;
     }
+    
     
     return d;
 }
@@ -444,11 +451,18 @@ void segment_function::relabel_tetrahedra()
     }
 }
 
+#define algin_pos(idx) \
+    if(std::abs(pos[idx]) < threshold) \
+        destination[idx] = 0; \
+    if(std::abs(pos[idx] - (domain_dim[idx] - 1)) <threshold) \
+        destination[idx] = domain_dim[idx] - 1; \
+
 void segment_function::work_around_on_boundary_vertices()
 {
 
     
     // 1. Find boundary vertices
+    
 #ifdef _DSC_ORIGIN_
     int node_mem_size = MAX_NUM_ELEMENT_MESH;
 #else
@@ -466,6 +480,9 @@ void segment_function::work_around_on_boundary_vertices()
             {
                 auto nodes_on_face = _dsc->get_nodes(fid.key());
                 auto norm = _dsc->get_normal(fid.key());
+                
+                // Using normal vector may be incorect
+                //  some topological event modify the mesh on the image boundary, and it make the interface of the mesh no longer flat
                 std::bitset<4> direction = get_direction(norm);
                 
                 for (auto n : nodes_on_face)
@@ -501,9 +518,9 @@ void segment_function::work_around_on_boundary_vertices()
 //            auto dis = _forces[nid.key()]*_dt;
 //            auto dis = _internal_forces[nid.key()]*1;
             
-            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()] + _quality_control_forces[nid.key()]*QALPHA)*_dt;
+//            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()] + _quality_control_forces[nid.key()]*QALPHA)*_dt;
             
-//            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
+            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
             
             assert(!isnan(dis.length()));
             
@@ -516,21 +533,33 @@ void segment_function::work_around_on_boundary_vertices()
             
             
             vec3 destination = nid->get_pos() + dis;
-            auto threshold = _dsc->get_avg_edge_length();
+            auto threshold = 1;
             // Align boundary
             if (is_bound_vertex[nid.key()])
             {
                 auto direct = direction_state[nid.key()];
                 auto pos = nid->get_pos();
-                if ((direct & X_direction).to_ulong() != 0)
+                if ((direct & X_direction).to_ulong() != 0) // constraint on x
                 {
-                    destination[0] = (std::abs(pos[0]) < threshold)? 0 : domain_dim[0] - 1;
+                    algin_pos(0);
+//                    if(std::abs(pos[0]) < threshold)
+//                        destination[0] = 0;
+//                    if(std::abs(pos[0] - (domain_dim[0] - 1)) <threshold)
+//                        destination[0] = domain_dim[0] - 1;
                 }
-                if ((direct & Y_direction).to_ulong() != 0){
-                    destination[1] = (std::abs(pos[1]) < threshold)? 0 : domain_dim[1] -1;
+                if ((direct & Y_direction).to_ulong() != 0){ // constraint on y
+                    algin_pos(1);
+//                    if(std::abs(pos[1]) < threshold)
+//                        destination[1] = 0;
+//                    if(std::abs(pos[1] - (domain_dim[1] - 1)) <threshold)
+//                        destination[1] = domain_dim[1] - 1;
                 }
-                if ((direct & Z_direction).to_ulong() != 0){
-                    destination[2] = (std::abs(pos[2]) < threshold)? 0 : domain_dim[2] -1;
+                if ((direct & Z_direction).to_ulong() != 0){ // constraint on z
+                    algin_pos(2);
+//                    if(std::abs(pos[2]) < threshold)
+//                        destination[2] = 0;
+//                    if(std::abs(pos[2] - (domain_dim[2] - 1)) <threshold)
+//                        destination[2] = domain_dim[2] - 1;
                 }
                 
                 boundary_vertices_displacements[nid.key()] = destination - nid->get_pos();
@@ -862,6 +891,7 @@ void segment_function::compute_internal_force()
 
 void segment_function::compute_external_force()
 {
+    double boundary_intensity = 0;
     auto c = _mean_intensities;
     
     // Array to store temporary forces
@@ -874,20 +904,20 @@ void segment_function::compute_external_force()
         if (fid->is_interface() && !fid->is_boundary())
         {
             auto tets = _dsc->get_tets(fid.key());
-            if (_dsc->get_label(tets[0]) == BOUND_LABEL ||
-                _dsc->get_label(tets[1]) == BOUND_LABEL )
-            {
-                // Ignore the faces on the boundary.
-                //   These boundary vertices should only move along the boundary
-                //   Forces faces on boundary will make them move perpendicullar to the boundary
-                continue;
-            }
+//            if (_dsc->get_label(tets[0]) == BOUND_LABEL || // dont ignore
+//                _dsc->get_label(tets[1]) == BOUND_LABEL )
+//            {
+//                // Ignore the faces on the boundary.
+//                //   These boundary vertices should only move along the boundary
+//                //   Forces faces on boundary will make them move perpendicullar to the boundary
+//                continue;
+//            }
             
             auto verts = _dsc->get_nodes(fid.key());
             auto pts = _dsc->get_pos(verts);
             
-            double c0 = c[_dsc->get_label(tets[0])];
-            double c1 = c[_dsc->get_label(tets[1])];
+            double c0 = _dsc->get_label(tets[0]) == BOUND_LABEL? boundary_intensity : c[_dsc->get_label(tets[0])];
+            double c1 = _dsc->get_label(tets[1]) == BOUND_LABEL? boundary_intensity : c[_dsc->get_label(tets[1])];
             
             // get normal
             vec3 Norm = _dsc->get_normal(fid.key());
@@ -1302,7 +1332,7 @@ void segment_function::segment()
     // 2. Compute external force
     compute_external_force();
     compute_internal_force();
-    compute_mesh_quality_control_force(); // Must be after internal force
+//    compute_mesh_quality_control_force(); // Must be after internal force
     
     // 3. Work around to align boundary vertices
     //  including set displacement for interface vertices
