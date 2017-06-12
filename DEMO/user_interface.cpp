@@ -272,7 +272,7 @@ UI::UI(int &argc, char** argv)
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL | GLUT_MULTISAMPLE);
     
-    glutCreateWindow("Shadowy Leapin' Lizards");
+    glutCreateWindow("3D segmentation");
     
     glutDisplayFunc(display_);
     glutKeyboardFunc(keyboard_);
@@ -486,6 +486,9 @@ void UI::update_gl()
     
     eye_pos = eye;
     center_pos = center;
+    
+    //
+//    glEnable(GL_MULTISAMPLE);
 }
 
 void UI::display()
@@ -722,7 +725,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             save_model();
             break;
         case 'l':
-            load_model("./LOG/fuelcells_smaller0.dsc");
+            load_model("./LOG/log.dsc");
             _seg._dsc = &*dsc;
             break;
         case 'p':// Display time counter

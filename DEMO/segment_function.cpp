@@ -577,6 +577,23 @@ void segment_function::work_around_on_boundary_vertices()
     }
     
     cout << "Max displacement: " << max_displacement_real << endl;
+    double average_internal_force = 0, average_external_force = 0;
+    int count = 0;
+    for (auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
+    {
+        
+        if ( (nid->is_interface() or nid->is_crossing())
+            && _dsc->exists(nid.key())
+            and !nid->is_boundary()
+            && !is_bound_vertex[nid.key()])
+        {
+            average_external_force += _forces[nid.key()].length();
+            average_internal_force += _internal_forces[nid.key()].length();
+            count ++;
+        }
+    }
+    
+    cout << "average external force: " << average_external_force/count << "; average internal force: " << average_internal_force/count << endl;
 }
 
 void segment_function::compute_mesh_quality_control_force()
@@ -948,7 +965,7 @@ void segment_function::compute_external_force()
                 auto p = get_coord_tri(pts, coord);
                 auto g = _img.get_value_f(p);
 
-                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area);
+                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area); // Normalized already
                 
                 // distribute
                 forces[verts[0]] += f*coord[0];
