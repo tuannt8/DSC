@@ -35,7 +35,8 @@ string arg_b_build_table_origin_command = "-build_table";
 //string config_file = "square_round_arg.properties";
 //string config_file = "hamster.properties";
 //string config_file = "cement.properties";
-string config_file = "filber.properties";
+//string config_file = "filber.properties";
+string config_file = "dental.properties";
 
 string config_file_command = "-config_file";
 

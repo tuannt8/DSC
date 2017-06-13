@@ -28,6 +28,8 @@ namespace is_mesh
         std::vector<key_type> set;
         
     public:
+        std::vector<key_type> get_raw_data(){return set;};
+        
         
         SimplexSet() : set()
         {

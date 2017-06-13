@@ -77,6 +77,7 @@ public:
     std::vector<vec3> _quality_control_forces; // curvature based force
     std::vector<vec3> _quality_angle_forces; // angle based
     
+    void compute_surface_curvature();
     void compute_external_force();
     void compute_internal_force();
     void compute_mesh_quality_control_force();
@@ -93,11 +94,18 @@ public:
 public:
     std::vector<ray_z> _d_rayz;
     
+    std::vector<std::vector<vec3>> _mean_curvature_of_each_hat;
+    std::vector<std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>>> _tets_in_hat;
+    std::vector<std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>>> _node_in_hat;
+    
     // For debuging
     std::vector<vec3> boundary_vertices_displacements;
     
     std::vector<unsigned int> d_is_image_boundary;
     std::vector<std::bitset<4>> d_direction_state;
+    
+    std::vector<std::vector<vec3>> _curvature_force;
+    std::vector<std::vector<vec3>> _area_force;
 };
 
 #endif /* segment_function_hpp */

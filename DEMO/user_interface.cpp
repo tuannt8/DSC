@@ -639,16 +639,16 @@ void UI::display()
         draw_helper::dsc_draw_node_arrow(*dsc, _seg._internal_forces);
     }
     
-    if (glut_menu::get_state("Draw topo control force", 0))
+    if (glut_menu::get_state("area force", 0))
     {
         glColor3f(0, 0, 1);
-        draw_helper::dsc_draw_node_arrow(*dsc, _seg._quality_control_forces);
+        draw_helper::dsc_draw_node_multi_arrow(*dsc, _seg._area_force, 0.002);
     }
     
-    if (glut_menu::get_state("Draw topo angle force", 0))
+    if (glut_menu::get_state("Mean curvature", 0))
     {
         glColor3f(0, 1, 1);
-        draw_helper::dsc_draw_node_arrow(*dsc, _seg._quality_angle_forces);
+        draw_helper::dsc_draw_node_multi_arrow(*dsc, _seg._curvature_force, 5);
     }
     
     if (glut_menu::get_state("Draw boundary destination", 0))

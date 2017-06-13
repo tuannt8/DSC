@@ -601,120 +601,113 @@ void segment_function::compute_mesh_quality_control_force()
     // Adaptive force based on curvature
     std::vector<vec3> adaptive_force(_dsc->get_no_nodes_buffer(), vec3(0));
     
-    for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
-    {
-        if (nit->is_interface() && !nit->is_crossing() && !nit->is_boundary())
-        {
-#ifdef DSC_CACHE
-            auto nodes_around = *_dsc->get_nodes_cache(nit.key());
-#else
-            auto tids1 = get_tets(nid);
-            auto fids1 = get_faces(tids1) - get_faces(nid);
-            auto nodes_around = get_nodes(fids1);
-#endif
-            
-            // It may be more complicated
-            
-            auto node_curvature = _internal_forces[nit.key()].length();
-            int count = 0;
-            vec3 ff(0.0);
-            for (int idx = 0; idx < nodes_around.size(); idx++)
-            {
-                auto curvature =  _internal_forces[nodes_around[idx]].length();
-                if(curvature > node_curvature)
-                {
-                    auto direct = _dsc->get_pos(nodes_around[idx]) - _dsc->get_pos(nit.key());
-//                    double shortest_edge = _dsc->pars.MIN_EDGE_QUALITY*_dsc->AVG_LENGTH;
-//                    if (direct.length() > shortest_edge)
-//                    {
-//                        direct = Util::normalize(direct)*(direct.length() - shortest_edge);
-//                    }
-                    ff += direct*(curvature - node_curvature);
-                    count++;
-                    
-                    // What is its counter forces?
-                }
-            }
-            
-            if(count > 0)
-            {
-                ff = ff *0.1/ count;
-                adaptive_force[nit.key()] = ff;
-            }
-        }
-    }
+    std::vector<std::vector<vec3>> curvature_force(_dsc->get_no_nodes_buffer(), std::vector<vec3>());
+    std::vector<std::vector<vec3>> area_force(_dsc->get_no_nodes_buffer(), std::vector<vec3>());
     
-    // Smooth force based on triange angle
-    // Maximize minimal angle
-    std::vector<vec3> angle_force(_dsc->get_no_nodes_buffer(), vec3(0));
-    std::vector<int> count(_dsc->get_no_nodes_buffer(), 0);
-    for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
+    for(auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
     {
-        if (fit->is_interface() && !fit->is_boundary())
+        if (nit->is_interface() && !nit->is_boundary())
         {
-#ifdef DSC_CACHE
-            is_mesh::SimplexSet<is_mesh::NodeKey> nids = *_dsc->get_nodes_cache(fit.key());
-#else
-            is_mesh::SimplexSet<node_key> nids = _dsc->get_nodes(fit.key());
-#endif
-            static double cos_60 = cos(3.14159/3.0);
-            auto nodes_pos = _dsc->get_pos(nids);
+            auto const & nodes_in_hats = _node_in_hat[nit.key()];
+            auto const & curvature_in_hats = _mean_curvature_of_each_hat[nit.key()];
+            auto const & tets_in_hats = _tets_in_hat[nit.key()];
             
-            for (int i = 0; i < 3; i++)
-            {
-                int i1 = (i+1)%3, i2 = (i+2)%3;
-                auto cos_angle = Util::cos_angle<real>(nodes_pos[i], nodes_pos[i1], nodes_pos[i2]);
-                
-                vec3 f = ((nodes_pos[i1] + nodes_pos[i2])/2. - nodes_pos[i])*(cos_angle - cos_60);
-                
-                angle_force[nids[i]] += f;
-                count[nids[i]]++;
-            }
-        }
-    }
-    // angle forces should be perpendicular with normal
-    for (int i = 0; i < angle_force.size(); i++)
-    {
-        if(count[i] > 0)
-        {
-            auto n = _internal_forces[i];
-            if (n.length() > 0.1)
-            {
-                n.normalize();
-                auto f = angle_force[i];
-                vec3 f1 = n*Util::dot(n, f);
-                vec3 f2 = f - f1;
-                
-                angle_force[i] = f2/count[i];
-            }
+            assert(nodes_in_hats.size() == curvature_in_hats.size());
+            assert(nodes_in_hats.size() == tets_in_hats.size());
             
-            angle_force[i] *= 0.1;
+            for(int i = 0; i != nodes_in_hats.size(); i++)
+            {
+                    vec3 node_curvature = curvature_in_hats[i];
+                    auto nodes_in_current_hat = nodes_in_hats[i];
+                    auto tets_in_hat = tets_in_hats[i];
+                
 
-//            _quality_angle_forces[i] = angle_force[i];
+                
+                    for (auto n : nodes_in_current_hat)
+                    {
+                        auto const & curvatire_in_hat_of_n = _mean_curvature_of_each_hat[n];
+
+                        vec3 curvature_n;
+                        if (curvatire_in_hat_of_n.size() == 1 // bondary vertex
+                            || curvatire_in_hat_of_n.size() == 2)// This vertex separates two phases. Normal case.
+                        {
+                            curvature_n = curvatire_in_hat_of_n[0];
+                        }
+                        else{
+                            // Find the coressponding hat
+                            auto const & tets_in_current_hats = _tets_in_hat[n];
+                            auto mean_curvature_on_hats = _mean_curvature_of_each_hat[n];
+                            assert(tets_in_current_hats.size() == mean_curvature_on_hats.size());
+                            
+                            int idx = -1;
+                            for (int itet = 0; itet < tets_in_current_hats.size(); itet++)
+                            {
+                                auto tets_in_current_hat = tets_in_current_hats[itet];
+                                
+//                                if(std::find_first_of
+//                                   (
+//                                  tets_in_hat.get_raw_data().begin(), tets_in_hat.get_raw_data().end(),
+//                                  tets_in_current_hat.get_raw_data().begin(), tets_in_current_hat.get_raw_data().end(),
+//                                  [](is_mesh::TetrahedronKey t1, is_mesh::TetrahedronKey t2){return t1 ==t2;}
+//                                  ) != tets_in_hat.get_raw_data().end())
+                                if((tets_in_hat & tets_in_current_hat).size() > 0) // OPTIMIZE it later
+                                {
+                                    idx = itet;
+                                    break;
+                                }
+                            }
+                            
+                            if(idx != -1)
+                            {
+                                curvature_n = _mean_curvature_of_each_hat[n][idx];
+                            }
+                            else{
+                                break;
+                            }
+                        }
+                        
+                    
+                        if (node_curvature.length() > curvature_n.length())
+                        {
+                            // Pull this vertex to the current vertex
+                            vec3 nit_pos = nit->get_pos();
+                            vec3 n_pos = _dsc->get_pos(n);
+                            vec3 other_node_0_pos = _dsc->get_pos(nodes_in_current_hat[(i+1)%nodes_in_current_hat.size()]);
+                            vec3 other_node_1_pos = _dsc->get_pos(nodes_in_current_hat[(i-1 + nodes_in_current_hat.size())%nodes_in_current_hat.size()]);
+                            
+                            vec3 n_nit = nit_pos - n_pos;
+                            real h0 = Util::cross(n_nit, other_node_0_pos - n_pos).length();
+                            real h1 = Util::cross(n_nit, other_node_1_pos - n_pos).length();
+                            
+                            vec3 curvature_f = n_nit*(node_curvature.length() - curvature_n.length());
+                            vec3 area_f = -n_nit*(h0 + h1);
+                            
+                            
+                            curvature_force[n].push_back(curvature_f);
+                            area_force[n].push_back(area_f);
+                        }
+                    }
+                }
         }
     }
-    _quality_angle_forces = angle_force;
-    _quality_control_forces = adaptive_force;
     
-    for (int i = 0; i < _quality_control_forces.size(); i++)
-    {
-        _quality_control_forces[i] += _quality_angle_forces[i];
-    }
+    _curvature_force = curvature_force;
+    _area_force = area_force;
 }
 
-// Discrete Differential-Geometry Operators for Triangulated 2-Manifolds
-void segment_function::compute_internal_force()
+void segment_function::compute_surface_curvature()
 {
- 
+    // All the 'hat' that top at the vertices
     std::vector<std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>>> interface_faces_around_node(_dsc->get_no_nodes_buffer(), std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>>());
+    std::vector<std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>>> tet_in_hat(_dsc->get_no_nodes_buffer(), std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>>());
     
     
-    // Find all connected region around nodes
+    // Find all connected region around nodes: Find all the hats
     for(auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
     {
         if(!(nit->is_interface() && !nit->is_boundary()))
             continue;
-            
+        
         
         auto tets = _dsc->get_tets(nit.key());
         
@@ -728,9 +721,9 @@ void segment_function::compute_internal_force()
             int label = _dsc->get_label(region.back());
             
             {
-            auto fs = _dsc->get_faces(region.back());
-            for(auto f : fs)
-                growing_queue.push(f);
+                auto fs = _dsc->get_faces(region.back());
+                for(auto f : fs)
+                    growing_queue.push(f);
             }
             
             while (!growing_queue.empty())
@@ -742,21 +735,19 @@ void segment_function::compute_internal_force()
                 //find
                 for (auto t : tets_f)
                 {
-                    if (_dsc->get_label(t) != label)
+                    if (_dsc->get_label(t) == label)
                     {
-                        continue;
-                    }
-                    
-                    int idx = tets.index(t);
-                    if (idx != -1)
-                    {
-                        region.push_back(t);
-                        tets -= t;
-                        
-                        { // add to region
+                        int idx = tets.index(t);
+                        if (idx != -1)
+                        {
+                            region.push_back(t);
+                            tets -= t;
+                            
+                            // add to region
                             auto fs = _dsc->get_faces(t);
                             for(auto f : fs)
                                 growing_queue.push(f);
+                            
                         }
                     }
                 }
@@ -764,6 +755,8 @@ void segment_function::compute_internal_force()
             
             if (label != BOUND_LABEL)
             {
+                tet_in_hat[nit.key()].push_back(region);
+                
                 is_mesh::SimplexSet<is_mesh::FaceKey> faceset = _dsc->get_faces(region) & _dsc->get_faces(nit.key()); // optimize later
                 is_mesh::SimplexSet<is_mesh::FaceKey> interface_faceset;
                 for (auto f : faceset)
@@ -778,36 +771,40 @@ void segment_function::compute_internal_force()
             }
         }
     }
+    _tets_in_hat = tet_in_hat;
     
     //-----------------
     // Now compute the mean curvature
-//    std::vector<double> node_cur(_dsc->get_no_nodes_buffer(), 0);
-    
-    std::vector<vec3> mean_curvature_norm_a(_dsc->get_no_nodes_buffer(), vec3(0));
+    //    std::vector<double> node_cur(_dsc->get_no_nodes_buffer(), 0);
+    std::vector<std::vector<vec3>> mean_curvature_of_each_hat(_dsc->get_no_nodes_buffer(), std::vector<vec3>());
     
     auto dsc = _dsc;
-    
+    std::vector<std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>>> node_in_hat(_dsc->get_no_nodes_buffer(), std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>>());
     for(auto n = dsc->nodes_begin(); n!= dsc->nodes_end(); n++)
     {
         if(n->is_interface() && !n->is_boundary())
         {
             // 1. Build nodes around
             
-            if((long)n.key() == 1787)
-            {
-                
-            }
-            
             auto face_around = interface_faces_around_node[n.key()];
+            int removed = 0;
             
-            for (auto fs : face_around)
+            for (int i = 0; i < face_around.size(); i++)
             {
+                auto fs = face_around[i];
+                
                 auto node_around = dsc->extract_node_around(n.key(), fs);
                 
-                if (!node_around)
+                if (!node_around) // There are many case it can be null.
                 {
+                    // should also update the list of relations around?
+                    interface_faces_around_node[n.key()].erase(interface_faces_around_node[n.key()].begin() + i - (removed));
+                    _tets_in_hat[n.key()].erase(_tets_in_hat[n.key()].begin() + i - removed);
+                    removed++;
                     continue;
                 }
+                
+                node_in_hat[n.key()].push_back(*node_around);
                 
                 // 2. Compute the curvature
                 auto p = dsc->get_pos(n.key());
@@ -861,15 +858,38 @@ void segment_function::compute_internal_force()
                 
                 // 2c. The curvature
                 auto mean_curvature_norm = curv_normal / (4*area_mixed);
-                
-                mean_curvature_norm_a[n.key()] += mean_curvature_norm;
+                mean_curvature_of_each_hat[n.key()].push_back(mean_curvature_norm);
                 
                 
                 delete node_around;
                 
             }
             
-         }
+        }
+    }
+    _node_in_hat = node_in_hat;
+    _mean_curvature_of_each_hat = mean_curvature_of_each_hat;
+
+}
+
+// Discrete Differential-Geometry Operators for Triangulated 2-Manifolds
+void segment_function::compute_internal_force()
+{
+    std::vector<vec3> mean_curvature_norm_a(_dsc->get_no_nodes_buffer(), vec3(0));
+    
+    for(auto n = _dsc->nodes_begin(); n!= _dsc->nodes_end(); n++)
+    {
+        if(n->is_interface() && !n->is_boundary())
+        {
+            auto all_cur = _mean_curvature_of_each_hat[n.key()];
+            if(all_cur.size() > 0)
+            {
+                for(auto cc : all_cur)
+                    mean_curvature_norm_a[n.key()] += cc;
+                
+                mean_curvature_norm_a[n.key()] /= all_cur.size();
+            }
+        }
     }
     
     _internal_forces = mean_curvature_norm_a;
@@ -890,20 +910,6 @@ void segment_function::compute_internal_force()
         f *= scale;
     }
     cout << "Normalize curvature; scale = " << scale << endl;
-    
-//    // Now compute the real force
-//    // Normalize the force
-//    for(int i = 0; i < forces.size(); i++)
-//    {
-//        if (forces[i].length() > EPSILON )
-//        {
-//            forces[i] = Util::normalize(forces[i]) * node_cur[i];
-//            
-//            assert(!isnan(forces[i].length()));
-//        }
-//    }
-//    
-//    _internal_forces = forces;
 }
 
 void segment_function::compute_external_force()
@@ -981,6 +987,7 @@ void segment_function::compute_external_force()
 void segment_function::face_split()
 {
     // try to adapt the flat surface
+    compute_surface_curvature();
     compute_internal_force();
     
     for(auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
@@ -1347,9 +1354,10 @@ void segment_function::segment()
 
     
     // 2. Compute external force
+    compute_surface_curvature();
     compute_external_force();
     compute_internal_force();
-//    compute_mesh_quality_control_force(); // Must be after internal force
+//    compute_mesh_quality_control_force();
     
     // 3. Work around to align boundary vertices
     //  including set displacement for interface vertices

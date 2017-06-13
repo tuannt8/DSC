@@ -111,6 +111,23 @@ void draw_helper::draw_dsc_interface_vertices_indices( dsc_class &dsc, int phase
     }
 }
 
+void draw_helper::dsc_draw_node_multi_arrow(dsc_class & dsc, std::vector<std::vector<vec3>> arrows, double scale)
+{
+    glDisable(GL_LIGHTING);
+    glBegin(GL_LINES);
+    
+    for (auto nit = dsc.nodes_begin(); nit != dsc.nodes_end(); nit++)
+    {
+        auto arrow = arrows[nit.key()];
+        for(auto a : arrow)
+        {
+            glVertex3dv(nit->get_pos().get());
+            glVertex3dv((nit->get_pos() + a*scale).get());
+        }
+    }
+    glEnd();
+}
+
 void draw_helper::dsc_draw_node_arrow(dsc_class & dsc, std::vector<vec3> arrow)
 {
     glDisable(GL_LIGHTING);

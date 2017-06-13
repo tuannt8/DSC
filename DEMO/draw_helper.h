@@ -59,6 +59,7 @@ public:
     static void dsc_draw_triple_edge(dsc_class & dsc);
     
     static void dsc_draw_node_arrow(dsc_class & dsc, std::vector<vec3> arrow);
+    static void dsc_draw_node_multi_arrow(dsc_class & dsc, std::vector<std::vector<vec3>> arrows, double scale = 1.0);
     
     static void save_painting(int WIDTH, int HEIGHT, std::string folder = std::string("LOG"));
     
