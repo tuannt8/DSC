@@ -1376,4 +1376,6 @@ void segment_function::segment()
     
     t.done();
     profile::close();
+    
+    cout << "Mesh statistic: " << _dsc->get_no_nodes_buffer() << " nodes buffer; " << _dsc->get_no_edges_buffer() << " edge buffer; " << _dsc->get_no_tets_buffer() << " tet buffer" << endl;
 }
