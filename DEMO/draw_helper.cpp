@@ -440,8 +440,7 @@ void draw_helper::draw_transparent_surface(dsc_class & dsc, int nb_phase)
 {
     std::vector<vec3> color = {vec3(0), vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
  
-//    glEnable (GL_BLEND);
-    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_BLEND);
     
     for(int i = 1; i< nb_phase; i++)
     {
@@ -457,7 +456,7 @@ void draw_helper::draw_transparent_surface(dsc_class & dsc, int nb_phase)
 //    glColor4f(0.0, 0.0, 1.0, 0.4);
 //    dsc_draw_one_interface(dsc, 2);
     
-    glDisable(GL_BLEND);
+    glEnable(GL_BLEND);
 }
 
 void draw_helper::draw_triple_interface(dsc_class &dsc)

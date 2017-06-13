@@ -488,7 +488,18 @@ void UI::update_gl()
     center_pos = center;
     
     //
+//    glEnable(GL_BLEND);
+//    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    
+//    glEnable(GL_MULTISAMPLE_ARB);
 //    glEnable(GL_MULTISAMPLE);
+//    glEnable(GL_POINT_SMOOTH);
+//    glEnable(GL_LINE_SMOOTH);
+//    glEnable(GL_POLYGON_SMOOTH);
+//    
+//    glHint( GL_POLYGON_SMOOTH_HINT,GL_NICEST );
+//    glHint( GL_POINT_SMOOTH,GL_NICEST );
+//    glHint( GL_LINE_SMOOTH,GL_NICEST );
 }
 
 void UI::display()
@@ -577,8 +588,8 @@ void UI::display()
 //        glEnable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
 //        glEnable(GL_BLEND);
-        glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glColor4f(0.7, 0.7, 0.7, 0.4);
+//        glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glColor4f(0.7, 0.7, 0.7, 1.0);
         draw_helper::dsc_draw_one_interface(*dsc, phase_draw);
         glDisable(GL_BLEND);
     }
