@@ -23,6 +23,7 @@
 #include <GL/glut.h>
 #endif
 
+#include "otsu_multi.h"
 
 using namespace std;
 
@@ -49,7 +50,7 @@ void segment_function::random_initialization()
     {
         if (_dsc->get_label(tit.key()) != BOUND_LABEL)
         {
-            int new_label = (rand() % 3);
+            int new_label = (rand() % NB_PHASE);
             _dsc->set_label(tit.key(), new_label);
         }
     }
@@ -65,8 +66,8 @@ void Obstu_threshold(std::vector<int> & thres_T1, std::vector<int> & thres_T2, s
         return;
     }
     
-    int range_min = thres_T1[thres_T1.size()-1];
-    int range_max = thres_T2[0];
+    int range_min = thres_T1.back();
+    int range_max = thres_T2.front();
     
     double thres_cofficient = 1;
     // Compute mean
@@ -93,6 +94,8 @@ void Obstu_threshold(std::vector<int> & thres_T1, std::vector<int> & thres_T2, s
     
     thres_T1.push_back(K1);
     thres_T2.insert(thres_T2.begin(), K2);
+    
+    Obstu_threshold(thres_T1, thres_T2, input, iter-1);
 }
 
 std::vector<int> obstu_recursive(std::vector<int> input, int nb_phase)
@@ -100,17 +103,19 @@ std::vector<int> obstu_recursive(std::vector<int> input, int nb_phase)
     std::vector<int> thres_T1; thres_T1.push_back(0);
     std::vector<int> thres_T2; thres_T2.push_back(255);
     int nb_iter = int((nb_phase-1)/2);
-    if (nb_iter == 0)
-    {
-        nb_iter = 1;
-    }
+//    if (nb_iter == 0)
+//    {
+//        nb_iter = 1;
+//    }
     Obstu_threshold(thres_T1, thres_T2, input, nb_iter);
     
-    if (nb_phase %2 == 0)
-    {
-        // remove one threshold
-        thres_T2.erase(thres_T2.begin());
-    }
+    
+    
+//    if (nb_phase %2 == 0)
+//    {
+//        // remove one threshold
+//        thres_T2.erase(thres_T2.begin());
+//    }
     
     thres_T1.insert(thres_T1.end(), thres_T2.begin(), thres_T2.end());
     return thres_T1;
@@ -167,7 +172,7 @@ void segment_function::initialization_discrete_opt()
         }
     }
     
-    // 2. Remove tetrahedra that have high variationsimage. More sparse, more tetrahedra to be optimized
+    // 2. Remove tetrahedra that have high variations image. More sparse, more tetrahedra to be optimized
     // Use bin size 100 for histogram count
     int bin_size = 200;
     max_variation *= 1.01;
@@ -202,8 +207,8 @@ void segment_function::initialization_discrete_opt()
     std::vector<int> histogram_for_thresholding(256,0);
     for (int i = 0; i < variation_inten_per_tet.size(); i++)
     {
-        if (variation_inten_per_tet[i] > 0
-            && variation_inten_per_tet[i] < thres_hold)
+//        if (variation_inten_per_tet[i] > 0
+//            && variation_inten_per_tet[i] < thres_hold)
         {
             // This tetrahedron is considered for relabeling
             int idx = (int)(mean_inten_per_tet[i]*256); // convert from [0, 1] to [0, 256] image
@@ -216,11 +221,14 @@ void segment_function::initialization_discrete_opt()
     // 3. Optimize the label
     // 3.1. Random initialize
     int nb_phases = NB_PHASE;
-    vector<int> thres_hold_array = obstu_recursive(histogram_for_thresholding, nb_phases);
+    vector<int> thres_hold_array = otsu_muti(histogram_for_thresholding, nb_phases);
     
     // debuging
-    cout << "Thresholding with: " << thres_hold_array[1] << "; "
-            << thres_hold_array[2] << endl;
+    cout << "Thresholding with: ";
+    for (auto tt : thres_hold_array)
+    {
+        cout << tt << "; ";
+    }cout << endl;
     
     // Initialize the label
     for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
@@ -232,18 +240,18 @@ void segment_function::initialization_discrete_opt()
         }
         
         int mean_inten_tet = (int)(mean_inten_per_tet[tit.key()]*255);
-        if(mean_inten_tet >= 255) mean_inten_tet = 254;
+        if(mean_inten_tet >= 255) mean_inten_tet = 255;
         
-        int label = 0;
-        for (; label < thres_hold_array.size(); label++)
-        {
-            if (mean_inten_tet < thres_hold_array[label])
-            {
-                break;
-            }
-        }
-        assert(label < NB_PHASE+1);
-        _dsc->set_label(tit.key(), label-1); // -1 because the thres_array start from threshold = 0
+
+        
+        auto v_pos = std::lower_bound(thres_hold_array.begin(), thres_hold_array.end(), mean_inten_tet);
+        
+        int label = (v_pos == thres_hold_array.end())? thres_hold_array.size() : int(v_pos - thres_hold_array.begin());
+        
+
+        
+        assert(label < NB_PHASE);
+        _dsc->set_label(tit.key(), label);
     }
 }
 
@@ -397,57 +405,83 @@ void segment_function::relabel_tetrahedra()
 {
     cout << "Relabeling --" << endl;
     
-    for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
+    
+    int num_relabel = 0;
+    
+    std::vector<double> mean_inten(_dsc->get_no_tets_buffer(), -1);
+    std::vector<double> volume_array(_dsc->get_no_tets_buffer(), -1);
+    std::vector<double> total_inten_array(_dsc->get_no_tets_buffer(), -1);
+    
+    
+//    while (num_relabel > 0)
     {
-        if (_dsc->get_label(tid.key()) == BOUND_LABEL)
+        num_relabel = 0;
+        
+        for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
         {
-            continue;
-        }
-#ifdef DSC_CACHE
-        auto nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tid.key()));
-#else
-        auto nodes_pos = _dsc->get_pos(_dsc->get_nodes(tid.key()));
-#endif
-        double volume, total_inten;
-        auto mean_inten_tetra = _img.get_tetra_intensity(nodes_pos, &total_inten, &volume);
-        
-        
-        
-        // We check if it is worth changing the label to the phase with closest mean intensity
-        double smallest_gap = INFINITY;
-        int label_of_closest_phase = -1;
-        for (int i = 0; i < _mean_intensities.size(); i++)
-        {
-            if (smallest_gap > mean_inten_tetra - _mean_intensities[i])
+            if (_dsc->get_label(tid.key()) == BOUND_LABEL)
             {
-                smallest_gap = mean_inten_tetra - _mean_intensities[i];
-                label_of_closest_phase = i;
+                continue;
             }
-        }
-        
-        if (label_of_closest_phase != _dsc->get_label(tid.key()))
-        {
-            // Check if we reduce the energy
-            auto old_energy = get_energy_tetrahedron(tid.key(), _dsc->get_label(tid.key()));
-            auto new_energy = get_energy_tetrahedron(tid.key(), label_of_closest_phase);
+    #ifdef DSC_CACHE
+            auto nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tid.key()));
+    #else
+            auto nodes_pos = _dsc->get_pos(_dsc->get_nodes(tid.key()));
+    #endif
             
-            if (new_energy < old_energy) //Should we a factor here to make sure that the benifit is enough?
+            if(mean_inten[tid.key()] < 0)
             {
-                _dsc->set_label(tid.key(), label_of_closest_phase);
+                double vo,ti;
+                auto cc = _img.get_tetra_intensity(nodes_pos, &ti, &vo);
+                mean_inten[tid.key()] = cc;
+                volume_array[tid.key()] = vo;
+                total_inten_array[tid.key()] = ti;
                 
-                // update mean intensity
-                int old_label = _dsc->get_label(tid.key());
-                _total_intensities[old_label] -= total_inten;
-                _total_intensities[label_of_closest_phase] += total_inten;
-                _phase_volume[old_label] -= volume;
-                _phase_volume[label_of_closest_phase] += volume;
-                
-                for (int i = 0; i < _mean_intensities.size(); i++)
+            }
+            auto mean_inten_tetra = mean_inten[tid.key()];
+            double volume = volume_array[tid.key()];
+            double total_inten = total_inten_array[tid.key()];
+        
+            
+            // We check if it is worth changing the label to the phase with closest mean intensity
+            double smallest_gap = INFINITY;
+            int label_of_closest_phase = -1;
+            for (int i = 0; i < _mean_intensities.size(); i++)
+            {
+                if (smallest_gap > mean_inten_tetra - _mean_intensities[i])
                 {
-                    _mean_intensities[i] =_total_intensities[i] / _phase_volume[i];
+                    smallest_gap = mean_inten_tetra - _mean_intensities[i];
+                    label_of_closest_phase = i;
+                }
+            }
+            
+            if (label_of_closest_phase != _dsc->get_label(tid.key()))
+            {
+                // Check if we reduce the energy
+                auto old_energy = get_energy_tetrahedron(tid.key(), _dsc->get_label(tid.key()));
+                auto new_energy = get_energy_tetrahedron(tid.key(), label_of_closest_phase);
+                
+                if (new_energy < old_energy) //Should we a factor here to make sure that the benifit is enough?
+                {
+                    _dsc->set_label(tid.key(), label_of_closest_phase);
+                    num_relabel++;
+                    
+                    // update mean intensity
+                    int old_label = _dsc->get_label(tid.key());
+                    _total_intensities[old_label] -= total_inten;
+                    _total_intensities[label_of_closest_phase] += total_inten;
+                    _phase_volume[old_label] -= volume;
+                    _phase_volume[label_of_closest_phase] += volume;
+                    
+                    for (int i = 0; i < _mean_intensities.size(); i++)
+                    {
+                        _mean_intensities[i] =_total_intensities[i] / _phase_volume[i];
+                    }
                 }
             }
         }
+        
+        cout << "Relabel " << num_relabel << endl;
     }
 }
 
@@ -533,7 +567,7 @@ void segment_function::work_around_on_boundary_vertices()
             
             
             vec3 destination = nid->get_pos() + dis;
-            auto threshold = 1;
+            auto threshold = 0.5*_dsc->AVG_LENGTH;
             // Align boundary
             if (is_bound_vertex[nid.key()])
             {
@@ -914,7 +948,7 @@ void segment_function::compute_internal_force()
 
 void segment_function::compute_external_force()
 {
-    double boundary_intensity = 0;
+    double boundary_intensity = -1;
     auto c = _mean_intensities;
     
     // Array to store temporary forces

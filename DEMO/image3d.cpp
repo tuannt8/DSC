@@ -331,6 +331,7 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
         auto pt = get_coord(tet_points, tb);
         total += get_value(pt[0], pt[1], pt[2]);
     }
+    
 
     total = total * v / a.size();
 
