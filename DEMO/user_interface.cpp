@@ -208,6 +208,8 @@ void UI::load_config_file()
             options[key] = val;
         }
         
+        cout << "Config file with " << options.size() << "values" << endl;
+        
         //2. Set property
         _seg._directory_path = options["directory-path"];
         _seg._dt = stof(options["time-step"]);
@@ -236,6 +238,8 @@ UI::UI()
     init_data();
 }
 
+    extern std::string config_file;
+
 void UI::init_data()
 {
     // Load setting file
@@ -254,13 +258,19 @@ void UI::init_data()
     init_dsc();
     set_dsc_boundary_layer();
     
-    std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
-    << dsc->get_no_tets() << " tets" << endl;
     
     _seg._dsc = &*dsc;
-    //    _seg.initialze_segmentation();
-//        _seg.random_initialization();
     _seg.initialization_discrete_opt();
+    
+//    extern std::string config_file;
+//    std::string file_name = std::string("./LOG/") + config_file.substr(0, config_file.size() - 11)
+//    + std::string(".dsc");
+//    load_model(file_name);
+//    
+    
+    std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
+    << dsc->get_no_tets() << " tets" << endl;
+
 }
 
 UI::UI(int &argc, char** argv)
@@ -699,6 +709,7 @@ void UI::display()
     
     if(CONTINUOUS)
     {
+        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
         _seg.segment();
         m_iters++;
     }

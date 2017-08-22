@@ -35,9 +35,10 @@ string arg_b_build_table_origin_command = "-build_table";
 //string config_file = "square_round_arg.properties";
 //string config_file = "hamster.properties";
 //string config_file = "cement.properties";
+string config_file = "cinema.properties";
 //string config_file = "filber.properties";
 //string config_file = "dental.properties";
-string config_file = "square_sin.properties";
+//string config_file = "square_sin.properties";
 
 string config_file_command = "-config_file";
 
@@ -63,19 +64,31 @@ void parse_arg(int argc, char** argv)
             }
             else if (strcmp(argv[i], config_file_command.c_str())==0)
             {
-                config_file = atoi(argv[++i]);;
+                config_file = std::string(argv[++i]);;
             }
         }
+        
+        
     }
     catch (exception e)
     {
         cout << "Error in input arguments";
         exit(1);
     }
+    
+    std::cout << config_file << std::endl;
+}
+
+void print_help()
+{
+    std::cout<<" -no_display \n"
+              <<  "-max_iter []\n"
+    << "-config_file []"<< std::endl;
 }
 
 int main(int argc, char** argv)
 {
+    print_help();
  
     parse_arg(argc, argv);
     
