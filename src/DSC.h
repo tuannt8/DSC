@@ -1159,7 +1159,7 @@ namespace DSC {
 #ifdef DSC_CACHE // edge remove
                 // Should update flag here, instead of inside topological_edge_removal(polygon.front(), nodes[0], nodes[1], K); function
                 {
-                profile tt("Over head");
+//                profile tt("Over head");
                 
                 auto tets = get_tets(eid);
                 for (auto tkey : tets)
@@ -1277,7 +1277,7 @@ namespace DSC {
 #ifdef DSC_CACHE // Bounadry edge removal
                 {
                     
-                    profile tt("Over head");
+//                    profile tt("Over head");
                 
                 auto tets = get_tets(eid);
                 for (auto tkey : tets)
@@ -1509,7 +1509,7 @@ namespace DSC {
 #ifdef DSC_CACHE // face removal
                 {
                     
-                    profile tt("Over head");
+//                    profile tt("Over head");
                 auto tets = get_tets(all_edges) + get_tets(f);
                 
                 for (auto tkey : tets)
@@ -2660,7 +2660,7 @@ namespace DSC {
 #ifdef DSC_CACHE // Split edge
             {
                 
-                profile tt("Over head");
+//                profile tt("Over head");
             
             auto tets = get_tets(eid);
             
@@ -2792,7 +2792,7 @@ namespace DSC {
 #ifdef DSC_CACHE // collapse edge
 //                    t.change("collapse e - cache overhead");
                     {
-                    profile tt("Over head");
+//                    profile tt("Over head");
                     
                     auto tets = get_tets(get_nodes(eid));
                     

@@ -423,8 +423,8 @@ void UI::display()
     glColor3f(0.8, 0.8, 0.8);
     draw_helper::dsc_draw_domain(*dsc);
     
-    glColor3f(0.5, 0.5, 0.5);
-    draw_dsc_layer(DISPLAY_LIM);
+//    glColor3f(0.5, 0.5, 0.5);
+//    draw_dsc_layer(DISPLAY_LIM);
     }
     else if(mode == 1)
     {
@@ -446,27 +446,27 @@ void UI::display()
     }
     
     //    draw_helper::dsc_draw_node_color(*dsc);
-    draw_helper::dsc_draw_edges_colors(*dsc);
+//    draw_helper::dsc_draw_edges_colors(*dsc);
     
-    // test. Get color the first time
-    static bool bRun = false;
-    if (!bRun)
-    {
-        profile t("get color serial");
-        
-        bRun = true;
-        int max_color = 0;
-        for (auto eit = dsc->edges_begin(); eit != dsc->edges_end(); eit++)
-        {
-            if (max_color < dsc->get_color_edge(eit.key()))
-            {
-                max_color = dsc->get_color_edge(eit.key());
-            }
-        }
-        std::cout << max_color << std::endl;
-        
-        
-    }
+//    // test. Get color the first time
+//    static bool bRun = false;
+//    if (!bRun)
+//    {
+//        profile t("get color serial");
+//        
+//        bRun = true;
+//        int max_color = 0;
+//        for (auto eit = dsc->edges_begin(); eit != dsc->edges_end(); eit++)
+//        {
+//            if (max_color < dsc->get_color_edge(eit.key()))
+//            {
+//                max_color = dsc->get_color_edge(eit.key());
+//            }
+//        }
+//        std::cout << max_color << std::endl;
+//        
+//        
+//    }
     
     glutSwapBuffers();
 //    update_title();
@@ -494,8 +494,18 @@ void UI::animate()
 
 //        compute_volume();
 //        build_node_curvature();
-        compute_volume_gradient();
+//        compute_volume_gradient();
 //        build_gradient_mass();
+        
+#ifdef __APPLE__
+        static int log_count = 0;
+        std::ostringstream s;
+        s << "LOG/scr_" << log_count++ << ".png";
+        if(!SOIL_save_screenshot(s.str().c_str(), SOIL_SAVE_TYPE_PNG, 0, 0, WIN_SIZE_X, WIN_SIZE_Y))
+        {
+            std::cout << "Screen shot fail \n";
+        }
+#endif
         
         std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() <<  " STOP*************\n" << std::endl;
     }
