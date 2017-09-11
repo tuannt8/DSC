@@ -128,6 +128,8 @@ public:
      */
     void load_model(const std::string& file_name);
     void save_model(std::string file_name = std::string());
+    
+    void export_segment(std::string file_name = std::string());
     /**
      Updates the window title.
      */

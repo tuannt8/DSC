@@ -347,6 +347,43 @@ void UI::load_model(const std::string& file_name)
     
     std::cout << "Loading done" << std::endl << std::endl;
 }
+
+void UI::export_segment(std::string file_name)
+{
+    if(file_name.empty())
+    {
+        file_name = std::string("segment.dsc");
+    }
+    
+    std::ofstream file(file_name.data());
+    
+    std::map<int, int> vertices_index;
+    int idx = 0;
+    for (auto vit = dsc->nodes_begin(); vit != dsc->nodes_end(); vit++)
+    {
+        if (!vit->is_boundary())
+        {
+            vertices_index.insert(std::make_pair((int)vit.key(), idx++));
+            auto pos = dsc->get_pos(vit.key());
+            
+            file << "v " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+        }
+    }
+    
+    for (auto tit = dsc->tetrahedra_begin(); tit != dsc->tetrahedra_end(); tit++)
+    {
+        if (dsc->get_label(tit.key()) != BOUND_LABEL)
+        {
+            auto nodes = dsc->get_nodes(tit.key());
+            file << "t " << vertices_index[(int)nodes[0]] << " "
+                    << vertices_index[(int)nodes[1]] << " "
+                    << vertices_index[(int)nodes[2]] << " "
+                    << vertices_index[(int)nodes[3]] << " "
+            << dsc->get_label(tit.key()) << std::endl;
+        }
+    }
+}
+
 void UI::save_model( std::string file_name){
     if(file_name.empty())
     {
@@ -746,9 +783,17 @@ void UI::keyboard(unsigned char key, int x, int y) {
         case 's':
             save_model();
             break;
+        case 'i':
+            export_segment();
+            break;
         case 'l':
-            load_model("./LOG/log.dsc");
+        {
+            extern std::string config_file;
+            std::string file_name = std::string("./LOG/") + config_file.substr(0, config_file.size() - 11)
+            + std::string(".dsc");
+            load_model(file_name);
             _seg._dsc = &*dsc;
+        }
             break;
         case 'p':// Display time counter
             profile::close();

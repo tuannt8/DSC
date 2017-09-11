@@ -330,7 +330,7 @@ void segment_function::initialze_segmentation()
 
 void segment_function::update_vertex_stability()
 {
-    _vertex_stability_map = std::vector<int>(30000, 0); // suppose we have less than 10000 vertices
+    _vertex_stability_map = std::vector<int>(_dsc->get_no_nodes_buffer(), 0); // suppose we have less than 10000 vertices
     
     for (auto vid = _dsc->nodes_begin(); vid != _dsc->nodes_end(); vid++)
     {
