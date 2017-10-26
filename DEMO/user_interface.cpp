@@ -252,7 +252,7 @@ void UI::init_data()
     // Load cross sections
     _seg.init();
     _obj_dim = _seg._img.dimension_v();
-    _dsc_dim = _obj_dim + vec3(2*m_edge_length);
+    _dsc_dim = _obj_dim;// + vec3(2*m_edge_length);
     
     cout << "Image dimension " << _obj_dim[0] << " " << _obj_dim[1] << " " <<  _obj_dim[2] << " " ;
     
@@ -260,7 +260,7 @@ void UI::init_data()
     
     // Generate DSC
     init_dsc();
-    set_dsc_boundary_layer();
+//    set_dsc_boundary_layer();
     
     
     _seg._dsc = &*dsc;
@@ -448,7 +448,7 @@ void UI::init_dsc()
         {
             for (int ix = 0; ix < NX; ix++)
             {
-                points.push_back(vec3(ix*deltax, iy*deltay, iz*deltaz) - vec3(m_edge_length));
+                points.push_back(vec3(ix*deltax, iy*deltay, iz*deltaz)/* - vec3(m_edge_length)*/);
             }
         }
     }
@@ -809,7 +809,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);
             break;
         case 't':
-            _seg.face_split();
+            _seg.update_average_intensity();
             break;
         case 'a':
             _seg.adapt_tetrahedra();

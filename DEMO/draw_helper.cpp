@@ -361,13 +361,13 @@ void draw_helper::dsc_draw_one_interface_edge(dsc_class & dsc, int phase)
 {
     for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
     {
-        if (f->is_interface() && !f->is_boundary())
+        if (f->is_interface())
         {
             auto tets = dsc.get_tets(f.key());
-            if (!(dsc.get_label(tets[0]) == phase
-                  or dsc.get_label(tets[1]) == phase)
-                //                || dsc.get_label(tets[0]) == BOUND_LABEL
-                //                || dsc.get_label(tets[1]) == BOUND_LABEL
+            if ((tets.size()==2 &&
+                 !(dsc.get_label(tets[0]) == phase
+                  or dsc.get_label(tets[1]) == phase))
+                ||(tets.size()==1 && dsc.get_label(tets[0]) != phase)
                 )
             {
                 continue;
@@ -407,13 +407,15 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
     
     for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
     {
-        if (f->is_interface() && !f->is_boundary())
+        if (f->is_interface())
         {
             auto tets = dsc.get_tets(f.key());
-            if (!(dsc.get_label(tets[0]) == phase
+            
+            if ((tets.size() == 2 &&
+                !(dsc.get_label(tets[0]) == phase
                   or dsc.get_label(tets[1]) == phase)
-//                || dsc.get_label(tets[0]) == BOUND_LABEL
-//                || dsc.get_label(tets[1]) == BOUND_LABEL
+                )
+                || (tets.size() == 1 && dsc.get_label(tets[0]) != phase)
                 )
             {
                 continue;
@@ -426,7 +428,9 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
             auto pts = dsc.get_pos(nodes);
             
             // normalize the normal to the eye
-            is_mesh::TetrahedronKey other_tet = (dsc.get_label(tets[0]) == phase)? tets[0] : tets[1];
+            is_mesh::TetrahedronKey other_tet = tets[0] ;
+            if(tets.size() == 2)
+                other_tet = (dsc.get_label(tets[0]) == phase)? tets[0] : tets[1];
             
             
             auto norm = dsc.get_normal(f.key(), other_tet);

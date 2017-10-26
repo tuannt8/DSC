@@ -533,16 +533,22 @@ namespace DSC {
         virtual bool is_unsafe_editable(const node_key& nid)
         {
             return exists(nid) && !get(nid).is_boundary();
+            // Tuan: We modify the boundary
+            return exists(nid);
         }
         
         virtual bool is_unsafe_editable(const edge_key& eid)
         {
             return exists(eid) && !get(eid).is_boundary();
+            // Tuan: We modify the boundary
+            return exists(eid);
         }
         
         virtual bool is_unsafe_editable(const face_key& fid)
         {
             return exists(fid) && !get(fid).is_boundary();
+            // Tuan: We modify the boundary
+            return exists(fid);
         }
         
         virtual bool is_unsafe_editable(const tet_key& tid)
@@ -576,7 +582,11 @@ namespace DSC {
 //            return is_unsafe_editable(nid) && get(nid).is_interface() && !get(nid).is_crossing();
             
             // Tuan: Crossing must be movable. In case there are multiple phases, crossing nodes appear frequently.
-            return is_unsafe_editable(nid) && get(nid).is_interface();
+//            return is_unsafe_editable(nid) && get(nid).is_interface();
+            
+            // Tuan 2: Boundary can also move. In this case, we need to utilize full domain
+            //  Displacement of boundaries have been process to force them displace parallel with domain surface
+            return exists(nid) && get(nid).is_interface();
         }
         
     public:
@@ -2593,7 +2603,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
 #else
             ////TUAN: New algorithm that is faster
             //      We just need to compare all triangle with the first triangle
-            //      Dont need to compare n*(n-1) 
+            //      Dont need to compare n*(n-1) to return true
             vec3 norm = get_normal(fids[0]);
             bool inited = false;
             for (const face_key& f1 : fids)

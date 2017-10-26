@@ -371,6 +371,9 @@ double segment_function::get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, in
     auto energy = _img.get_variation(nodes_pos, _mean_intensities[assumed_label]);
     for (auto fid : _dsc->get_faces(tkey))
     {
+        if(_dsc->get(fid).is_boundary())
+            continue;
+        
         auto cobound_tets = _dsc->get_tets(fid); // We assume that this face is not DSC boundary, as there is a gap between DSC boundary and the image domain
         auto label0 = _dsc->get_label(cobound_tets[0]);
         auto label1 = _dsc->get_label(cobound_tets[1]);
@@ -459,10 +462,6 @@ void segment_function::relabel_tetrahedra()
         
         for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
         {
-            if (_dsc->get_label(tid.key()) == BOUND_LABEL)
-            {
-                continue;
-            }
     #ifdef DSC_CACHE
             auto nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tid.key()));
     #else
@@ -546,11 +545,8 @@ void segment_function::work_around_on_boundary_vertices()
     std::vector<std::bitset<4>> direction_state(node_mem_size,std::bitset<4>("0000"));
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (fid->is_interface() && !fid->is_boundary())
+        if (fid->is_boundary())
         {
-            auto tets = _dsc->get_tets(fid.key());
-            if(_dsc->get_label(tets[0]) == BOUND_LABEL
-               || _dsc->get_label(tets[1]) == BOUND_LABEL)
             {
                 auto nodes_on_face = _dsc->get_nodes(fid.key());
                 auto norm = _dsc->get_normal(fid.key());
@@ -587,9 +583,9 @@ void segment_function::work_around_on_boundary_vertices()
         
         if ( (nid->is_interface() or nid->is_crossing())
             && _dsc->exists(nid.key())
-            and !nid->is_boundary())
+          )
         {
-            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
+            auto dis = _forces[nid.key()]*_dt;
             
             assert(!isnan(dis.length()));
             
@@ -604,7 +600,7 @@ void segment_function::work_around_on_boundary_vertices()
             vec3 destination = nid->get_pos() + dis;
             auto threshold = 0.5*_dsc->AVG_LENGTH;
             // Align boundary
-            if (is_bound_vertex[nid.key()])
+            if (nid->is_boundary())
             {
                 auto direct = direction_state[nid.key()];
                 auto pos = nid->get_pos();
@@ -633,24 +629,22 @@ void segment_function::work_around_on_boundary_vertices()
         }
     }
     
-    cout << "Max displacement: " << max_displacement_real << endl;
-    double average_internal_force = 0, average_external_force = 0;
-    int count = 0;
-    for (auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
-    {
-        
-        if ( (nid->is_interface() or nid->is_crossing())
-            && _dsc->exists(nid.key())
-            and !nid->is_boundary()
-            && !is_bound_vertex[nid.key()])
-        {
-            average_external_force += _forces[nid.key()].length();
-            average_internal_force += _internal_forces[nid.key()].length();
-            count ++;
-        }
-    }
-    
-    cout << "average external force: " << average_external_force/count << "; average internal force: " << average_internal_force/count << endl;
+//    cout << "Max displacement: " << max_displacement_real << endl;
+//    double average_internal_force = 0, average_external_force = 0;
+//    int count = 0;
+//    for (auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
+//    {
+//
+//        if ( (nid->is_interface() or nid->is_crossing())
+//            && _dsc->exists(nid.key()))
+//        {
+//            average_external_force += _forces[nid.key()].length();
+//            average_internal_force += _internal_forces[nid.key()].length();
+//            count ++;
+//        }
+//    }
+//
+//    cout << "average external force: " << average_external_force/count << "; average internal force: " << average_internal_force/count << endl;
 }
 
 void segment_function::compute_mesh_quality_control_force()
@@ -965,7 +959,6 @@ void segment_function::compute_internal_force()
 
 void segment_function::compute_external_force()
 {
-    double boundary_intensity = -1;
     auto c = _mean_intensities;
     
     // Array to store temporary forces
@@ -990,8 +983,8 @@ void segment_function::compute_external_force()
             auto verts = _dsc->get_nodes(fid.key());
             auto pts = _dsc->get_pos(verts);
             
-            double c0 = _dsc->get_label(tets[0]) == BOUND_LABEL? boundary_intensity : c[_dsc->get_label(tets[0])];
-            double c1 = _dsc->get_label(tets[1]) == BOUND_LABEL? boundary_intensity : c[_dsc->get_label(tets[1])];
+            double c0 = c[_dsc->get_label(tets[0])];
+            double c1 = c[_dsc->get_label(tets[1])];
             
             // get normal
             vec3 Norm = _dsc->get_normal(fid.key());
@@ -1224,6 +1217,8 @@ bool sort_intersect(intersect_pt p1, intersect_pt p2)
 
 void segment_function::update_average_intensity()
 {
+    _mean_intensities.resize(NB_PHASE);
+    
     // Using sum table. Much faster than normal loop
 #ifdef LOG_DEBUG
     cout << "Computing average intensity with" << NB_PHASE << " phases " << endl;
@@ -1250,11 +1245,16 @@ void segment_function::update_average_intensity()
     // 2. Find intersection with interface
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (fid->is_interface() and !fid->is_boundary())
+        if (fid->is_interface())
         {
             auto tet = _dsc->get_tets(fid.key());
+
             auto phase0 = _dsc->get_label(tet[0]);
-            auto phase1 = _dsc->get_label(tet[1]);
+            int phase1 = -1;
+            if (tet.size() == 2)
+            {
+                phase1 = _dsc->get_label(tet[1]);
+            }
             
             // check all z-ray that intersect this triangle
             auto pts3 = _dsc->get_pos(_dsc->get_nodes(fid.key()));
@@ -1290,12 +1290,12 @@ void segment_function::update_average_intensity()
                             
                             auto zz = std::nearbyint(p[2]);
                             
-                            if(phase0 != BOUND_LABEL)
+                            if(phase0 != -1)
                             {
                                 ray_intersect[phase0][y*dim[0] + x].intersects.push_back(intersect_pt(zz, !in_1));
                                 
                             }
-                            if(phase1 != BOUND_LABEL)
+                            if(phase1 != -1)
                             {
                                 ray_intersect[phase1][y*dim[0] + x].intersects.push_back(intersect_pt(zz, in_1));
                                 
@@ -1401,7 +1401,7 @@ void segment_function::segment()
     
 
     
-    _mean_intensities.resize(num_phases);
+    
     
     
     
@@ -1413,9 +1413,9 @@ void segment_function::segment()
     
     
     // 2. Compute external force
-    compute_surface_curvature();
+//    compute_surface_curvature();
     compute_external_force();
-    compute_internal_force();
+//    compute_internal_force();
     
     // 3. Work around to align boundary vertices
     //  including set displacement for interface vertices
