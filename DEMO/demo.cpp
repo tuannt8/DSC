@@ -27,6 +27,8 @@ int arg_i_num_iters = 1000;
 string arg_i_num_iters_command = "-max_iter";
 
 // Flag: Use original DSC in build table function
+// We have improved the build_table function. It has better performance
+//  but sometimes run incorrectly. At this moment, just use the old function.
 bool arg_b_build_table_origin = true;
 string arg_b_build_table_origin_command = "-build_table";
 

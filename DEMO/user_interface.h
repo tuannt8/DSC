@@ -102,6 +102,7 @@ public:
     
 private:
 public:
+    double _min_edge_length = 7;
     double m_edge_length = 7;
     float gl_dis_max;
     vec3 _obj_dim;

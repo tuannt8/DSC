@@ -25,6 +25,8 @@
 
 #include "otsu_multi.h"
 
+std::vector<bool> tet_touched;
+
 using namespace std;
 
 
@@ -103,19 +105,8 @@ std::vector<int> obstu_recursive(std::vector<int> input, int nb_phase)
     std::vector<int> thres_T1; thres_T1.push_back(0);
     std::vector<int> thres_T2; thres_T2.push_back(255);
     int nb_iter = int((nb_phase-1)/2);
-//    if (nb_iter == 0)
-//    {
-//        nb_iter = 1;
-//    }
+    
     Obstu_threshold(thres_T1, thres_T2, input, nb_iter);
-    
-    
-    
-//    if (nb_phase %2 == 0)
-//    {
-//        // remove one threshold
-//        thres_T2.erase(thres_T2.begin());
-//    }
     
     thres_T1.insert(thres_T1.end(), thres_T2.begin(), thres_T2.end());
     return thres_T1;
@@ -395,10 +386,59 @@ double segment_function::get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, in
     return energy;
 }
 
+#include "tet_dis_coord.hpp"
 void segment_function::adapt_tetrahedra()
 {
-    // Split tetrahedron if there is something inside
+    tet_touched = vector<bool>(_dsc->get_no_tets_buffer()*1.1, false);
+    cout << "Update intensity\n";
+    update_average_intensity();
     
+    double min_edge = 8;
+    double min_V = pow(min_edge, 3)/6;
+    int num_relabel = 0;
+    for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
+    {
+        if(tet_touched[tit.key()])
+            continue;
+        
+        tet_touched[tit.key()] = true;
+        
+        cout << "Tet: " << tit.key() << "; ";
+        auto tet_nodes = _dsc->get_nodes(tit.key());
+        auto tet_nodes_pos = _dsc->get_pos(tet_nodes);
+        int label = _dsc->get_label(tit.key());
+        
+        int num_dis = (int)(_dsc->volume(tit.key()) / min_V);
+        
+        long dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), num_dis) - dis_coord_size.begin() - 1;
+
+        if(dis < 0)dis = 0;
+        auto const a = tet_dis_coord[dis];
+        
+        cout << a.size() << " discretized nodes\n";
+        
+        bool relabel = false;
+        for (auto tb : a)
+        {
+            auto pt = get_coord(tb, tet_nodes_pos);
+            
+            int opt_phase = arg_min_phase_point(pt, min_edge, label);
+            if(opt_phase != label)
+            {
+                relabel = true;
+                cout << "Start recursive subdivision\n";
+                // Perform subdivide the tetrahedron and
+                recursive_subdivide(tit.key(), pt, opt_phase, min_V);
+                break;
+            }
+        }
+        
+        if (relabel)
+        {
+            num_relabel ++;
+            continue;
+        }
+    }
 }
 
 void segment_function::relabel_tetrahedra()
@@ -549,11 +589,6 @@ void segment_function::work_around_on_boundary_vertices()
             && _dsc->exists(nid.key())
             and !nid->is_boundary())
         {
-//            auto dis = _forces[nid.key()]*_dt;
-//            auto dis = _internal_forces[nid.key()]*1;
-            
-//            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()] + _quality_control_forces[nid.key()]*QALPHA)*_dt;
-            
             auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
             
             assert(!isnan(dis.length()));
@@ -576,24 +611,12 @@ void segment_function::work_around_on_boundary_vertices()
                 if ((direct & X_direction).to_ulong() != 0) // constraint on x
                 {
                     algin_pos(0);
-//                    if(std::abs(pos[0]) < threshold)
-//                        destination[0] = 0;
-//                    if(std::abs(pos[0] - (domain_dim[0] - 1)) <threshold)
-//                        destination[0] = domain_dim[0] - 1;
                 }
                 if ((direct & Y_direction).to_ulong() != 0){ // constraint on y
                     algin_pos(1);
-//                    if(std::abs(pos[1]) < threshold)
-//                        destination[1] = 0;
-//                    if(std::abs(pos[1] - (domain_dim[1] - 1)) <threshold)
-//                        destination[1] = domain_dim[1] - 1;
                 }
                 if ((direct & Z_direction).to_ulong() != 0){ // constraint on z
                     algin_pos(2);
-//                    if(std::abs(pos[2]) < threshold)
-//                        destination[2] = 0;
-//                    if(std::abs(pos[2] - (domain_dim[2] - 1)) <threshold)
-//                        destination[2] = domain_dim[2] - 1;
                 }
                 
                 boundary_vertices_displacements[nid.key()] = destination - nid->get_pos();
@@ -677,13 +700,7 @@ void segment_function::compute_mesh_quality_control_force()
                             for (int itet = 0; itet < tets_in_current_hats.size(); itet++)
                             {
                                 auto tets_in_current_hat = tets_in_current_hats[itet];
-                                
-//                                if(std::find_first_of
-//                                   (
-//                                  tets_in_hat.get_raw_data().begin(), tets_in_hat.get_raw_data().end(),
-//                                  tets_in_current_hat.get_raw_data().begin(), tets_in_current_hat.get_raw_data().end(),
-//                                  [](is_mesh::TetrahedronKey t1, is_mesh::TetrahedronKey t2){return t1 ==t2;}
-//                                  ) != tets_in_hat.get_raw_data().end())
+                    
                                 if((tets_in_hat & tets_in_current_hat).size() > 0) // OPTIMIZE it later
                                 {
                                     idx = itet;
@@ -1381,17 +1398,24 @@ void segment_function::segment()
     // 1. Compute average intensity
     profile t("Segment time");
     
+    
+
+    
     _mean_intensities.resize(num_phases);
+    
+    
+    
+//    adapt_tetrahedra();
+    
     update_average_intensity();
     
     
-
+    
     
     // 2. Compute external force
     compute_surface_curvature();
     compute_external_force();
     compute_internal_force();
-//    compute_mesh_quality_control_force();
     
     // 3. Work around to align boundary vertices
     //  including set displacement for interface vertices
@@ -1413,3 +1437,96 @@ void segment_function::segment()
     
     cout << "Mesh statistic: " << _dsc->get_no_nodes_buffer() << " nodes buffer; " << _dsc->get_no_edges_buffer() << " edge buffer; " << _dsc->get_no_tets_buffer() << " tet buffer" << endl;
 }
+
+int segment_function::arg_min_phase_point(vec3 pt, double radius, int current_label) {
+    // Compute mean intensity
+    int radius_i = (int)radius;
+    double mean_inten, total_inten = 0, count = 0;
+    vec3i pti(pt);
+    auto im_dim = _img.dimension();
+    for (int i = std::max(0, pti[0] - radius_i); i < std::min(im_dim[0], pti[0] + radius_i); i++)
+    {
+        for (int j = std::max(0, pti[1] - radius_i); j < std::min(im_dim[1], pti[1] + radius_i); j++)
+        {
+            for (int k = std::max(0, pti[2] - radius_i); k < std::min(im_dim[2], pti[2] + radius_i); k++)
+            {
+                total_inten += _img.get_value(i, j, k);
+                count++;
+            }
+        }
+    }
+    
+    mean_inten = total_inten / count;
+    
+    // Find optimal phase
+    double min_E  = INFINITY;
+    int label_min = -1;
+    for (int i = 0; i < _mean_intensities.size(); i++)
+    {
+        auto ci = _mean_intensities[i];
+        double E = count * (ci - mean_inten) * (ci - mean_inten);
+        if (min_E > E)
+        {
+            min_E = E;
+            label_min = i;
+        }
+    }
+    
+    // Include smoothing factor
+    if(label_min != current_label)
+    {
+        double c_current = _mean_intensities[current_label];
+        double current_E = count * (c_current - mean_inten) * (c_current - mean_inten);
+        
+        double area = 6 * radius * radius;
+        if(min_E + ALPHA * area > current_E)
+        {
+            label_min = current_label;
+        }
+    }
+    
+    return label_min;
+}
+
+void segment_function::recursive_subdivide(is_mesh::TetrahedronKey tkey, vec3 pt, int new_label, double min_volume)
+{
+    
+    // Find the longest edge
+    auto eids = _dsc->get_edges(tkey);
+    auto eid = _dsc->longest_edge(eids);
+    
+    // Split the longest edge
+    auto vid = _dsc->split(eid);
+    
+    // The the new tetrahedron that contain pt
+    //  Optimize later !!!
+    auto tet_neighbor = _dsc->get_tets(vid);
+    for (auto tkey_new : tet_neighbor)
+    {
+        tet_touched[tkey_new] = true;
+    }
+    
+    for (auto tkey_new : tet_neighbor)
+    {
+        auto tet_pos = _dsc->get_pos(_dsc->get_nodes(tkey_new));
+        auto bary_coord = Util::barycentric_coords<real>(pt, tet_pos[0], tet_pos[1], tet_pos[2], tet_pos[3]);
+        
+        if(bary_coord[0] >= 0 && bary_coord[1] >= 0 && bary_coord[2] >= 0 && bary_coord[3] >= 0)
+        {
+            // Inside
+            if (_dsc->volume(tkey_new) > 1.5*min_volume)
+            {
+                cout << "Successed. relabel to " << new_label << " \n";
+                recursive_subdivide(tkey_new, pt, new_label, min_volume);
+            }
+            else{
+                cout << "Go smaller, volume = " << _dsc->volume(tkey_new) << endl;
+                _dsc->set_label(tkey_new, new_label);
+            }
+            break;
+        }
+    }
+    
+    
+}
+

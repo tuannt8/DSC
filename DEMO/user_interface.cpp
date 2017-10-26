@@ -219,8 +219,12 @@ void UI::load_config_file()
 
         m_edge_length = stof(options["average-edge-length"]);
         
+        if(options.find("min-edge-length") != options.end())
+        {
+            _min_edge_length = stof(options["min-edge-length"]);
+        }
         num_images = stoi(options["number_images"]);
-
+        
     }
     catch (std::exception e)
     {
@@ -806,6 +810,10 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case 't':
             _seg.face_split();
+            break;
+        case 'a':
+            _seg.adapt_tetrahedra();
+            break;
         default:
             break;
     }

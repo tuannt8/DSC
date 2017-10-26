@@ -21,7 +21,7 @@ void draw_helper::draw_image_slice(const image3d & im)
 {
     glDisable(GL_LIGHTING);
     // Draw bounding box
-    vec3 dim = im.dimension_v();
+    auto dim = im.dimension_v();
     
     glPushMatrix();
     

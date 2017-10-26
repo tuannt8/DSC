@@ -38,6 +38,8 @@ typedef CGLA::Vec4d       vec4;
 typedef CGLA::Mat3x3d     mat3;
 typedef CGLA::Mat4x4d     mat4;
 
+typedef CGLA::Vec3i vec3i;
+
 static const real EPSILON = 1e-8;
 
 #undef INFINITY

@@ -91,6 +91,8 @@ public:
     
     void face_split();
     void adapt_tetrahedra();
+    int arg_min_phase_point(vec3 pt, double radius, int current_label);
+    void recursive_subdivide(is_mesh::TetrahedronKey tkey, vec3 pt, int new_label, double min_volume);
 public:
     std::vector<ray_z> _d_rayz;
     

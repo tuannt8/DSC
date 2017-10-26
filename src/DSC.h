@@ -2787,7 +2787,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         /**
          * Split an edge e and returns the new node which is placed at the middle of e.
          */
-        void split(const edge_key& eid)
+        node_key split(const edge_key& eid)
         {
             auto verts = get_pos(get_nodes(eid));
             vec3 pos = Util::barycenter(verts[0], verts[1]);
@@ -2825,7 +2825,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             }
 #endif
             
-            split(eid, pos, destination);
+            return split(eid, pos, destination);
         }
         
         ///////////////
