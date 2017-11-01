@@ -387,18 +387,84 @@ double segment_function::get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, in
 }
 
 #include "tet_dis_coord.hpp"
+
+bool compare_tet(point_to_capture &a, point_to_capture & b)
+{
+    return a.tet_key < b.tet_key;
+}
+
+void segment_function::adapt_tetrahedra_1()
+{
+
+    std::vector<point_to_capture> * subdivide_tets = new std::vector<point_to_capture>();
+    
+    // 1. Find potential points for subdivision
+    update_average_intensity();
+     min_edge = 20;
+     min_V = pow(min_edge, 3)/6;
+    int num_relabel = 0;
+
+    for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
+    {
+        if( _dsc->get_label(tit.key()) == BOUND_LABEL )
+            continue;
+        
+        auto tet_nodes = _dsc->get_nodes(tit.key());
+        auto tet_nodes_pos = _dsc->get_pos(tet_nodes);
+        int label = _dsc->get_label(tit.key());
+        
+        int num_dis = (int)(_dsc->volume(tit.key()) / min_V);
+        
+        long dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), num_dis) - dis_coord_size.begin() - 1;
+        
+        if(dis < 0)dis = 0;
+        auto const a = tet_dis_coord[dis];
+        
+        for (auto tb : a)
+        {
+            auto pt = get_coord(tb, tet_nodes_pos);
+            
+            int opt_phase = arg_min_phase_point(pt, min_edge, label);
+            if(opt_phase != label)
+            {
+                num_relabel ++;
+                
+                subdivide_tets->push_back(point_to_capture(tit.key(), pt, opt_phase));
+                break;
+            }
+        }
+    }
+    
+    // 2. Local subdivision
+//    std::sort(subdivide_tets.begin(), subdivide_tets.end(), compare_tet);
+    while (subdivide_tets->size() > 0)
+    {
+        std::queue<is_mesh::TetrahedronKey> queue_tets;
+        cout << "recursive " << subdivide_tets->at(0).tet_key << "-------" << subdivide_tets->size() << " remain\n";
+        
+        recursive_divide(subdivide_tets, subdivide_tets->at(0).tet_key, 0, queue_tets);
+        
+//        static int c = 0;
+//        if (c++ > 2)
+//        {
+//            break;
+//        }
+    }
+    
+    delete subdivide_tets;
+}
 void segment_function::adapt_tetrahedra()
 {
     tet_touched = vector<bool>(_dsc->get_no_tets_buffer()*1.1, false);
     cout << "Update intensity\n";
     update_average_intensity();
     
-    double min_edge = 8;
-    double min_V = pow(min_edge, 3)/6;
+    min_edge = 8;
+    min_V = pow(min_edge, 3)/6;
     int num_relabel = 0;
     for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
     {
-        if(tet_touched[tit.key()])
+        if(tet_touched[tit.key()] || _dsc->get_label(tit.key()) == BOUND_LABEL)
             continue;
         
         tet_touched[tit.key()] = true;
@@ -1526,7 +1592,108 @@ void segment_function::recursive_subdivide(is_mesh::TetrahedronKey tkey, vec3 pt
             break;
         }
     }
-    
-    
 }
+
+void segment_function::recursive_divide(std::vector<point_to_capture>* subdivide_tets, is_mesh::TetrahedronKey tkey,  int depth, std::queue<is_mesh::TetrahedronKey> & debug_tet_queue)
+{
+
+    
+    debug_tet_queue.push(tkey);
+    
+    auto longest_e = _dsc->longest_edge(_dsc->get_edges(tkey));
+    cout << " Recursive depth " << depth << " tet " << tkey << "; to split " << longest_e << endl;
+    
+//    if(depth < 4)
+    {
+        auto neighbor_tets = _dsc->get_tets(longest_e);
+        
+        while (neighbor_tets.size() > 0)
+        {
+            auto t0 = neighbor_tets[0];
+            auto longest_e_0 = _dsc->longest_edge(_dsc->get_edges(t0));
+            if (longest_e == longest_e_0)
+            {
+                neighbor_tets -= t0;
+            }
+            else
+            {
+                recursive_divide(subdivide_tets, t0, depth+1, debug_tet_queue);
+                neighbor_tets =  _dsc->get_tets(longest_e);
+            }
+        }
+    }
+    
+    // Now longest_e is compatible division
+    devide_element(subdivide_tets, longest_e);
+}
+
+bool is_point_inside(const vec3 & p, const vec3 & a, const vec3 & b, const vec3 & c, const vec3 & d)
+{
+    auto bary_coord = Util::barycentric_coords<real>(p, a, b, c, d);
+    return (bary_coord[0] >= 0 && bary_coord[1] >= 0 && bary_coord[2] >= 0 && bary_coord[3] >= 0);
+}
+
+void segment_function::devide_element(std::vector<point_to_capture>* subdivide_tets, is_mesh::EdgeKey ekey)
+{
+    std::cout << "Adapt edge " << ekey << endl;
+    // Find capturing point affected
+    auto old_tets = _dsc->get_tets(ekey);
+    std::vector<point_to_capture> current_subdivide_tets;
+    
+    cout << "subdivide_tets size (before): " << subdivide_tets->size() << endl;
+    for (auto t : old_tets)
+    {
+        point_to_capture temp;
+        temp.tet_key = t;
+        // Optimize later
+        auto tp = std::find(subdivide_tets->begin(), subdivide_tets->end(), temp);
+        if (tp != subdivide_tets->end())
+        {
+            temp = *tp;
+            current_subdivide_tets.push_back(temp);
+            
+            subdivide_tets->erase(tp);
+            cout << "Remove " << tp->tet_key << endl;
+//            subdivide_tets.erase(std::remove(subdivide_tets.begin(), subdivide_tets.end(), temp), subdivide_tets.end());
+        }
+    }
+    cout << "subdivide_tets size (after): " << subdivide_tets->size() << endl;
+    cout << "related tets #: " << current_subdivide_tets.size() << endl;
+    // Split the edge
+    auto nkey = _dsc->split(ekey);
+    
+    // Update the capturing point
+    auto new_tets = _dsc->get_tets(nkey);
+    std::vector<point_to_capture> remain_subdivide_tets;
+    for (auto t : new_tets)
+    {
+        auto pts = _dsc->get_pos(_dsc->get_nodes(t));
+        for(int i = 0; i < current_subdivide_tets.size(); i++)
+        {
+            auto old_p = current_subdivide_tets[i];
+            
+            if (is_point_inside(old_p.pt, pts[0], pts[1], pts[2], pts[3]))
+            {
+                cout << "Volume " << t << ": " << _dsc->volume(t) << "min V " << min_V << endl;
+                if(_dsc->volume(t) < min_V)
+                {
+                    _dsc->set_label(t, old_p.new_label);
+                }
+                else{
+                    auto new_p = old_p;
+                    new_p.tet_key = t;
+                    remain_subdivide_tets.push_back(new_p);
+                }
+                
+                current_subdivide_tets.erase(current_subdivide_tets.begin() + i);
+                continue;
+            }
+        }
+    }
+    
+    subdivide_tets->insert(subdivide_tets->end(), remain_subdivide_tets.begin(), remain_subdivide_tets.end());
+    
+    cout << "subdivide_tets size (final): " << subdivide_tets->size() << endl;
+}
+
 

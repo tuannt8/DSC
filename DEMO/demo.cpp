@@ -90,7 +90,7 @@ void print_help()
 }
 
 int main(int argc, char** argv)
-{
+{    
     print_help();
  
     parse_arg(argc, argv);

@@ -77,6 +77,9 @@ public:
     static void draw_boundary_direction(segment_function &seg, dsc_class*);
     
     static void draw_dsc_interface_vertices_indices(dsc_class&, int phase);
+    static void draw_dsc_tet_indices(dsc_class&);
+    
+    static void draw_tet_list(dsc_class&, std::vector<int> tet_list);
     
     static void draw_triple_interface(dsc_class &);
     static void draw_transparent_surface(dsc_class &, int);

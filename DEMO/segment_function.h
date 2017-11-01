@@ -14,6 +14,7 @@
 #include "DSC.h"
 
 #include "define.h"
+#include <queue>
 
 extern std::bitset<4> X_direction, Y_direction, Z_direction;
 
@@ -32,6 +33,50 @@ struct ray_z
 {
     int x, y;
     std::vector<intersect_pt> intersects;
+};
+
+//template <typename T>
+//class vector_attribute: public std::vector<T>
+//{
+//public:
+//    using std::vector<T>::size;
+//    using std::vector<T>::resize;
+//    using std::vector<T>::at;
+//
+//    T & operator[] (int idx){
+//        if(idx >= size())
+//        {
+//            resize(idx+1, _default);
+//        }
+//        return at(idx);
+//    };
+//
+//    vector_attribute(T defalt){
+//        _default = defalt;
+//    }
+//
+//private:
+//    T _default; // default value of element when the array shrink
+//};
+
+class point_to_capture{
+public:
+    point_to_capture(){}
+    point_to_capture(is_mesh::TetrahedronKey t, vec3 p, int l){
+        tet_key = t;
+        pt = p;
+        new_label = l;
+    };
+    ~point_to_capture(){}
+    
+    is_mesh::TetrahedronKey tet_key;
+    vec3 pt;
+    int new_label;
+    
+    bool operator== (const point_to_capture & b )
+    {
+        return tet_key == b.tet_key;
+    }
 };
 
 class segment_function
@@ -89,8 +134,13 @@ public:
     double get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, int );
     void relabel_tetrahedra();
     
+    
+    double min_edge, min_V;
     void face_split();
     void adapt_tetrahedra();
+    void adapt_tetrahedra_1();
+    void recursive_divide(std::vector<point_to_capture>* subdivide_tets, is_mesh::TetrahedronKey tkey, int depth, std::queue<is_mesh::TetrahedronKey> & debug_tet_queue);
+    void devide_element(std::vector<point_to_capture>* subdivide_tets, is_mesh::EdgeKey ekey);
     int arg_min_phase_point(vec3 pt, double radius, int current_label);
     void recursive_subdivide(is_mesh::TetrahedronKey tkey, vec3 pt, int new_label, double min_volume);
 public:

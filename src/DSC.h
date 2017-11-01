@@ -3244,10 +3244,22 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         edge_key longest_edge(const is_mesh::SimplexSet<edge_key>& eids)
         {
             real max_l = -INFINITY;
-            edge_key max_e;
+            edge_key max_e = -INFINITY;
             for(auto e : eids)
             {
                 real l = length(e);
+                
+                // TUAN: avoid floating point error, when edge lengths are equal
+                if(std::abs(l-max_l) < EPSILON) // equal edges
+                {
+                    if(max_e < e)
+                    {
+                        max_e = e;
+                    }
+                    continue;
+                }
+                // TUAN end
+                
                 if(l > max_l)
                 {
                     max_l = l;

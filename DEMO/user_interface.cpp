@@ -711,6 +711,17 @@ void UI::display()
     {
         draw_helper::draw_dsc_interface_vertices_indices(*dsc, phase_draw);
     }
+    
+    if (glut_menu::get_state("Tets indices", 0))
+    {
+        draw_helper::draw_dsc_tet_indices(*dsc);
+    }
+    
+    if (glut_menu::get_state("Debug", 0))
+    {
+        std::vector<int> tet_list = {126,321,322};
+        draw_helper::draw_tet_list(*dsc, tet_list);
+    }
   
     glutSwapBuffers();
     
@@ -719,34 +730,6 @@ void UI::display()
     glutSetWindowTitle(os.str().c_str());
 
     check_gl_error();
-    
-    
-//    static int state = 0;
-//    if (CONTINUOUS)
-//    {
-//        switch (state) {
-//            case 0:
-//                _seg.segment();
-//    m_iters++;
-//                break;
-//            case 1:
-//                draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
-//                phase_draw = (phase_draw+1) % _seg.NB_PHASE;
-//                break;
-//            case 2:
-//                draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
-//                phase_draw = (phase_draw+1) % _seg.NB_PHASE;
-//                break;
-//            case 3:
-//                draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
-//                phase_draw = (phase_draw+1) % _seg.NB_PHASE;
-//                break;
-//            default:
-//                break;
-//        }
-//        
-//        state = (state+1)%4;
-//    }
     
     if(CONTINUOUS)
     {
@@ -812,7 +795,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             _seg.face_split();
             break;
         case 'a':
-            _seg.adapt_tetrahedra();
+            _seg.adapt_tetrahedra_1();
             break;
         default:
             break;

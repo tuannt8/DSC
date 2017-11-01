@@ -75,6 +75,44 @@ void RenderString(vec3 pos, const std::string &string)
     }
 }
 
+void draw_helper::draw_dsc_tet_indices(dsc_class& dsc)
+{
+    for (auto tit = dsc.tetrahedra_begin(); tit != dsc.tetrahedra_end(); tit++)
+    {
+        auto pts = dsc.get_pos(dsc.get_nodes(tit.key()));
+        auto midPt = (pts[0] + pts[1] + pts[2] + pts[3])*0.25;
+        
+        RenderString(midPt, std::to_string((int)tit.key()));
+    }
+}
+
+
+void draw_helper::draw_tet_list(dsc_class& dsc, std::vector<int> tet_list)
+{
+    for (auto tk : tet_list)
+    {
+        is_mesh::TetrahedronKey tkey(tk);
+        
+        auto pts = dsc.get_pos(dsc.get_nodes(tkey));
+        auto midPt = (pts[0] + pts[1] + pts[2] + pts[3])*0.25;
+        
+        glColor3f(0, 0, 1);
+        RenderString(midPt, std::to_string((int)tkey));
+        
+        glColor3f(1, 0, 0);
+        glBegin(GL_LINES);
+        for (auto e : dsc.get_edges(tkey))
+        {
+            auto pt_e = dsc.get_pos(dsc.get_nodes(e));
+            glVertex3dv(pt_e[0].get());
+            glVertex3dv(pt_e[1].get());
+            
+        }
+        glEnd();
+        
+    }
+    
+}
 void draw_helper::draw_dsc_interface_vertices_indices( dsc_class &dsc, int phase)
 {
     std::vector<bool> bIs_interface_nodes(dsc.get_no_nodes_buffer(), false);
