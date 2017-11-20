@@ -16,6 +16,8 @@
 #include "define.h"
 #include <queue>
 
+#define STABLE_DISPLACEMENT 0.1
+
 extern std::bitset<4> X_direction, Y_direction, Z_direction;
 
 
@@ -121,6 +123,11 @@ public:
     std::vector<vec3> _internal_forces;
     std::vector<vec3> _quality_control_forces; // curvature based force
     std::vector<vec3> _quality_angle_forces; // angle based
+    
+    // Adaptive time step
+    std::vector<vec3> _previous_dis;
+    std::vector<vec3> _cur_dis;
+    std::vector<double> _dt_adapt;
     
     void remove_stable_proximity(std::vector<std::vector<double>> & barry_coord, const is_mesh::SimplexSet<is_mesh::NodeKey> & nodes);
     vec3 get_node_displacement(is_mesh::NodeKey nkey);

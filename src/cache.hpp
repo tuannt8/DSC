@@ -43,9 +43,12 @@ public:
     std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*> nodes_on_tet;
     std::vector<real*> quality_tet;
     
-    // Colors
+    // Colors for parallel
     std::vector<int *> node_color;
     std::vector<int *> edge_color;
+    
+    // for adaptive time step
+    std::vector<bool *> is_clean;
 public:
     
     dsc_cache()
@@ -56,6 +59,7 @@ public:
         faces_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*>(MAX_ELEMENTS, nullptr);
         nodes_neighbor_node = std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*>(MAX_ELEMENTS, nullptr);
         node_color = std::vector<int *>(MAX_ELEMENTS, nullptr);
+        is_clean = std::vector<bool *>(MAX_ELEMENTS, nullptr);
         
         // Edge
         tets_share_edge = std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>*>(MAX_ELEMENTS, nullptr);
@@ -78,6 +82,7 @@ public:
         CLEAN_GARBAGE(nodes_neighbor_node, nk);
         CLEAN_GARBAGE(link_of_node, nk);
         CLEAN_GARBAGE(node_color, nk);
+        CLEAN_GARBAGE(is_clean, nk);
     }
     
     void mark_dirty(is_mesh::EdgeKey ek, bool dirty)

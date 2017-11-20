@@ -327,7 +327,7 @@ void segment_function::update_vertex_stability()
     for (auto vid = _dsc->nodes_begin(); vid != _dsc->nodes_end(); vid++)
     {
         auto dis = get_node_displacement(vid.key());
-        if (dis.length() > 0.1) // stable
+        if (dis.length() > 0.1) // not stable
         {
             _vertex_stability_map[vid.key()] = 0;
         }
@@ -336,7 +336,7 @@ void segment_function::update_vertex_stability()
 
 vec3 segment_function::get_node_displacement(is_mesh::NodeKey nkey)
 {
-    return _forces[(long)nkey]*_dt;
+    return _forces[(long)nkey]*_dt_adapt[nkey];
 }
 
 inline std::bitset<4> get_direction(vec3 a)
@@ -403,7 +403,10 @@ void segment_function::remove_stable_proximity(std::vector<std::vector<double>> 
     bool is_stable[4];
     for (int i = 0; i < 4; i++)
     {
-        is_stable[i] = _vertex_stability_map[nodes[i]];
+//        is_stable[i] = _vertex_stability_map[nodes[i]];
+        is_stable[i] = !(_dsc->get(nodes[i]).is_interface()
+                         || _dsc->get(nodes[i]).is_boundary()
+                         || _dsc->get(nodes[i]).is_crossing());
     }
     
     for (auto bit = barry_coord.begin(); bit != barry_coord.end();)
@@ -411,7 +414,7 @@ void segment_function::remove_stable_proximity(std::vector<std::vector<double>> 
         bool bViolate = false;
         for (int i = 0; i < 4; i++)
         {
-            if (!is_stable[i] && (*bit)[i] > 0.5)
+            if (!is_stable[i] && (*bit)[i] > 0.3)
             {
                 bViolate = true;
                 break;
@@ -435,10 +438,10 @@ void segment_function::adapt_tetrahedra_1()
     // 1. Find potential points for subdivision
     update_average_intensity();
     
-    compute_surface_curvature();
-    compute_external_force();
-    compute_internal_force();
-    update_vertex_stability();
+//    compute_surface_curvature();
+//    compute_external_force();
+//    compute_internal_force();
+//    update_vertex_stability();
     
     int num_relabel = 0;
 
@@ -645,8 +648,10 @@ void segment_function::relabel_tetrahedra()
 
 void segment_function::work_around_on_boundary_vertices()
 {
+    _previous_dis.resize(_dsc->get_no_nodes_buffer(), vec3(0));
+    _cur_dis.resize(_dsc->get_no_nodes_buffer(), vec3(0));
+    _dt_adapt.resize(_dsc->get_no_nodes_buffer(), _dt);
 
-    
     // 1. Find boundary vertices
     
 #ifdef _DSC_ORIGIN_
@@ -734,6 +739,8 @@ void segment_function::work_around_on_boundary_vertices()
                 dis = destination - nid->get_pos();
             }
             
+            _cur_dis[nid.key()] = dis;
+            
             _dsc->set_destination(nid.key(), destination);
             
             if (max_displacement_real < dis.length())
@@ -743,6 +750,51 @@ void segment_function::work_around_on_boundary_vertices()
         }
     }
     
+    // Update time step
+    for (int i = 0; i < _previous_dis.size(); i++)
+    {
+        if(_dsc->cache.is_clean[i])
+        {
+            auto vp = _previous_dis[i];
+            auto vc = _cur_dis[i];
+            auto vpl = vp.length();
+            auto vcl = vc.length();
+            
+            if (vpl > EPSILON
+                && vcl > EPSILON)
+            {
+                auto cosA = Util::dot(vp, vc)/vpl/vcl;
+                if ( cosA < -0.2) // 110o
+                {
+                    _dt_adapt[i] /= 2.0;
+                }
+                if (cosA > 0.2)
+                {
+                    _dt_adapt[i] *= 1.05;
+                }
+            }
+            
+            if(vcl < EPSILON)
+                _dt_adapt[i] = _dt;
+        }
+        else{
+            _dsc->cache.is_clean[i] = new bool(true);
+            _dt_adapt[i] = _dt;
+        }
+
+    }
+    _previous_dis = _cur_dis;
+    
+    double min_dt = INFINITY;
+    double max_dt = -INFINITY;
+    for (auto dtt : _dt_adapt)
+    {
+        min_dt = std::min(min_dt, dtt);
+        max_dt = std::max(max_dt, dtt);
+    }
+    cout<<"Min dt: " << min_dt << "; max: " << max_dt << endl;
+    
+    // Log debug
     cout << "Max displacement: " << max_displacement_real << endl;
     double average_internal_force = 0, average_external_force = 0;
     int count = 0;
@@ -1643,7 +1695,7 @@ void segment_function::recursive_divide(std::vector<point_to_capture>* subdivide
     debug_tet_queue.push(tkey);
     
     auto longest_e = _dsc->longest_edge(_dsc->get_edges(tkey));
-    cout << " Recursive depth " << depth << " tet " << tkey << "; to split " << longest_e << endl;
+//    cout << " Recursive depth " << depth << " tet " << tkey << "; to split " << longest_e << endl;
     
 //    if(depth < 4)
     {
@@ -1677,12 +1729,12 @@ bool is_point_inside(const vec3 & p, const vec3 & a, const vec3 & b, const vec3 
 
 void segment_function::devide_element(std::vector<point_to_capture>* subdivide_tets, is_mesh::EdgeKey ekey)
 {
-    std::cout << "Adapt edge " << ekey << endl;
+//    std::cout << "Adapt edge " << ekey << endl;
     // Find capturing point affected
     auto old_tets = _dsc->get_tets(ekey);
     std::vector<point_to_capture> current_subdivide_tets;
     
-    cout << "subdivide_tets size (before): " << subdivide_tets->size() << endl;
+//    cout << "subdivide_tets size (before): " << subdivide_tets->size() << endl;
     for (auto t : old_tets)
     {
         point_to_capture temp;
@@ -1695,12 +1747,12 @@ void segment_function::devide_element(std::vector<point_to_capture>* subdivide_t
             current_subdivide_tets.push_back(temp);
             
             subdivide_tets->erase(tp);
-            cout << "Remove " << tp->tet_key << endl;
+//            cout << "Remove " << tp->tet_key << endl;
 //            subdivide_tets.erase(std::remove(subdivide_tets.begin(), subdivide_tets.end(), temp), subdivide_tets.end());
         }
     }
-    cout << "subdivide_tets size (after): " << subdivide_tets->size() << endl;
-    cout << "related tets #: " << current_subdivide_tets.size() << endl;
+//    cout << "subdivide_tets size (after): " << subdivide_tets->size() << endl;
+//    cout << "related tets #: " << current_subdivide_tets.size() << endl;
     // Split the edge
     auto nkey = _dsc->split(ekey);
     
@@ -1716,9 +1768,10 @@ void segment_function::devide_element(std::vector<point_to_capture>* subdivide_t
             
             if (is_point_inside(old_p.pt, pts[0], pts[1], pts[2], pts[3]))
             {
-                cout << "Volume " << t << ": " << _dsc->volume(t) << "min V " << min_V << endl;
+//                cout << "Volume " << t << ": " << _dsc->volume(t) << "min V " << min_V << endl;
                 
                 // check if we could relabel
+                // TUAN: Consider if needed?
                 auto old_energy = get_energy_tetrahedron(t, _dsc->get_label(t));
                 auto new_energy = get_energy_tetrahedron(t, old_p.new_label);
                 
@@ -1743,7 +1796,7 @@ void segment_function::devide_element(std::vector<point_to_capture>* subdivide_t
     
     subdivide_tets->insert(subdivide_tets->end(), remain_subdivide_tets.begin(), remain_subdivide_tets.end());
     
-    cout << "subdivide_tets size (final): " << subdivide_tets->size() << endl;
+//    cout << "subdivide_tets size (final): " << subdivide_tets->size() << endl;
 }
 
 
