@@ -412,6 +412,32 @@ namespace DSC {
             AVG_VOLUME = (sqrt(2.)/12.)*AVG_LENGTH*AVG_LENGTH*AVG_LENGTH;
         }
         
+        void set_min_edge_length(real min_length)
+        {
+            set_avg_edge_length();
+            auto ratio = min_length / AVG_LENGTH;
+            
+            pars = {
+                0.3*ratio,    //DEG_EDGE_QUALITY, ratio to AVG_LENGTH
+                ratio,    //MIN_EDGE_QUALITY, ratio to AVG_LENGTH, not in use
+                
+                0.0005, //DEG_FACE_QUALITY 0.0005 = 2 degree
+                0.015,  //MIN_FACE_QUALITY : 0.06 = 20 degree; 0.015 = 10 degree //Not in use
+                
+                0.02,   //DEG_TET_QUALITY
+                0.3,    //MIN_TET_QUALITY, an important parameter
+                
+                // These below will not be in use
+                0.7*ratio,     //MIN_LENGTH, used to resize mesh
+                INFINITY,     //MAX_LENGTH
+                
+                0.2,    //MIN_AREA, not in use
+                INFINITY,     //MAX_AREA, not in use
+                
+                0.0, //0.2,    //MIN_VOLUME, , used to resize mesh
+                INFINITY};//MAX_VOLUME
+        }
+        
         void set_parameters(parameters pars_)
         {
             pars = pars_;
@@ -2443,8 +2469,6 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             //            std::cout << std::endl << "********************************" << std::endl;
             //#endif
             
-
-            
             int missing;
             int step = 0;
             do {
@@ -2485,6 +2509,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             //#ifdef DEBUG
 //                        validity_check();
             //#endif
+            
             
             resize_complex();
             

@@ -321,18 +321,23 @@ void segment_function::initialze_segmentation()
 
 void segment_function::update_vertex_stability()
 {
-    _vertex_stability_map = std::vector<int>(_dsc->get_no_nodes_buffer(), 0); // suppose we have less than 10000 vertices
+    // By default, it is stable
+    _vertex_stability_map = std::vector<int>(_dsc->get_no_nodes_buffer(), 1);
     
     for (auto vid = _dsc->nodes_begin(); vid != _dsc->nodes_end(); vid++)
     {
-        if (_forces[(long)vid.key()].length() < 0.1) // stable
+        auto dis = get_node_displacement(vid.key());
+        if (dis.length() > 0.1) // stable
         {
-            _vertex_stability_map[vid.key()] = 1;
+            _vertex_stability_map[vid.key()] = 0;
         }
     }
 }
 
-
+vec3 segment_function::get_node_displacement(is_mesh::NodeKey nkey)
+{
+    return _forces[(long)nkey]*_dt;
+}
 
 inline std::bitset<4> get_direction(vec3 a)
 {
@@ -393,6 +398,35 @@ bool compare_tet(point_to_capture &a, point_to_capture & b)
     return a.tet_key < b.tet_key;
 }
 
+void segment_function::remove_stable_proximity(std::vector<std::vector<double>> & barry_coord, const is_mesh::SimplexSet<is_mesh::NodeKey> & nodes)
+{
+    bool is_stable[4];
+    for (int i = 0; i < 4; i++)
+    {
+        is_stable[i] = _vertex_stability_map[nodes[i]];
+    }
+    
+    for (auto bit = barry_coord.begin(); bit != barry_coord.end();)
+    {
+        bool bViolate = false;
+        for (int i = 0; i < 4; i++)
+        {
+            if (!is_stable[i] && (*bit)[i] > 0.5)
+            {
+                bViolate = true;
+                break;
+            }
+        }
+        
+        if (bViolate)
+        {
+            bit = barry_coord.erase(bit);
+        }
+        else
+            bit++;
+    }
+}
+
 void segment_function::adapt_tetrahedra_1()
 {
 
@@ -400,14 +434,21 @@ void segment_function::adapt_tetrahedra_1()
     
     // 1. Find potential points for subdivision
     update_average_intensity();
-     min_edge = 20;
-     min_V = pow(min_edge, 3)/6;
+    
+    compute_surface_curvature();
+    compute_external_force();
+    compute_internal_force();
+    update_vertex_stability();
+    
     int num_relabel = 0;
 
     for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
     {
-        if( _dsc->get_label(tit.key()) == BOUND_LABEL )
+        if( _dsc->get_label(tit.key()) == BOUND_LABEL
+           || _dsc->volume(tit.key()) < min_V)
             continue;
+        
+        // And only stable vertices
         
         auto tet_nodes = _dsc->get_nodes(tit.key());
         auto tet_nodes_pos = _dsc->get_pos(tet_nodes);
@@ -418,7 +459,10 @@ void segment_function::adapt_tetrahedra_1()
         long dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), num_dis) - dis_coord_size.begin() - 1;
         
         if(dis < 0)dis = 0;
-        auto const a = tet_dis_coord[dis];
+        assert(dis < num_dis);
+        auto a = tet_dis_coord[dis];
+        
+        remove_stable_proximity(a, tet_nodes);
         
         for (auto tb : a)
         {
@@ -434,6 +478,8 @@ void segment_function::adapt_tetrahedra_1()
             }
         }
     }
+    
+    cout << "Number tet to subdivide: " << num_relabel << endl;
     
     // 2. Local subdivision
 //    std::sort(subdivide_tets.begin(), subdivide_tets.end(), compare_tet);
@@ -620,14 +666,11 @@ void segment_function::work_around_on_boundary_vertices()
             {
                 auto nodes_on_face = _dsc->get_nodes(fid.key());
                 auto norm = _dsc->get_normal(fid.key());
-                
-                // Using normal vector may be incorect
-                //  some topological event modify the mesh on the image boundary, and it make the interface of the mesh no longer flat
+
                 std::bitset<4> direction = get_direction(norm);
                 
                 for (auto n : nodes_on_face)
                 {
-//                    bound_nodes += n; //
                     is_bound_vertex[(unsigned int)n] = 1;
                     direction_state[(unsigned int)n] = direction_state[(unsigned int)n] | direction;
                 }
@@ -655,7 +698,8 @@ void segment_function::work_around_on_boundary_vertices()
             && _dsc->exists(nid.key())
             and !nid->is_boundary())
         {
-            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
+//            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
+            auto dis = get_node_displacement(nid.key());
             
             assert(!isnan(dis.length()));
             
@@ -1454,6 +1498,7 @@ void segment_function::update_average_intensity()
 
 }
 
+#pragma mark MAIN FUNCTION
 void segment_function::segment()
 {
     int num_phases = NB_PHASE;
@@ -1463,9 +1508,6 @@ void segment_function::segment()
     
     // 1. Compute average intensity
     profile t("Segment time");
-    
-    
-
     
     _mean_intensities.resize(num_phases);
     
@@ -1675,9 +1717,17 @@ void segment_function::devide_element(std::vector<point_to_capture>* subdivide_t
             if (is_point_inside(old_p.pt, pts[0], pts[1], pts[2], pts[3]))
             {
                 cout << "Volume " << t << ": " << _dsc->volume(t) << "min V " << min_V << endl;
-                if(_dsc->volume(t) < min_V)
+                
+                // check if we could relabel
+                auto old_energy = get_energy_tetrahedron(t, _dsc->get_label(t));
+                auto new_energy = get_energy_tetrahedron(t, old_p.new_label);
+                
+                if(new_energy < old_energy || _dsc->volume(t) < min_V)
                 {
                     _dsc->set_label(t, old_p.new_label);
+                    // check the t
+                    auto l = _dsc->shortest_edge(_dsc->get_edges(t));
+                    assert(l > 2);
                 }
                 else{
                     auto new_p = old_p;

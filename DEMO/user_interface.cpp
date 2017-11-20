@@ -264,6 +264,7 @@ void UI::init_data()
     
     
     _seg._dsc = &*dsc;
+    _seg.set_min_edge_length(_min_edge_length);
     _seg.initialization_discrete_opt();
     
 //    extern std::string config_file;
@@ -498,6 +499,7 @@ void UI::init_dsc()
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
     dsc->set_avg_edge_length(delta);
+//    dsc->set_min_edge_length(_min_edge_length);
 }
 
 void UI::update_title()
@@ -792,7 +794,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);
             break;
         case 't':
-            _seg.face_split();
+            dsc->deform();
             break;
         case 'a':
             _seg.adapt_tetrahedra_1();

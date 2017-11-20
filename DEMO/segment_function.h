@@ -122,6 +122,9 @@ public:
     std::vector<vec3> _quality_control_forces; // curvature based force
     std::vector<vec3> _quality_angle_forces; // angle based
     
+    void remove_stable_proximity(std::vector<std::vector<double>> & barry_coord, const is_mesh::SimplexSet<is_mesh::NodeKey> & nodes);
+    vec3 get_node_displacement(is_mesh::NodeKey nkey);
+    
     void compute_surface_curvature();
     void compute_external_force();
     void compute_internal_force();
@@ -136,6 +139,7 @@ public:
     
     
     double min_edge, min_V;
+    void set_min_edge_length(double l){min_edge = l; min_V = pow(min_edge, 3)/6;};
     void face_split();
     void adapt_tetrahedra();
     void adapt_tetrahedra_1();
