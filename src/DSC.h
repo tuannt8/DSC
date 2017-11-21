@@ -428,7 +428,7 @@ namespace DSC {
                 0.3,    //MIN_TET_QUALITY, an important parameter
                 
                 // These below will not be in use
-                0.7*ratio,     //MIN_LENGTH, used to resize mesh
+                0.5,     //MIN_LENGTH, used to resize mesh
                 INFINITY,     //MAX_LENGTH
                 
                 0.2,    //MIN_AREA, not in use

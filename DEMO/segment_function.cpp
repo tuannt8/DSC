@@ -672,6 +672,8 @@ void segment_function::work_around_on_boundary_vertices()
                 auto nodes_on_face = _dsc->get_nodes(fid.key());
                 auto norm = _dsc->get_normal(fid.key());
 
+                // SHOULD ALSO BASED ON ITS POSITION
+                //  in some irregular cases
                 std::bitset<4> direction = get_direction(norm);
                 
                 for (auto n : nodes_on_face)
@@ -1199,67 +1201,34 @@ void segment_function::compute_external_force()
 
 void segment_function::face_split()
 {
-    // try to adapt the flat surface
-    compute_surface_curvature();
-    compute_internal_force();
     
-    for(auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
-    {
-        if (_dsc->exists(nit.key()) && nit->is_interface() && !nit->is_crossing() && !nit->is_boundary())
-        {
-            if (_internal_forces[nit.key()].length() < 0.1)
-            {
-                // collapsing edge
-                auto edges = _dsc->get_edges(nit.key());
-                int min_idx = -1;
-                double shortest_length = INFINITY;
-                for (int i = 0; i < edges.size(); i++)
-                {
-                    if (_dsc->get(edges[i]).is_interface() && !_dsc->get(edges[i]).is_boundary())
-                    {
-                        if (shortest_length > _dsc->length(edges[i]))
-                        {
-                            shortest_length = _dsc->length(edges[i]);
-                            min_idx = i;
-                        }
-                    }
-                }
-                
-                if(min_idx != -1)
-                {
-                    auto other_node = (_dsc->get_nodes(edges[min_idx]) - nit.key()).front();
-                    _dsc->collapse(edges[min_idx]);
-                }
-            }
-        }
-    }
     
-    return;
-    
+    // By analyzing the external force distribution
+    double boundary_intensity = -1;
     auto c = _mean_intensities;
     
-    std::vector<int> related_edges(_dsc->get_no_edges_buffer(), 0);
+    std::vector<double> avg_f = std::vector<double>(_dsc->get_no_faces_buffer(), 0.0);
+    std::vector<double> avg_f_abs = std::vector<double>(_dsc->get_no_faces_buffer(), 0.0);
     
-    int i = 0, j = 0;
+    is_mesh::SimplexSet<is_mesh::EdgeKey> to_split_edges;
+    // Loop on interface faces
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (_dsc->exists(fid.key()) && fid->is_interface())
+        if (fid->is_interface() && !fid->is_boundary())
         {
+            // Get general information
             auto tets = _dsc->get_tets(fid.key());
-            if (_dsc->get_label(tets[0]) == BOUND_LABEL ||
-                _dsc->get_label(tets[1]) == BOUND_LABEL )
-            {
-                // Ignore the faces on the boundary.
-                // This ignorian should be considered later
-                // We may also assess the boundary faces
-                continue;
-            }
-            
             auto verts = _dsc->get_nodes(fid.key());
             auto pts = _dsc->get_pos(verts);
             
-            double c0 = c[_dsc->get_label(tets[0])];
-            double c1 = c[_dsc->get_label(tets[1])];
+            double c0 = _dsc->get_label(tets[0]) == BOUND_LABEL? boundary_intensity : c[_dsc->get_label(tets[0])];
+            double c1 = _dsc->get_label(tets[1]) == BOUND_LABEL? boundary_intensity : c[_dsc->get_label(tets[1])];
+            
+//            // get normal
+//            vec3 Norm = _dsc->get_normal(fid.key());
+//            auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
+//            Norm = Norm*dot(Norm, l01);// modify normal direction
+//            Norm.normalize();
             
             // Discretize the face
             double area = Util::area<double>(pts[0], pts[1], pts[2]);
@@ -1273,89 +1242,63 @@ void segment_function::face_split()
             
             auto a = tri_dis_coord[tri_sample_index - 1];
             
-            if(a.size() > 1 && a.size() > _dsc->area(fid.key()))
-            {
-                std::cout << "--Error in triangle decomposition. Each sample point represents the area < 1 pixel^2 ----: "
-                << a.size() << " - " << _dsc->area(fid.key()) << std::endl;
-            }
-            
-            std::vector<double> forces_distribute(a.size(), 0.0);
-            int idx = 0;
-            
+            // Analyze each sampling point
             for (auto coord : a)
             {
                 auto p = get_coord_tri(pts, coord);
                 auto g = _img.get_value_f(p);
                 
-                auto f = - ((2*g - c0 - c1) / (c1-c0) / area);
+                auto f = - ((2*g - c0 - c1) * (c1-c0) ); // Normalized already
                 
-                forces_distribute[idx++] = f;
+                avg_f[fid.key()] += f;
+                avg_f_abs[fid.key()] += std::abs(f);
             }
             
-            /*
-             Analyze the force distribution
-             */
-            double magnitude_mean = 0, signed_mean = 0;
-            for (auto & force : forces_distribute)
+            avg_f[fid.key()] /= a.size();
+            avg_f_abs[fid.key()] /= a.size();
+            
+            // Now analyze the faces
+            // Somehow should be related to 2\pi\alpha
+            // IMPORTANT: Parameter
+            double aa = (c1 - c0)*(c1-c0);
+            if (std::abs(avg_f[fid.key()]) < 0.1*aa
+                && avg_f_abs[fid.key()] > 0.5*aa)
             {
-                magnitude_mean += std::abs(force);
-                signed_mean += force;
+                // shall be split
+                auto e = _dsc->longest_edge(_dsc->get_edges(fid.key()));
+                to_split_edges += e;
             }
-            
-            magnitude_mean /= forces_distribute.size();
-            signed_mean /= forces_distribute.size();
-            
-            if(std::abs(signed_mean) < ratio_signed_and_mag_mean * magnitude_mean )
-            {
-                // This face cover an inhomogineous area
-                // Consider split it
-                _dsc->split_face(fid.key());
-//                for(auto ee : _dsc->get_edges(fid.key()))
-//                {
-//                    related_edges[ee] = 1;
-//                }
-                i++;
-                
-            }
-            j++;
         }
     }
     
-    cout << "Adaptive split " << i << "/" << j << " triangles" << endl;
-    
-    _dsc->remove_interface_faces();
-
-//    struct edge_sort{
-//        double length;
-//        is_mesh::EdgeKey ekey;
-//    };
-//    // Split the related edge, longest first
-//    std::vector<edge_sort> edges_list;
-//    for(int i = 0; i < related_edges.size(); i++)
-//    {
-//        if (related_edges[i] == 1)
-//        {
-//            edges_list.push_back({_dsc->length(is_mesh::EdgeKey(i)), is_mesh::EdgeKey(i)});
-//        }
-//    }
-//    
-//    std::sort(edges_list.begin(), edges_list.end(), [](edge_sort const& a, edge_sort const& b){return a.length > b.length;});
-//    
-//    for (auto ee : edges_list)
-//    {
-//        if (related_edges[ee.ekey] == 1 && _dsc->exists(ee.ekey))
-//        {
-//            auto edges_around = _dsc->get_edges(_dsc->get_faces(ee.ekey));
-//            for(auto ea : edges_around)
-//            {
-//                related_edges[ea] = 0;
-//            }
-//            
-//            _dsc->split(ee.ekey);
-//        }
-//    }
+    // Now recursively subdivide these edge
+    while(to_split_edges.size() > 0)
+        recursive_divide_edges(to_split_edges[0], to_split_edges);
 }
-
+void segment_function::recursive_divide_edges(is_mesh::EdgeKey cur_edge, is_mesh::SimplexSet<is_mesh::EdgeKey> & edges)
+{
+    auto neighbor_tets = _dsc->get_tets(cur_edge);
+    
+    // Make the edge safe to be split
+    while (neighbor_tets.size() > 0)
+    {
+        auto t0 = neighbor_tets[0];
+        auto longest_e_0 = _dsc->longest_edge(_dsc->get_edges(t0));
+        if (cur_edge == longest_e_0)
+        {
+            neighbor_tets -= t0;
+        }
+        else
+        {
+            recursive_divide_edges(longest_e_0, edges);
+            neighbor_tets =  _dsc->get_tets(cur_edge);
+        }
+    }
+    
+    // Split the edge
+    auto nkey = _dsc->split(cur_edge);
+    edges -= cur_edge;
+}
 
 /**
  * Bounding box of point list
@@ -1378,11 +1321,8 @@ void bounding_box(const std::vector<vec3> & pts, vec3 & ld, vec3 & ru)
 
 bool sort_intersect(intersect_pt p1, intersect_pt p2)
 {
-    {
-        return p1.z < p2.z;
-    }
+    return p1.z < p2.z;
 }
-
 
 void segment_function::update_average_intensity()
 {
@@ -1778,9 +1718,6 @@ void segment_function::devide_element(std::vector<point_to_capture>* subdivide_t
                 if(new_energy < old_energy || _dsc->volume(t) < min_V)
                 {
                     _dsc->set_label(t, old_p.new_label);
-                    // check the t
-                    auto l = _dsc->shortest_edge(_dsc->get_edges(t));
-                    assert(l > 2);
                 }
                 else{
                     auto new_p = old_p;

@@ -151,6 +151,7 @@ public:
     void adapt_tetrahedra();
     void adapt_tetrahedra_1();
     void recursive_divide(std::vector<point_to_capture>* subdivide_tets, is_mesh::TetrahedronKey tkey, int depth, std::queue<is_mesh::TetrahedronKey> & debug_tet_queue);
+    void recursive_divide_edges(is_mesh::EdgeKey cur_edge, is_mesh::SimplexSet<is_mesh::EdgeKey> & edges);
     void devide_element(std::vector<point_to_capture>* subdivide_tets, is_mesh::EdgeKey ekey);
     int arg_min_phase_point(vec3 pt, double radius, int current_label);
     void recursive_subdivide(is_mesh::TetrahedronKey tkey, vec3 pt, int new_label, double min_volume);

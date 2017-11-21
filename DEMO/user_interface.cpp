@@ -799,6 +799,9 @@ void UI::keyboard(unsigned char key, int x, int y) {
         case 'a':
             _seg.adapt_tetrahedra_1();
             break;
+        case 'z':
+            _seg.face_split();
+            break;
         default:
             break;
     }
