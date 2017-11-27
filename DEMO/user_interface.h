@@ -99,7 +99,8 @@ private:
      Loads the .dsc file specified by the model_file_name variable.
      */
     void load_model(const std::string& file_name, real discretization);
-    
+    void init_dsc();
+    void init_dam_break();
     /**
      Updates the window title.
      */

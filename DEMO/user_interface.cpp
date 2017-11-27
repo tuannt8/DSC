@@ -27,7 +27,7 @@
 #include "profile.h"
 
 #include "draw_helper.h"
-
+#include "glut_menu.hpp"
 
 using namespace DSC;
 
@@ -100,44 +100,41 @@ void UI::setup_light()
                              gl_dis_max*2.0*cos(angle)*sin(angle2)
                              );
     
- 
-//    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-//    GLfloat mat_shininess[] = { 50.0 };
-//    GLfloat light_position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
-//    glClearColor(1.0, 1.1, 1.0, 1.0);
+    GLfloat light_position[] = { (GLfloat)eye[0], (GLfloat)eye[1], (GLfloat)eye[2], 0.0 };
+    glShadeModel (GL_SMOOTH);
     
-    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-    GLfloat mat_shininess[] = { 100.0 };
-    GLfloat light_position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
-    glClearColor(1.0, 1.1, 1.0, 1.0);
-    
-    glShadeModel(GL_SMOOTH);
-    
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    GLfloat amb = 0.2, diff = 1., spec = 1.;
+
+    GLfloat light_ambient[] = { amb,amb,amb, 1.0 };
+    GLfloat light_diffuse[] = {diff, diff, diff, 1.0 };
+    GLfloat light_specular[] = {spec, spec, spec, 1.0 };
+
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
     
+    GLfloat g_amb = 1.0;
+    GLfloat global_ambient[] = {g_amb, g_amb, g_amb, 0.1};
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
+
+
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat mat_shininess[] = { 5.0 };
+
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    
+    glColorMaterial ( GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE ) ;
     glEnable(GL_COLOR_MATERIAL);
     
-//    {
-//        GLfloat white[] = {0.8f, 0.8f, 0.8f, 1.0f};
-//        GLfloat cyan1[] = {0.f, .8f, .8f, 1.0f};
-//        GLfloat cyan[] = {0.f, .8f, .8f, 0.8f};
-//        glMaterialfv(GL_FRONT, GL_DIFFUSE, cyan); // other
-//        glMaterialfv(GL_FRONT, GL_SPECULAR, cyan1); // shinny
-//        GLfloat shininess[] = {2};
-//        glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
-//        
-//        
-//        glEnable(GL_LIGHTING);
-//        glEnable(GL_LIGHT0);
-//        glEnable(GL_DEPTH_TEST);
-//        
-//    }
+    return;
+
+    
 
 }
 inline vec3 min_vec(vec3 v1, vec3 v2)
@@ -218,49 +215,137 @@ UI::UI(int &argc, char** argv)
     check_gl_error();
     
     
-    
-//    load_model("armadillo", 2.5);
-    
-//    real velocity = 5.;
-//    real accuracy = 0.25;
-//    vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
-//    start("");
-    
-    //
-//    vec3 minc(INFINITY);
-//    vec3 maxc(-INFINITY);
-//    for (auto vit = dsc->nodes_begin(); vit != dsc->nodes_end(); vit++)
-//    {
-//        vec3 pt = dsc->get_pos(vit.key());
-//
-//        minc = min_vec(minc, pt);
-//        maxc = max_vec(maxc, pt);
-//    }
-    
-    _obj_dim = m_fluid.m_vtkWrapper.get_bound_size();
+    // Dam break
+    _obj_dim = vec3(1.6, 0.67, 0.6);
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2]);
     
-//    build_node_curvature();
+    init_dsc();
+
+    // Init Surface
+    init_dam_break();
+}
+
+void UI::init_dam_break()
+{
+    vec3 dam_bound(0.4, 0.67, 0.4);
+    is_mesh::Cube bound_cube(dam_bound/2.0, dam_bound);
     
-//    load_model("armadillo", 2.5);
-//    real velocity = 5.;
-//    real accuracy = 0.25;
-//    vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
-//    stop();
-//    QUIT_ON_COMPLETION = false;
-//    RECORD = false;
-//    vel_fun = std::unique_ptr<VelocityFunc<>>(new RotateFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
-//    start("smooth");
-//    
-//    
-//    
-//    for (int i = 0; i < 20; i++)
-//    {
-//        std::cout << "Iter " << i << std::endl;
-//        vel_fun->take_time_step(*dsc);
-//    }
-//    
-//    profile::close();
+    dsc->set_labels(bound_cube, 1);
+
+    // Project interface to the Cube
+    double thres = dsc->get_avg_edge_length()/1.3;
+    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface())
+        {
+            auto p = nit->get_pos();
+            for (int i = 0; i < 3; i++)
+            {
+//                p[i] = std::min(p[i], dam_bound[i]);
+//                p[i] = std::max(p[i], 0.0);
+                
+                if (std::abs(p[i]) < thres)
+                {
+                    p[i] = 0.0;
+                }
+                
+                if (std::abs(dam_bound[i] - p[i]) < thres)
+                {
+                    p[i] = dam_bound[i];
+                }
+            }
+            
+            dsc->set_destination(nit.key(), p);
+        }
+    }
+    
+    dsc->deform();
+}
+
+#define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
+void UI::init_dsc()
+{
+    std::vector<vec3> points;
+    std::vector<int> tets;
+    std::vector<int> tet_labels;
+    
+    
+    int DISCRETIZATION = 70;
+    double delta = _obj_dim[0]/(double)DISCRETIZATION;
+    
+    vec3 _dsc_dim = _obj_dim + vec3(delta)*2;
+    
+    cout << "delta " << delta << endl;
+    cout << _dsc_dim[0] << " " << _dsc_dim[1] << " " <<  _dsc_dim[2] << " " ;
+    
+    int NX = round(_dsc_dim[0] / delta) + 1; // number of vertices
+    int NY = round(_dsc_dim[1] / delta) + 1;
+    int NZ = round(_dsc_dim[2] / delta) + 1;
+    
+    cout << "Compute point" << NX << " " << NY << " " << NZ << "\n";
+    
+    double deltax = _dsc_dim[0]/(double)(NX-1);
+    double deltay = _dsc_dim[1]/(double)(NY - 1);
+    double deltaz = _dsc_dim[2]/(double)(NZ - 1);
+    
+    
+    // points. Push it back
+    for (int iz = 0; iz < NZ; iz++)
+    {
+        for (int iy = 0; iy < NY; iy++)
+        {
+            for (int ix = 0; ix < NX; ix++)
+            {
+                points.push_back(vec3(ix*deltax, iy*deltay, iz*deltaz) - vec3(delta));
+            }
+        }
+    }
+    
+    cout << "Compute tets\n";
+    
+    // tets
+    for (int iz = 0; iz < NZ - 1; iz++)
+    {
+        for (int iy = 0; iy < NY - 1; iy++)
+        {
+            for (int ix = 0; ix < NX - 1; ix++)
+            {
+                // 8 vertices
+                int vertices[] = {
+                    index_cube(ix, iy, iz),
+                    index_cube(ix+1, iy, iz),
+                    index_cube(ix+1, iy+1, iz),
+                    index_cube(ix, iy+1, iz),
+                    index_cube(ix, iy, iz + 1),
+                    index_cube(ix+1, iy, iz + 1),
+                    index_cube(ix+1, iy+1, iz + 1),
+                    index_cube(ix, iy+1, iz + 1)
+                };
+                
+                int tetras[] = {
+                    0, 4, 5, 7,
+                    0, 7, 5, 1,
+                    0, 1, 3, 7,
+                    1, 5, 6, 7,
+                    1, 6, 7, 3,
+                    1, 2, 6, 3
+                };
+                
+                for(int i = 0; i < 6*4; i++)
+                {
+                    tets.push_back(vertices[tetras[i]]);
+                }
+            }
+        }
+    }
+    
+    long nbTet = tets.size()/4;
+    tet_labels = std::vector<int>(nbTet, 0);
+    
+    cout << "Init DSC from point\n";
+    
+    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
+    dsc->set_avg_edge_length(delta);
 }
 
 void UI::load_model(const std::string& file_name, real discretization)
@@ -407,7 +492,41 @@ void UI::display()
     setup_light();
     
 
-    m_fluid.draw();
+    if(glut_menu::get_state("Particles", 1))
+        m_fluid.draw();
+    
+    
+    
+    if(dsc)
+    {
+        if(glut_menu::get_state("DSC domain", 1))
+       {
+            glColor3f(0.8, 0.8, 0.8);
+            draw_helper::dsc_draw_domain(*dsc);
+       }
+        
+        if(glut_menu::get_state("DSC interface", 0))
+        {
+            glColor3f(0.0, 0.9, 1.0);
+            draw_helper::dsc_draw_interface(*dsc);
+        }
+        
+        if(glut_menu::get_state("DSC interface edges", 1))
+        {
+            glColor3f(0.0, 0.0, 1.0);
+            draw_helper::dsc_draw_interface_edge(*dsc);
+        }
+    }
+    
+    if(glut_menu::get_state("Particle bounding box", 1))
+    {
+        glColor3f(1, 0, 0.1);
+        glPushMatrix();
+        glScaled(0.4, 0.67, 0.4);
+        glTranslated(0.5, 0.5, 0.5);
+        glutWireCube(1);
+        glPopMatrix();
+    }
 
 //    if(mode == 0)
 //    {

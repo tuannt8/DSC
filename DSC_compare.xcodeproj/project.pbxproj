@@ -320,6 +320,7 @@
 		A6BE10C81FCC39CA00054BE9 /* libvtkViewsInfovis-8.0.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6BE0F191FCC392F00054BE9 /* libvtkViewsInfovis-8.0.1.dylib */; };
 		A6BE10C91FCC39CA00054BE9 /* libvtkViewsInfovisTCL-8.0.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6BE0EAA1FCC392B00054BE9 /* libvtkViewsInfovisTCL-8.0.1.dylib */; };
 		A6BE10CC1FCC3B6A00054BE9 /* fluid_motion.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6BE10CA1FCC3B6A00054BE9 /* fluid_motion.cpp */; };
+		A6BE10CF1FCC597700054BE9 /* glut_menu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6BE10CD1FCC597700054BE9 /* glut_menu.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -674,6 +675,8 @@
 		A6BE0F411FCC393100054BE9 /* libvtkoggtheora-8.0.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libvtkoggtheora-8.0.1.dylib"; path = "../../../../../../usr/local/Cellar/vtk/8.0.1_1/lib/libvtkoggtheora-8.0.1.dylib"; sourceTree = "<group>"; };
 		A6BE10CA1FCC3B6A00054BE9 /* fluid_motion.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fluid_motion.cpp; sourceTree = "<group>"; };
 		A6BE10CB1FCC3B6A00054BE9 /* fluid_motion.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = fluid_motion.hpp; sourceTree = "<group>"; };
+		A6BE10CD1FCC597700054BE9 /* glut_menu.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = glut_menu.cpp; sourceTree = "<group>"; };
+		A6BE10CE1FCC597700054BE9 /* glut_menu.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = glut_menu.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1135,6 +1138,8 @@
 				A6BE0E7C1FCC387C00054BE9 /* define.h */,
 				A6BE10CA1FCC3B6A00054BE9 /* fluid_motion.cpp */,
 				A6BE10CB1FCC3B6A00054BE9 /* fluid_motion.hpp */,
+				A6BE10CD1FCC597700054BE9 /* glut_menu.cpp */,
+				A6BE10CE1FCC597700054BE9 /* glut_menu.hpp */,
 			);
 			path = DEMO;
 			sourceTree = "<group>";
@@ -1657,6 +1662,7 @@
 				A64F086C1D8AE1B100378CC1 /* draw_helper.cpp in Sources */,
 				7A470AE317F51DC3001FC0CB /* log.cpp in Sources */,
 				A6BE0E7B1FCC2EC400054BE9 /* vtkWrapper.cpp in Sources */,
+				A6BE10CF1FCC597700054BE9 /* glut_menu.cpp in Sources */,
 				7AF7E9BD176B412900F43714 /* draw.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

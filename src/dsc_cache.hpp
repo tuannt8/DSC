@@ -17,7 +17,7 @@
 
 #define DSC_CACHE
 
-#define MAX_ELEMENTS 100000
+#define MAX_ELEMENTS 1000000
 
 #define CLEAN_GARBAGE(a, b) if(a[b]){delete a[b]; a[b] = nullptr;}
 #define RELEASE_CACHE(a) \

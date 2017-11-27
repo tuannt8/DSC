@@ -217,6 +217,7 @@ void draw_helper::dsc_draw_interface(dsc_class & dsc, std::vector<double> * colo
                 //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
                 auto norm = -dsc.get_normal(f.key());
                 
+//                glColor3f(0.0, 0.9, 1.0);
                 glBegin(GL_TRIANGLES);
                 for (auto v : pts)
                 {
@@ -225,24 +226,20 @@ void draw_helper::dsc_draw_interface(dsc_class & dsc, std::vector<double> * colo
                 }
                 glEnd();
                 
-    //            
-    //            glDisable(GL_LIGHTING);
-    //            glColor3f(0, 0, 0);
-    //            glBegin(GL_LINES);
-    //            
-    //            auto edges = dsc.get_edges(f.key());
-    //            
-    //            for (int i = 0; i < 3; i++)
-    //            {
-    //                
-    //             //   glNormal3dv(norm.get());
-    //                glVertex3dv(pts[i].get());
-    //                
-    //             //   glNormal3dv(norm.get());
-    //                glVertex3dv(pts[(i+1)%3].get());
-    //            }
-    //            glEnd();
-    //            glEnable(GL_LIGHTING);
+//
+//                glDisable(GL_LIGHTING);
+//                glColor3f(0, 0, 1);
+//                glBegin(GL_LINES);
+//
+//                auto edges = dsc.get_edges(f.key());
+//
+//                for (int i = 0; i < 3; i++)
+//                {
+//                    glVertex3dv(pts[i].get());
+//                    glVertex3dv(pts[(i+1)%3].get());
+//                }
+//                glEnd();
+//                glEnable(GL_LIGHTING);
                 
             }
         }

@@ -40,8 +40,25 @@ void vtkWrapper::load_next_grid()
     }
 }
 
+void vtkWrapper::dam_break_bound(vec3& left_down, vec3& right_up)
+{
+    
+}
+
+vec3 vtkWrapper::get_bound_left_down()
+{
+    double *bound = m_current_grid->GetBounds();
+    return vec3(bound[0], bound[2], bound[4]);
+}
+
 vec3 vtkWrapper::get_bound_size()
 {
+//    std::string file("../Large_data/DamBreak3D/data/PLANES.vtu");
+//    vtkSmartPointer<vtkXMLUnstructuredGridReader> reader =
+//    vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
+//    reader->SetFileName(file.c_str());
+//    reader->Update();
+    
     double *bound = m_current_grid->GetBounds();
     return vec3(bound[1]-bound[0], bound[3] - bound[2], bound[5] - bound[4]);
 }
@@ -65,6 +82,8 @@ void vtkWrapper::draw()
 {
     if (m_current_grid)
     {
+        glPointSize(2.0);
+        
         glBegin(GL_POINTS);
         
         auto pos = m_current_grid->GetPointData()->GetVectors();

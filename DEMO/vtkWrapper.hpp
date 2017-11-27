@@ -40,6 +40,10 @@ public:
     void load_next_grid();
     
     vec3 get_bound_size();
+    vec3 get_bound_left_down();
+    
+    // DamBreak initial condition
+    void dam_break_bound(vec3& left_down, vec3& right_up);
 };
 
 #endif /* vtkWraper_hpp */
