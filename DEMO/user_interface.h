@@ -21,13 +21,8 @@
 #include "log.h"
 #include "draw.h"
 
-#include <CGLA/Vec2d.h>
-#include <CGLA/Vec3d.h>
-#include <CGLA/Vec4d.h>
-#include <CGLA/Mat3x3d.h>
-#include <CGLA/Mat4x4d.h>
-
-typedef CGLA::Vec3d vec3;
+#include "fluid_motion.hpp"
+#include "define.h"
 
 /**
  A default application which utilizes OpenGL, GLEW and GLUT for visualization. Three sample velocity functions (rotation, smoothing and expansion) can be applies to a model specified by the model_file_name variable or as input variable. See https://github.com/asny/DSC/wiki/DEMO-instructions for details on how to use this DEMO application. See https://github.com/asny/DSC/wiki/Instructions for instructions on how to build your own application which uses the implementation of the DSC method.
@@ -38,6 +33,8 @@ class UI
     std::unique_ptr<DSC::DeformableSimplicialComplex<>> dsc;
     std::unique_ptr<Log> basic_log;
     std::unique_ptr<Painter> painter;
+    
+    fluid_motion m_fluid;
     
     std::string model_file_name = "armadillo";
     
@@ -88,7 +85,7 @@ public:
     
     CGLA::Vec3d _obj_dim;
     double gl_dis_max = 200;
-    GLfloat angle = -150;   /* in degrees */
+    GLfloat angle = 150;   /* in degrees */
     GLfloat angle2 = 30;   /* in degrees */
     
     /**

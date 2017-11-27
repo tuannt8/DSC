@@ -76,6 +76,9 @@ void mouse_down_(int button, int state, int x, int y)
 {
     if (button == GLUT_LEFT_BUTTON)
     {
+        _x = x;
+        _y = y;
+        
         if (state == GLUT_DOWN)
         {
             mouse_press = 1;
@@ -97,10 +100,7 @@ void UI::setup_light()
                              gl_dis_max*2.0*cos(angle)*sin(angle2)
                              );
     
-//    vec3 eye = center + vec3(gl_dis_max*2.0*cos(angle)*cos(angle2),
-//                             gl_dis_max*2.0*cos(angle)*sin(angle2),
-//                             gl_dis_max*2.0*sin(angle));
-    
+ 
 //    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 //    GLfloat mat_shininess[] = { 50.0 };
 //    GLfloat light_position[] = { -(GLfloat)eye[0], -(GLfloat)eye[1], -(GLfloat)eye[2], 0.0 };
@@ -168,7 +168,7 @@ void UI::update_gl()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     
-    vec3 center = vec3(0.0);//_obj_dim / 2.0;
+    vec3 center = _obj_dim / 2.0;
     double dis = 1.5;
     
     vec3 eye = center + vec3(gl_dis_max*dis*cos(angle)*cos(angle2),
@@ -180,12 +180,6 @@ void UI::update_gl()
                      -sin(angle)*sin(angle2)
                      );
     
-//    vec3 eye = center + vec3(gl_dis_max*dis*cos(angle)*cos(angle2),
-//                             gl_dis_max*dis*cos(angle)*sin(angle2),
-//                             gl_dis_max*dis*sin(angle));
-//    vec3 head = vec3(-sin(angle)*cos(angle2),
-//                     -sin(angle)*sin(angle2),
-//                     cos(angle));
     gluLookAt(eye[0], eye[1], eye[2], /* eye is at (0,8,60) */
               center[0], center[1], center[2],      /* center is at (0,8,0) */
               head[0], head[1], head[2]);      /* up is in postivie Y direction */
@@ -225,25 +219,26 @@ UI::UI(int &argc, char** argv)
     
     
     
-    load_model("armadillo", 2.5);
+//    load_model("armadillo", 2.5);
     
-    real velocity = 5.;
-    real accuracy = 0.25;
-    vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
-    start("");
+//    real velocity = 5.;
+//    real accuracy = 0.25;
+//    vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(velocity, accuracy, 500));
+//    start("");
     
     //
-    vec3 minc(INFINITY);
-    vec3 maxc(-INFINITY);
-    for (auto vit = dsc->nodes_begin(); vit != dsc->nodes_end(); vit++)
-    {
-        vec3 pt = dsc->get_pos(vit.key());
-        
-        minc = min_vec(minc, pt);
-        maxc = max_vec(maxc, pt);
-    }
-    _obj_dim = maxc - minc;
-    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*2;
+//    vec3 minc(INFINITY);
+//    vec3 maxc(-INFINITY);
+//    for (auto vit = dsc->nodes_begin(); vit != dsc->nodes_end(); vit++)
+//    {
+//        vec3 pt = dsc->get_pos(vit.key());
+//
+//        minc = min_vec(minc, pt);
+//        maxc = max_vec(maxc, pt);
+//    }
+    
+    _obj_dim = m_fluid.m_vtkWrapper.get_bound_size();
+    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2]);
     
 //    build_node_curvature();
     
@@ -412,60 +407,38 @@ void UI::display()
     setup_light();
     
 
+    m_fluid.draw();
 
-    if(mode == 0)
-    {
-    glColor3f(0.0, 0.9, 1.0);
-        std::vector<double> * cur = _node_curvature.size()>0? &_node_curvature : nullptr;
-    
-    draw_helper::dsc_draw_interface(*dsc, cur);
-    
-    glColor3f(0.8, 0.8, 0.8);
-    draw_helper::dsc_draw_domain(*dsc);
-    
-//    glColor3f(0.5, 0.5, 0.5);
-//    draw_dsc_layer(DISPLAY_LIM);
-    }
-    else if(mode == 1)
-    {
-        std::vector<double> * cur = _node_curvature.size()>0? &_node_curvature : nullptr;
-        
-        glColor3f(0.0, 0.9, 1.0);
-        draw_helper::dsc_draw_interface(*dsc, cur);
-        
-        glColor3f(0.8, 0.8, 0.8);
-        draw_helper::dsc_draw_domain(*dsc);
-    }
-    else if(mode == 2)
-    {
-        glColor3f(0.8, 0.8, 0.8);
-        draw_helper::dsc_draw_domain(*dsc);
-        
-        glColor3f(0.5, 0.5, 0.5);
-        draw_dsc_layer_1(DISPLAY_LIM);
-    }
-    
-    //    draw_helper::dsc_draw_node_color(*dsc);
-//    draw_helper::dsc_draw_edges_colors(*dsc);
-    
-//    // test. Get color the first time
-//    static bool bRun = false;
-//    if (!bRun)
+//    if(mode == 0)
 //    {
-//        profile t("get color serial");
-//        
-//        bRun = true;
-//        int max_color = 0;
-//        for (auto eit = dsc->edges_begin(); eit != dsc->edges_end(); eit++)
-//        {
-//            if (max_color < dsc->get_color_edge(eit.key()))
-//            {
-//                max_color = dsc->get_color_edge(eit.key());
-//            }
-//        }
-//        std::cout << max_color << std::endl;
-//        
-//        
+//    glColor3f(0.0, 0.9, 1.0);
+//        std::vector<double> * cur = _node_curvature.size()>0? &_node_curvature : nullptr;
+//
+//    draw_helper::dsc_draw_interface(*dsc, cur);
+//
+//    glColor3f(0.8, 0.8, 0.8);
+//    draw_helper::dsc_draw_domain(*dsc);
+//
+////    glColor3f(0.5, 0.5, 0.5);
+////    draw_dsc_layer(DISPLAY_LIM);
+//    }
+//    else if(mode == 1)
+//    {
+//        std::vector<double> * cur = _node_curvature.size()>0? &_node_curvature : nullptr;
+//
+//        glColor3f(0.0, 0.9, 1.0);
+//        draw_helper::dsc_draw_interface(*dsc, cur);
+//
+//        glColor3f(0.8, 0.8, 0.8);
+//        draw_helper::dsc_draw_domain(*dsc);
+//    }
+//    else if(mode == 2)
+//    {
+//        glColor3f(0.8, 0.8, 0.8);
+//        draw_helper::dsc_draw_domain(*dsc);
+//
+//        glColor3f(0.5, 0.5, 0.5);
+//        draw_dsc_layer_1(DISPLAY_LIM);
 //    }
     
     glutSwapBuffers();
@@ -803,11 +776,9 @@ void UI::keyboard(unsigned char key, int x, int y) {
             update_title();
         }
             break;
-        case '>':
+        case 'n':
         {
-            real accuracy = std::max(vel_fun->get_accuracy() - 1., 1.);
-            vel_fun->set_accuracy(accuracy);
-            update_title();
+            m_fluid.m_vtkWrapper.load_next_grid();
         }
             break;
         case 'l':
