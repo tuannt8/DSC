@@ -14,7 +14,9 @@
 #include <CGLA/Vec4d.h>
 #include <CGLA/Mat3x3d.h>
 #include <CGLA/Mat4x4d.h>
+#include <CGLA/Vec3i.h>
 
 typedef CGLA::Vec3d vec3;
+typedef CGLA::Vec3i vec3i;
 
 #endif /* define_h */

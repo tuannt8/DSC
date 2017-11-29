@@ -220,6 +220,8 @@ UI::UI(int &argc, char** argv)
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2]);
     
     init_dsc();
+    
+    m_fluid.s_dsc = &*dsc;
 
     // Init Surface
     init_dam_break();
@@ -270,7 +272,7 @@ void UI::init_dsc()
     std::vector<int> tet_labels;
     
     
-    int DISCRETIZATION = 70;
+    int DISCRETIZATION = 71;
     double delta = _obj_dim[0]/(double)DISCRETIZATION;
     
     vec3 _dsc_dim = _obj_dim + vec3(delta)*2;
@@ -495,8 +497,6 @@ void UI::display()
     if(glut_menu::get_state("Particles", 1))
         m_fluid.draw();
     
-    
-    
     if(dsc)
     {
         if(glut_menu::get_state("DSC domain", 1))
@@ -581,31 +581,13 @@ void UI::animate()
 {
     if(CONTINUOUS)
     {
-        std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() + 1 <<  " START*************\n" << std::endl;
-        vel_fun->take_time_step(*dsc);
-
-//        compute_volume();
-//        build_node_curvature();
-//        compute_volume_gradient();
-//        build_gradient_mass();
-        
-#ifdef __APPLE__
-        static int log_count = 0;
-        std::ostringstream s;
-        s << "LOG/scr_" << log_count++ << ".png";
-        if(!SOIL_save_screenshot(s.str().c_str(), SOIL_SAVE_TYPE_PNG, 0, 0, WIN_SIZE_X, WIN_SIZE_Y))
-        {
-            std::cout << "Screen shot fail \n";
-        }
-#endif
-        
-        std::cout << "\n***************TIME STEP " << vel_fun->get_time_step() <<  " STOP*************\n" << std::endl;
+        m_fluid.deform();
     }
     glutPostRedisplay();
 }
 
 
-
+#ifdef DSC_CACHE
 void UI::build_node_curvature()
 {
     std::vector<double> node_cur(100000, 0);
@@ -689,6 +671,7 @@ void UI::build_node_curvature()
 
     _node_curvature = node_cur;
 }
+#endif
 
 is_mesh::SimplexSet<is_mesh::EdgeKey> * get_edge_around(DSC::DeformableSimplicialComplex<> *dsc, is_mesh::NodeKey n)
 {
@@ -715,6 +698,7 @@ is_mesh::SimplexSet<is_mesh::EdgeKey> * get_edge_around(DSC::DeformableSimplicia
     return edge_around;
 }
 
+#ifdef DSC_CACHE
 void UI::compute_volume_gradient()
 {
     profile t("volume gradient");
@@ -745,6 +729,8 @@ void UI::compute_volume_gradient()
     }
 }
 
+
+
 void UI::compute_volume()
 {
     profile t("Compute volume");
@@ -758,6 +744,8 @@ void UI::compute_volume()
         }
     }
 }
+
+#endif
 
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
@@ -800,18 +788,6 @@ void UI::keyboard(unsigned char key, int x, int y) {
             start("expand");
             break;
         case ' ':
-            if(!CONTINUOUS)
-            {
-                std::cout << "MOTION STARTED" << std::endl;
-//                if(RECORD && basic_log)
-//                {
-//                    painter->set_view_position(camera_pos);
-//                    painter->save_painting(basic_log->get_path(), vel_fun->get_time_step());
-//                }
-            }
-            else {
-                std::cout << "MOTION PAUSED" << std::endl;
-            }
             CONTINUOUS = !CONTINUOUS;
             break;
         case 'm':

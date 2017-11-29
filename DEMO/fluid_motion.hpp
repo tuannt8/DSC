@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "vtkWrapper.hpp"
+#include "DSC.h"
 
 class fluid_motion
 {
@@ -21,7 +22,12 @@ public:
     void draw();
 
 public:
+    DSC::DeformableSimplicialComplex<>* s_dsc;
     vtkWrapper m_vtkWrapper;
+    
+    void deform();
+    
+    void log_dsc_surface(int idx);
 };
 
 

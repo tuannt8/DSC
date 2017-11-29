@@ -1351,7 +1351,7 @@ namespace DSC {
                 }
             }
             
-            std::cout << "Low quality edges: " << edge_list.size() << std::endl;
+//            std::cout << "Low quality edges: " << edge_list.size() << std::endl;
             
             int i = 0, j = 0, k = 0;
             for (auto e : edge_list)
@@ -1385,7 +1385,7 @@ namespace DSC {
                 j++;
             }
             
-            std::cout << "Topological edge removals: " << i + k << "/" << j << " (" << k << " at interface)" << std::endl;
+//            std::cout << "Topological edge removals: " << i + k << "/" << j << " (" << k << " at interface)" << std::endl;
             
             garbage_collect();
             
@@ -1656,7 +1656,7 @@ namespace DSC {
             }
 
 #ifdef DEBUG
-            std::cout << "Topological face removals: " << i << "/" << j << std::endl;
+//            std::cout << "Topological face removals: " << i << "/" << j << std::endl;
 #endif
             garbage_collect();
         }

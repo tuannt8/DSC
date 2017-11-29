@@ -466,7 +466,7 @@ template<> void dsc_class::topological_edge_removal_worker1(DeformableSimplicial
     }
 }
 
-
+#ifdef DSC_CACHE
 template<> void dsc_class::topological_edge_removal_parallel1()
 {
     profile t("edge - overhead");
@@ -535,6 +535,8 @@ template<> void dsc_class::topological_edge_removal_parallel1()
     garbage_collect();
 }
 
+#endif
+
 
 template<> void dsc_class::smooth_worker(DeformableSimplicialComplex<> *dsc, is_mesh::SimplexSet<node_key> *node_list, int start_idx, int stop_idx)
 {
@@ -601,6 +603,8 @@ template<> void dsc_class:: smooth_parallel()
 
 //    validity_check();
 }
+
+#ifdef DSC_CACHE
 
 template<> void dsc_class::normal_coloring_vertices()
 {
@@ -687,3 +691,5 @@ template<> void dsc_class::normal_coloring_vertices()
         }
     }
 }
+
+#endif
