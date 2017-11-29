@@ -10,8 +10,13 @@
 #define fluid_motion_hpp
 
 #include <stdio.h>
-#include "vtkWrapper.hpp"
+#include "file_load.hpp"
 #include "DSC.h"
+
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
 
 class fluid_motion
 {
@@ -23,7 +28,7 @@ public:
 
 public:
     DSC::DeformableSimplicialComplex<>* s_dsc;
-    vtkWrapper m_vtkWrapper;
+    file_load m_file_load;
     
     void deform();
     

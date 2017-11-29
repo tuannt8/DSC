@@ -7,6 +7,9 @@
 //
 
 #include "fluid_motion.hpp"
+#include <iomanip>
+
+using namespace std;
 
 fluid_motion::fluid_motion()
 {
@@ -15,7 +18,7 @@ fluid_motion::fluid_motion()
 
 void fluid_motion::draw()
 {
-    m_vtkWrapper.draw();
+    m_file_load.draw();
 }
 
 void fluid_motion::deform()
@@ -33,7 +36,7 @@ void fluid_motion::deform()
         if (nit->is_interface())
         {
             auto pos = nit->get_pos();
-            vec3 dis = m_vtkWrapper.get_dispacement(pos);
+            vec3 dis = m_file_load.get_displacement(pos);
             
             s_dsc->set_destination(nit.key(), pos + dis);
             
@@ -48,7 +51,7 @@ void fluid_motion::deform()
     std::cout << "Max displacement: " << max_dis << std::endl;
     
     t->change("Load next grid");
-    m_vtkWrapper.load_next_grid();
+    m_file_load.load_time_step();
     
     t->change("displace DSC");
     s_dsc->deform();
@@ -70,22 +73,12 @@ void fluid_motion::log_dsc_surface(int idx)
     try
     {
         std::stringstream s;
-        s << "LOG/dsc_" << setfill('0') << setw(5) << idx << ".suf";
+        s << "LOG/dsc_" << setfill('0') << setw(5) << idx << ".obj";
         
-        std::ofstream f(s.str());
-        if (f.is_open())
-        {
-            for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
-            {
-                if (fit->is_interface())
-                {
-                    auto pos = s_dsc->get_pos(s_dsc->get_nodes(fit.key()));
-                    f << pos[0] << std::endl << pos[1] << std::endl << pos[2] << std::endl;
-                }
-            }
-        }else{
-            throw "Can not open file";
-        }
+        std::vector<vec3> points;
+        std::vector<int> faces;
+        s_dsc->extract_surface_mesh(points, faces);
+        is_mesh::export_surface_mesh(s.str(), points, faces);
     }
     catch (std::exception e)
     {

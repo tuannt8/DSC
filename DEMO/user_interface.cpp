@@ -30,7 +30,7 @@
 #include "glut_menu.hpp"
 
 using namespace DSC;
-
+using namespace std;
 
 bool mouse_press = 0;
 int _dx = 0; int _dy = 0;
@@ -272,7 +272,7 @@ void UI::init_dsc()
     std::vector<int> tet_labels;
     
     
-    int DISCRETIZATION = 71;
+    int DISCRETIZATION = 20;
     double delta = _obj_dim[0]/(double)DISCRETIZATION;
     
     vec3 _dsc_dim = _obj_dim + vec3(delta)*2;
@@ -873,7 +873,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case 'n':
         {
-            m_fluid.m_vtkWrapper.load_next_grid();
+            m_fluid.m_file_load.load_time_step();
         }
             break;
         case 'l':
