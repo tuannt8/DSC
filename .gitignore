@@ -40,3 +40,6 @@ LOG/
 Build/
 DerivedData/
 *tuannt8*
+
+*.d
+*.o

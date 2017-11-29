@@ -167,7 +167,11 @@ void file_load::load(int idx, std::vector<particle> & par)
     try
     {
         stringstream s;
+#ifdef LINUX
+        s << "../../Large_data/DamBreak3D/my_format/iter_" << setfill('0') << setw(5) << idx << ".particle";
+#else
         s << "../Large_data/DamBreak3D/my_format/iter_" << setfill('0') << setw(5) << idx << ".particle";
+#endif
         
         std::ifstream f(s.str());
         int num_points;

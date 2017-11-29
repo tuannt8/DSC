@@ -20,6 +20,7 @@
 #include <iostream>
 
 #include <fstream>
+#include <memory>
 
 class hash3
 {
