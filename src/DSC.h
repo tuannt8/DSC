@@ -2496,39 +2496,40 @@ namespace DSC {
          */
         bool is_flat(const is_mesh::SimplexSet<face_key>& fids)
         {
-//            for (const face_key& f1 : fids) {
-//                if (get(f1).is_interface() || get(f1).is_boundary())
-//                {
-//                    vec3 normal1 = get_normal(f1);
-//                    for (const face_key& f2 : fids) {
-//                        if (f1 != f2 && (get(f2).is_interface() || get(f2).is_boundary()))
-//                        {
-//                            vec3 normal2 = get_normal(f2);
-//                            if(std::abs(dot(normal1, normal2)) < FLIP_EDGE_INTERFACE_FLATNESS)
-//                            {
-//                                return false;
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-            
-            vec3 norm;
-            bool inited = false;
-            for (const face_key& f1 : fids)
-            {
+            for (const face_key& f1 : fids) {
                 if (get(f1).is_interface() || get(f1).is_boundary())
                 {
                     vec3 normal1 = get_normal(f1);
-                    if(!inited)
-                        norm = normal1;
-                    
-                    if(std::abs(dot(normal1, norm)) < FLIP_EDGE_INTERFACE_FLATNESS)
-                    {
-                        return false;
+                    for (const face_key& f2 : fids) {
+                        if (f1 != f2 && (get(f2).is_interface() || get(f2).is_boundary()))
+                        {
+                            vec3 normal2 = get_normal(f2);
+                            if(std::abs(dot(normal1, normal2)) < FLIP_EDGE_INTERFACE_FLATNESS)
+                            {
+                                return false;
+                            }
+                        }
                     }
                 }
             }
+            
+            // Tuan: Updated algorithm, but not working
+//            vec3 norm;
+//            bool inited = false;
+//            for (const face_key& f1 : fids)
+//            {
+//                if (get(f1).is_interface() || get(f1).is_boundary())
+//                {
+//                    vec3 normal1 = get_normal(f1);
+//                    if(!inited)
+//                        norm = normal1;
+//
+//                    if(std::abs(dot(normal1, norm)) < FLIP_EDGE_INTERFACE_FLATNESS)
+//                    {
+//                        return false;
+//                    }
+//                }
+//            }
             return true;
         }
         
