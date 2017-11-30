@@ -216,7 +216,7 @@ UI::UI(int &argc, char** argv)
     
     
     // Dam break
-    _obj_dim = vec3(1.6, 0.67, 0.6);
+    _obj_dim = m_fluid.m_file_load.get_domain_dimension();
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2]);
     
     init_dsc();
@@ -224,44 +224,12 @@ UI::UI(int &argc, char** argv)
     m_fluid.s_dsc = &*dsc;
 
     // Init Surface
-    init_dam_break();
+    m_fluid.m_file_load.init_dsc(&*dsc);
 }
 
 void UI::init_dam_break()
 {
-    vec3 dam_bound(0.4, 0.67, 0.4);
-    is_mesh::Cube bound_cube(dam_bound/2.0, dam_bound);
-    
-    dsc->set_labels(bound_cube, 1);
 
-    // Project interface to the Cube
-    double thres = dsc->get_avg_edge_length()/1.3;
-    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
-    {
-        if (nit->is_interface())
-        {
-            auto p = nit->get_pos();
-            for (int i = 0; i < 3; i++)
-            {
-//                p[i] = std::min(p[i], dam_bound[i]);
-//                p[i] = std::max(p[i], 0.0);
-                
-                if (std::abs(p[i]) < thres)
-                {
-                    p[i] = 0.0;
-                }
-                
-                if (std::abs(dam_bound[i] - p[i]) < thres)
-                {
-                    p[i] = dam_bound[i];
-                }
-            }
-            
-            dsc->set_destination(nit.key(), p);
-        }
-    }
-    
-    dsc->deform();
 }
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))

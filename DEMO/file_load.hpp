@@ -21,6 +21,9 @@
 
 #include <fstream>
 #include <memory>
+#include "KDTree.h"
+
+#include "DSC.h"
 
 class hash3
 {
@@ -78,6 +81,7 @@ public:
     int m_cur_idx = 0;
     
     std::shared_ptr<hash3> m_hashTable;
+    Geometry::KDTree<vec3, int> m_vtree;
     void build_hash();
     
     void load_time_step();
@@ -86,6 +90,13 @@ public:
     void draw();
     
     vec3 get_displacement(vec3 pos);
+    vec3 get_displacement_avg(vec3 pos);
+    vec3 get_displacement_closet_point(vec3 pos);
+    vec3 get_displacement_cubic_kernel(vec3 pos);
+    
+    virtual void init_dsc(DSC::DeformableSimplicialComplex<> * dsc){};
+    virtual vec3 get_domain_dimension(){return vec3(0.0);};
+    virtual double get_influence_radius(){return 0;};
 };
 
 

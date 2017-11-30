@@ -18,6 +18,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include "dam_break.h"
+
 class fluid_motion
 {
 public:
@@ -28,7 +30,7 @@ public:
 
 public:
     DSC::DeformableSimplicialComplex<>* s_dsc;
-    file_load m_file_load;
+    dam_break m_file_load;
     
     void deform();
     

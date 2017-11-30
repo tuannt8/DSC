@@ -105,18 +105,64 @@ std::vector<long> hash3::get_close_point(double x, double y, double z, double ra
 file_load::file_load()
 {
     load_time_step();
-    cout << "Num particles: " << m_current_particles.size() << endl;
+}
+
+vec3 file_load::get_displacement_closet_point(vec3 pos)
+{
     
-    vector<int> idx = {0, 1, 2, 10, 100, 1000, 10000};
-    for(auto i : idx)
+    double r = get_influence_radius()*2;
+    int idx;
+    vec3 pp;
+    if(m_vtree.closest_point(pos, r, pp, idx))
     {
-    	cout << m_current_particles[i] << endl;
+        vec3 cur_pos = m_current_particles[idx].pos;
+        vec3 nex_pos = m_next_particles[idx].pos;
+        
+        return nex_pos - cur_pos;
+    }
+    else
+    {
+        return vec3(0.0);
     }
 }
 
-vec3 file_load::get_displacement(vec3 pos)
+vec3 file_load::get_displacement_cubic_kernel(vec3 pos)
 {
-    double r = 0.052;
+    double h = get_influence_radius();
+    double r = h*2;
+    vector<int> pt_in_sphere;
+    vector<vec3> pos_in_sphere;
+    m_vtree.in_sphere(pos, r, pos_in_sphere, pt_in_sphere);
+    
+    vec3 sum_vec(0);
+    for (auto key : pt_in_sphere)
+    {
+        vec3 cur_pos = m_current_particles[key].pos;
+        vec3 nex_pos = m_next_particles[key].pos;
+        auto cur_dis = (cur_pos - pos).length();
+        
+        double q = cur_dis/h;
+        double contribute;
+        if (cur_dis < 1)
+        {
+            contribute = 1 - 1.5*q*q + 0.75*q*q*q;
+        }
+        else
+        {
+            contribute = 0.25*pow(2-q, 3);
+        }
+        
+        sum_vec += (nex_pos - cur_pos)*(contribute/3.1415/(h*h*h) * m_current_particles[key].mass/m_current_particles[key].density);
+    }
+    
+//    sum_vec += closest_v*(1 - pow((pp-pos).length()/r, 3));
+    
+    return sum_vec;
+}
+
+vec3 file_load::get_displacement_avg(vec3 pos)
+{
+    double r = get_influence_radius();
     auto list = m_hashTable->get_close_point(pos[0], pos[1], pos[2], r);
     
     vec3 sum_vec(0.0);
@@ -137,7 +183,7 @@ vec3 file_load::get_displacement(vec3 pos)
     
     if (sum_dis < epsilon) // found nothing
     {
-//        assert(0);
+        //        assert(0);
         // Displace to closset point
         if(list.size() == 0)
         {
@@ -149,13 +195,13 @@ vec3 file_load::get_displacement(vec3 pos)
             }
             
         }
-
+        
         double min_dis = INFINITY;
         int min_pt = -1;
         for (auto p : list)
         {
             vec3 cur_pos = m_next_particles[p].pos;
-
+            
             auto cur_dis = (cur_pos - pos).length() + epsilon;
             if (cur_dis < min_dis)
             {
@@ -163,7 +209,7 @@ vec3 file_load::get_displacement(vec3 pos)
                 min_pt = p;
             }
         }
-
+        
         sum_vec = m_next_particles[min_pt].pos - pos;
         sum_dis = 1;
     }
@@ -171,6 +217,11 @@ vec3 file_load::get_displacement(vec3 pos)
     sum_vec /= sum_dis;
     
     return sum_vec;
+}
+
+vec3 file_load::get_displacement(vec3 pos)
+{
+    return get_displacement_avg(pos);
 }
 file_load::~file_load()
 {
@@ -224,16 +275,23 @@ void file_load::draw()
 
 void file_load::build_hash()
 {
-    m_hashTable = shared_ptr<hash3>( new hash3(vec3(1.6, 0.67, 0.6), 0.06));
+    m_vtree = Geometry::KDTree<vec3, int>();
+    
+    m_hashTable = shared_ptr<hash3>( new hash3(get_domain_dimension(), get_influence_radius()));
     int idx = 0;
     for (auto &p : m_current_particles)
     {
         if (p.type == 0)
         {
             m_hashTable->insert_point(p.pos, idx);
+            
+            m_vtree.insert(p.pos, idx);
         }
         idx++;
     }
+    
+    m_vtree.build();
+    
 }
 
 void file_load::load(int idx, std::vector<particle> & par)

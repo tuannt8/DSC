@@ -481,6 +481,8 @@
 		A6BE10CB1FCC3B6A00054BE9 /* fluid_motion.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = fluid_motion.hpp; sourceTree = "<group>"; };
 		A6BE10CD1FCC597700054BE9 /* glut_menu.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = glut_menu.cpp; sourceTree = "<group>"; };
 		A6BE10CE1FCC597700054BE9 /* glut_menu.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = glut_menu.hpp; sourceTree = "<group>"; };
+		A6C819711FD049600063351E /* KDTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KDTree.h; sourceTree = "<group>"; };
+		A6C819721FD08A100063351E /* dam_break.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dam_break.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -741,6 +743,7 @@
 				7AE27B0F17675CEA000F8238 /* average_function.h */,
 				7AE27B1317675CEA000F8238 /* normal_function.h */,
 				7AE27B1417675CEA000F8238 /* rotate_function.h */,
+				A6C819711FD049600063351E /* KDTree.h */,
 				A6BE0E791FCC2EC400054BE9 /* file_load.cpp */,
 				A6BE0E7A1FCC2EC400054BE9 /* file_load.hpp */,
 				A6BE0E7C1FCC387C00054BE9 /* define.h */,
@@ -748,6 +751,7 @@
 				A6BE10CB1FCC3B6A00054BE9 /* fluid_motion.hpp */,
 				A6BE10CD1FCC597700054BE9 /* glut_menu.cpp */,
 				A6BE10CE1FCC597700054BE9 /* glut_menu.hpp */,
+				A6C819721FD08A100063351E /* dam_break.h */,
 			);
 			path = DEMO;
 			sourceTree = "<group>";
