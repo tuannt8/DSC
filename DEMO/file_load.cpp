@@ -69,6 +69,7 @@ std::vector<long> hash3::get_close_point(double x, double y, double z, double ra
 file_load::file_load()
 {
     load_time_step();
+    cout << "Num particles: " << m_current_particles.size() << endl;
 }
 
 vec3 file_load::get_displacement(vec3 pos)
