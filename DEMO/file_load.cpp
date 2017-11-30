@@ -52,17 +52,26 @@ inline std::ostream& operator<<(std::ostream&os, particle& p)
 	return os;
 }
 
+void hash3::draw()
+{
+    
+}
+
 hash3::hash3(vec3 domain_bound, double cell_size)
 {
     m_cell_size = cell_size;
-    m_dimension = vec3i(domain_bound[0]/cell_size + 1, domain_bound[1]/cell_size + 1, domain_bound[2]/cell_size + 1);
+    m_dimension = vec3i(ceil(domain_bound[0]/cell_size), ceil(domain_bound[1]/cell_size), ceil(domain_bound[2]/cell_size));
+}
+
+inline int hash3::get_idx_cell(vec3 & pos)
+{
+    return idx_int(get_idx_cell3(pos));
+    
 }
 
 void hash3::insert_point(vec3 pos, int index)
 {
-    vec3i idx_h(pos[0]/m_cell_size, pos[1]/m_cell_size, pos[2]/m_cell_size);
-    
-    m_bins[vec3i_to_index(idx_h)].push_back(index);
+    m_bins[get_idx_cell(pos)].push_back(index);
 }
 
 std::vector<long> hash3::get_close_point(double x, double y, double z, double radius)
@@ -70,8 +79,12 @@ std::vector<long> hash3::get_close_point(double x, double y, double z, double ra
     vec3 ld(x-radius, y-radius, z-radius);
     vec3 ru(x+radius, y+radius, z+radius);
     
-    vec3i ldi(ld/m_cell_size);
-    vec3i rui(ru/m_cell_size);
+    vec3i ldi = get_idx_cell3(ld);
+    vec3i rui = get_idx_cell3(ru);
+    
+    ldi = vec3i(std::max(ldi[0], 0), std::max(ldi[1], 0), std::max(ldi[2], 0));
+    rui = vec3i(std::min(rui[0], m_dimension[0]), std::min(rui[1], m_dimension[1]), std::min(rui[2], m_dimension[2]));
+    
     std::vector<long> out;
     for (int i = ldi[0]; i<=rui[0]; i++)
     {
@@ -79,7 +92,7 @@ std::vector<long> hash3::get_close_point(double x, double y, double z, double ra
         {
             for (int k = ldi[2]; k <= rui[2]; k++)
             {
-                auto & list = m_bins[vec3i_to_index(vec3i(i,j,k))];
+                auto & list = m_bins[idx_int(vec3i(i,j,k))];
                 out.insert(out.end(), list.begin(), list.end());
             }
         }
@@ -122,10 +135,40 @@ vec3 file_load::get_displacement(vec3 pos)
         }
     }
     
-    if (sum_dis > epsilon)
+    if (sum_dis < epsilon) // found nothing
     {
-        sum_vec /= sum_dis;
+//        assert(0);
+        // Displace to closset point
+        if(list.size() == 0)
+        {
+            // Tuan: Must be optimized later
+            list.resize(m_current_particles.size());
+            for (int i = 0; i < list.size(); i++)
+            {
+                list[i] = i;
+            }
+            
+        }
+
+        double min_dis = INFINITY;
+        int min_pt = -1;
+        for (auto p : list)
+        {
+            vec3 cur_pos = m_next_particles[p].pos;
+
+            auto cur_dis = (cur_pos - pos).length() + epsilon;
+            if (cur_dis < min_dis)
+            {
+                min_dis = cur_dis;
+                min_pt = p;
+            }
+        }
+
+        sum_vec = m_next_particles[min_pt].pos - pos;
+        sum_dis = 1;
     }
+    
+    sum_vec /= sum_dis;
     
     return sum_vec;
 }
@@ -156,6 +199,7 @@ void particle::draw()
     glColor3dv(_color[type].get());
     glVertex3dv(pos.get());
     glEnd();
+    
 }
 
 void file_load::draw()
@@ -165,18 +209,30 @@ void file_load::draw()
     {
         p.draw();
     }
+    
+//    auto list = m_hashTable->get_close_point(0.2, 0.2, 0.2, 0.052);
+//    for (auto p : list)
+//    {
+//        m_current_particles[p].draw();
+//    }
+//
+//    glPushMatrix();
+//    glTranslated(0.2, 0.2, 0.2);
+//    glutWireSphere(0.052, 10, 10);
+//    glPopMatrix();
 }
 
 void file_load::build_hash()
 {
-    m_hashTable = shared_ptr<hash3>( new hash3(vec3(0.4, 0.67, 1.6), 0.1));
+    m_hashTable = shared_ptr<hash3>( new hash3(vec3(1.6, 0.67, 0.6), 0.06));
     int idx = 0;
     for (auto &p : m_current_particles)
     {
         if (p.type == 0)
         {
-            m_hashTable->insert_point(p.pos, idx++);
+            m_hashTable->insert_point(p.pos, idx);
         }
+        idx++;
     }
 }
 

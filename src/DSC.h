@@ -466,7 +466,18 @@ namespace DSC {
         DeformableSimplicialComplex(std::vector<vec3> & points, std::vector<int> & tets, const std::vector<int>& tet_labels):
             is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>(points, tets, tet_labels)
         {
-            pars = {0.1, 0.5, 0.0005, 0.015, 0.02, 0.3, 0., 2., 0.2, 5., 0.2, INFINITY};
+            pars = {0.1,
+                0.5,
+                0.0005,
+                0.015,
+                0.02,
+                0.3,
+                0.,
+                1.3, // max length
+                0.2, // min area
+                5., // max area
+                0.2,    // min vol
+                INFINITY}; //max vol
             set_avg_edge_length();
 
         }
@@ -1692,9 +1703,9 @@ namespace DSC {
                     i++;
                 }
             }
-#ifdef DEBUG
+//#ifdef DEBUG
             std::cout << "Thickening interface splits: " << i << std::endl;
-#endif
+//#endif
         }
         
         void resize_interface()

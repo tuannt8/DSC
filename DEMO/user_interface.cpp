@@ -272,7 +272,7 @@ void UI::init_dsc()
     std::vector<int> tet_labels;
     
     
-    int DISCRETIZATION = 70;
+    int DISCRETIZATION = 20;
     double delta = _obj_dim[0]/(double)DISCRETIZATION;
     
     vec3 _dsc_dim = _obj_dim + vec3(delta)*2;
@@ -516,6 +516,18 @@ void UI::display()
             glColor3f(0.0, 0.0, 1.0);
             draw_helper::dsc_draw_interface_edge(*dsc);
         }
+        
+//        for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+//        {
+//            if (nit->is_interface())
+//            {
+//                glPushMatrix();
+//                auto p = nit->get_pos();
+//                glTranslated(p[0], p[1], p[2]);
+//                glutWireSphere(0.052, 20, 20);
+//                break;
+//            }
+//        }
     }
     
     if(glut_menu::get_state("Particle bounding box", 1))

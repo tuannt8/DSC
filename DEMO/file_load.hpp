@@ -31,14 +31,23 @@ public:
     void insert_point(vec3 pos, int index);
     std::vector<long> get_close_point(double x, double y, double z, double radius);
     
+    void draw();
 private:
     std::map<long, std::vector<long>> m_bins;
     vec3i m_dimension;
     double m_cell_size;
     
-    inline long vec3i_to_index(vec3i const & v){
-        return v[0]*m_dimension[1]*m_dimension[2] + v[1]*m_dimension[2] + v[2];
-    };
+    inline int get_idx_cell(vec3 & pos);
+    inline vec3i get_idx_cell3(vec3& pos)
+    {
+        return vec3i(floor(pos[0]/m_cell_size),
+                    floor(pos[1]/m_cell_size),
+                    floor(pos[2]/m_cell_size) );
+    }
+    inline int idx_int(vec3i idx_h)
+    {
+        return idx_h[2]*m_dimension[0]*m_dimension[1] + idx_h[1]*m_dimension[0] + idx_h[0];
+    }
 };
 
 class particle
