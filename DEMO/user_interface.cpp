@@ -272,7 +272,7 @@ void UI::init_dsc()
     std::vector<int> tet_labels;
     
     
-    int DISCRETIZATION = 20;
+    int DISCRETIZATION = 70;
     double delta = _obj_dim[0]/(double)DISCRETIZATION;
     
     vec3 _dsc_dim = _obj_dim + vec3(delta)*2;

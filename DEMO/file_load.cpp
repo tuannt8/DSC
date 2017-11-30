@@ -29,6 +29,29 @@
 
 using namespace std;
 
+inline std::istream& operator>> (std::istream&is, particle& p)
+{
+    is >> p.pos[0] >> p.pos[1] >> p.pos[2]
+    >> p.pressure
+    >> p.density
+    >> p.mass
+    >> p.type
+    >> p.flag
+    >> p.object
+    >> p.vel[0] >> p.vel[1] >> p.vel[2];
+    
+    return is;
+}
+
+inline std::ostream& operator<<(std::ostream&os, particle& p)
+{
+	os << p.pos[0] << " " << p.pos[1] << " " << p.pos[2] << " " 
+		<< p.pressure << " "
+		<< p.density << " " << endl;
+		
+	return os;
+}
+
 hash3::hash3(vec3 domain_bound, double cell_size)
 {
     m_cell_size = cell_size;
@@ -70,6 +93,12 @@ file_load::file_load()
 {
     load_time_step();
     cout << "Num particles: " << m_current_particles.size() << endl;
+    
+    vector<int> idx = {0, 1, 2, 10, 100, 1000, 10000};
+    for(auto i : idx)
+    {
+    	cout << m_current_particles[i] << endl;
+    }
 }
 
 vec3 file_load::get_displacement(vec3 pos)
@@ -117,19 +146,7 @@ void file_load::load_time_step()
     build_hash();
 }
 
-inline std::istream& operator>> (std::istream&is, particle& p)
-{
-    is >> p.pos[0] >> p.pos[1] >> p.pos[2]
-    >> p.pressure
-    >> p.density
-    >> p.mass
-    >> p.type
-    >> p.flag
-    >> p.object
-    >> p.vel[0] >> p.vel[1] >> p.vel[2];
-    
-    return is;
-}
+
 
 void particle::draw()
 {
@@ -179,8 +196,11 @@ void file_load::load(int idx, std::vector<particle> & par)
         {
             int num_points;
             f >> num_points;
-            string comment;
-            getline(f, comment);
+//            string comment;
+//            getline(f, comment);
+//            getline(f, comment);
+//            cout << "load " << idx << endl;
+//            cout << comment << endl;
             
             par.resize(num_points);
             for (int i = 0; i < num_points; i++)
