@@ -167,27 +167,34 @@ void file_load::load(int idx, std::vector<particle> & par)
     try
     {
         stringstream s;
-#ifdef LINUX
-        s << "../../Large_data/DamBreak3D/my_format/iter_" << setfill('0') << setw(5) << idx << ".particle";
-#else
+#if defined(__APPLE__)
         s << "../Large_data/DamBreak3D/my_format/iter_" << setfill('0') << setw(5) << idx << ".particle";
+#else
+        s << "../../Large_data/DamBreak3D/my_format/iter_" << setfill('0') << setw(5) << idx << ".particle";
 #endif
         
         std::ifstream f(s.str());
-        int num_points;
-        f >> num_points;
-        string comment;
-        getline(f, comment);
-        
-        par.resize(num_points);
-        for (int i = 0; i < num_points; i++)
+        if(f.is_open())
         {
-            f >> par[i];
+            int num_points;
+            f >> num_points;
+            string comment;
+            getline(f, comment);
+            
+            par.resize(num_points);
+            for (int i = 0; i < num_points; i++)
+            {
+                f >> par[i];
+            }
+        }
+        else{
+        	cout << s.str();
+            throw "Fail to load particle";
         }
     }
     catch (exception e)
     {
-        cout << e.what();
+        cout << "Error fail to load file" <<  e.what();
     }
 
     
