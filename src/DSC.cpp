@@ -7,7 +7,7 @@
 //
 
 #include <stdio.h>
-#include "DSC.h"
+#include "DSC_cache.h"
 
 #define NUM_THREADS 4
 

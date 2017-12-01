@@ -46,81 +46,81 @@ std::vector<vec3> get_random_color(int N = 5)
     return cc;
 }
 
-void draw_helper::dsc_draw_edges_colors(dsc_class & dsc)
-{
-    static std::vector<vec3> colors = get_random_color(10);
-    glPointSize(2.5);
-    glDisable(GL_LIGHTING);
-    glBegin(GL_LINES);
-    int max_color = 0;
-    for (auto eit = dsc.edges_begin(); eit != dsc.edges_end(); eit++)
-    {
-        auto pts = dsc.get_pos(dsc.get_nodes(eit.key()));
-        if(//!eit->is_interface() &&
-           (pts[0][2] < DISPLAY_LIM || pts[1][2] < DISPLAY_LIM))
-           continue;
-        
-        if (dsc.get_color_edge(eit.key()) >= 0)
-        {
-            glColor3dv(colors[dsc.get_color_edge(eit.key())].get());
-            glVertex3dv(pts[0].get());
-            glVertex3dv(pts[1].get());
-            
-            if (max_color < dsc.get_color_edge(eit.key()))
-            {
-                max_color = dsc.get_color_edge(eit.key());
-            }
-        }
-    }
-    
-//    std::cout << max_color << std::endl;
-    
-    glEnd();
-    glEnable(GL_LIGHTING);
-}
+//void draw_helper::dsc_draw_edges_colors(dsc_class & dsc)
+//{
+//    static std::vector<vec3> colors = get_random_color(10);
+//    glPointSize(2.5);
+//    glDisable(GL_LIGHTING);
+//    glBegin(GL_LINES);
+//    int max_color = 0;
+//    for (auto eit = dsc.edges_begin(); eit != dsc.edges_end(); eit++)
+//    {
+//        auto pts = dsc.get_pos(dsc.get_nodes(eit.key()));
+//        if(//!eit->is_interface() &&
+//           (pts[0][2] < DISPLAY_LIM || pts[1][2] < DISPLAY_LIM))
+//           continue;
+//
+//        if (dsc.get_color_edge(eit.key()) >= 0)
+//        {
+//            glColor3dv(colors[dsc.get_color_edge(eit.key())].get());
+//            glVertex3dv(pts[0].get());
+//            glVertex3dv(pts[1].get());
+//
+//            if (max_color < dsc.get_color_edge(eit.key()))
+//            {
+//                max_color = dsc.get_color_edge(eit.key());
+//            }
+//        }
+//    }
+//
+////    std::cout << max_color << std::endl;
+//
+//    glEnd();
+//    glEnable(GL_LIGHTING);
+//}
 
-void draw_helper::dsc_draw_node_color(dsc_class & dsc)
-{
-    static std::vector<vec3> colors = get_random_color();
-    glPointSize(2.5);
-    glDisable(GL_LIGHTING);
-    glBegin(GL_POINTS);
-    for (auto nit = dsc.nodes_begin(); nit != dsc.nodes_end(); ++nit)
-    {
-        
-        if(!nit->is_interface() && dsc.get_pos(nit.key())[2] < DISPLAY_LIM)
-            continue;
-        
-        if (dsc.get_color_node(nit.key()) >= 0)
-        {
-            glColor3dv(colors[dsc.get_color_node(nit.key())].get());
-            glVertex3dv(dsc.get_pos(nit.key()).get());
-        }
-    }
-    glEnd();
-    glEnable(GL_LIGHTING);
-}
-
-void draw_helper::dsc_draw_face_norm(dsc_class & dsc)
-{
-    glColor3f(0, 0, 1);
-    for (auto fid = dsc.faces_begin(); fid != dsc.faces_end(); fid++)
-    {
-        if (fid->is_interface())
-        {
-            auto pts = dsc.get_pos(dsc.get_nodes(fid.key()));
-            auto center = (pts[0] + pts[1] + pts[2]) / 3.0;
-
-            vec3 Norm = dsc.get_normal(fid.key());
-
-            
-            glBegin(GL_LINES);
-            glVertex3dv(center.get());
-            glVertex3dv((center + Norm*5).get());
-            glEnd();
-        }
-    }
-}
+//void draw_helper::dsc_draw_node_color(dsc_class & dsc)
+//{
+//    static std::vector<vec3> colors = get_random_color();
+//    glPointSize(2.5);
+//    glDisable(GL_LIGHTING);
+//    glBegin(GL_POINTS);
+//    for (auto nit = dsc.nodes_begin(); nit != dsc.nodes_end(); ++nit)
+//    {
+//        
+//        if(!nit->is_interface() && dsc.get_pos(nit.key())[2] < DISPLAY_LIM)
+//            continue;
+//        
+//        if (dsc.get_color_node(nit.key()) >= 0)
+//        {
+//            glColor3dv(colors[dsc.get_color_node(nit.key())].get());
+//            glVertex3dv(dsc.get_pos(nit.key()).get());
+//        }
+//    }
+//    glEnd();
+//    glEnable(GL_LIGHTING);
+//}
+//
+//void draw_helper::dsc_draw_face_norm(dsc_class & dsc)
+//{
+//    glColor3f(0, 0, 1);
+//    for (auto fid = dsc.faces_begin(); fid != dsc.faces_end(); fid++)
+//    {
+//        if (fid->is_interface())
+//        {
+//            auto pts = dsc.get_pos(dsc.get_nodes(fid.key()));
+//            auto center = (pts[0] + pts[1] + pts[2]) / 3.0;
+//
+//            vec3 Norm = dsc.get_normal(fid.key());
+//
+//            
+//            glBegin(GL_LINES);
+//            glVertex3dv(center.get());
+//            glVertex3dv((center + Norm*5).get());
+//            glEnd();
+//        }
+//    }
+//}
 
 void draw_helper::dsc_draw_interface_edge(dsc_class & dsc)
 {

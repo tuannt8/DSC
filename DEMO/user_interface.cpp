@@ -117,25 +117,20 @@ void UI::setup_light()
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
-    
-    GLfloat g_amb = 1.0;
-    GLfloat global_ambient[] = {g_amb, g_amb, g_amb, 0.1};
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
-
-
-    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-    GLfloat mat_shininess[] = { 5.0 };
-
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    
-    glColorMaterial ( GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE ) ;
-    glEnable(GL_COLOR_MATERIAL);
-    
-    return;
-
-    
-
+//
+//    GLfloat g_amb = 1.0;
+//    GLfloat global_ambient[] = {g_amb, g_amb, g_amb, 0.1};
+//    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
+//
+//
+//    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+//    GLfloat mat_shininess[] = { 5.0 };
+//
+//    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+//    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+//
+//    glColorMaterial ( GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE ) ;
+//    glEnable(GL_COLOR_MATERIAL);
 }
 inline vec3 min_vec(vec3 v1, vec3 v2)
 {
@@ -498,15 +493,6 @@ void UI::display()
 //        }
     }
     
-    if(glut_menu::get_state("Particle bounding box", 1))
-    {
-        glColor3f(1, 0, 0.1);
-        glPushMatrix();
-        glScaled(0.4, 0.67, 0.4);
-        glTranslated(0.5, 0.5, 0.5);
-        glutWireCube(1);
-        glPopMatrix();
-    }
 
 //    if(mode == 0)
 //    {

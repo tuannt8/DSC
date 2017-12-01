@@ -19,6 +19,9 @@
 #include <iomanip>
 
 #include "dam_break.h"
+#include "bubble.h"
+#include "dambreak2.h"
+
 
 class fluid_motion
 {
@@ -30,12 +33,13 @@ public:
 
 public:
     DSC::DeformableSimplicialComplex<>* s_dsc;
-    dam_break m_file_load;
+    bubble m_file_load;
     
     void deform();
     
     void log_dsc_surface(int idx);
 };
+
 
 
 #endif /* fluid_motion_hpp */

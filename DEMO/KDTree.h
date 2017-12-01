@@ -16,7 +16,6 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include "Util.h"
 #include "define.h"
 
 #if (_MSC_VER >= 1200)

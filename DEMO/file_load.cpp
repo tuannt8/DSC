@@ -8,21 +8,8 @@
 
 #include "file_load.hpp"
 
-#ifdef _WIN32 // WINDOWS
-#include <GL/glut.h>
-#include <GL/glew.h>
-#elif defined(__APPLE__) // IOS
-#include <OpenGL/gl3.h>
-#include <GLUT/glut.h>
-#else // LINUX
-#include <GL/glew.h>
-#include <GL/glut.h>
-#endif
 
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <iomanip>
+
 
 #include <unordered_map>
 #include <cassert>
@@ -74,6 +61,31 @@ void hash3::insert_point(vec3 pos, int index)
     m_bins[get_idx_cell(pos)].push_back(index);
 }
 
+void fluid_interface::draw()
+{
+    glEnable(GL_LIGHTING);
+    glEnable(GL_COLOR_MATERIAL);
+    
+    glBegin(GL_TRIANGLES);
+    for (int i = 0; i < m_faces.size(); )
+    {
+        vector<vec3> p;
+        p.push_back(m_points[m_faces[i++]]);
+        p.push_back(m_points[m_faces[i++]]);
+        p.push_back(m_points[m_faces[i++]]);
+        
+        auto norm = Util::normal_direction(p[0], p[1], p[2]);
+        glNormal3dv(norm.get());
+        
+        for (auto & pt : p)
+        {
+            glVertex3dv(pt.get());
+        }
+        
+    }
+    glEnd();
+}
+
 std::vector<long> hash3::get_close_point(double x, double y, double z, double radius)
 {
     vec3 ld(x-radius, y-radius, z-radius);
@@ -102,10 +114,10 @@ std::vector<long> hash3::get_close_point(double x, double y, double z, double ra
 }
 
 
-file_load::file_load()
-{
-    load_time_step();
-}
+//file_load::file_load()
+//{
+//    load_time_step();
+//}
 
 vec3 file_load::get_displacement_closet_point(vec3 pos)
 {
@@ -124,6 +136,31 @@ vec3 file_load::get_displacement_closet_point(vec3 pos)
     {
         return vec3(0.0);
     }
+}
+
+vec3 file_load::get_displacement_WENLAND_kernel(vec3 pos)
+{
+    double h = get_influence_radius();
+    double r = h*2;
+    vector<int> pt_in_sphere;
+    vector<vec3> pos_in_sphere;
+    m_vtree.in_sphere(pos, r, pos_in_sphere, pt_in_sphere);
+    
+    vec3 sum_vec(0);
+    for (auto key : pt_in_sphere)
+    {
+        vec3 cur_pos = m_current_particles[key].pos;
+        vec3 nex_pos = m_next_particles[key].pos;
+        auto cur_dis = (cur_pos - pos).length();
+        
+        double q = cur_dis/h;
+        double contribute = 21.0/16.0/3.14159/pow(h,3)*pow(1-q/2.0,4)*(1 +2*q);
+        
+        sum_vec += (nex_pos - cur_pos)*(contribute * m_current_particles[key].mass/m_current_particles[key].density);
+    }
+    
+    return sum_vec;
+    
 }
 
 vec3 file_load::get_displacement_cubic_kernel(vec3 pos)
@@ -163,7 +200,9 @@ vec3 file_load::get_displacement_cubic_kernel(vec3 pos)
 vec3 file_load::get_displacement_avg(vec3 pos)
 {
     double r = get_influence_radius();
-    auto list = m_hashTable->get_close_point(pos[0], pos[1], pos[2], r);
+    vector<int> list;
+    vector<vec3> pos_in_sphere;
+    m_vtree.in_sphere(pos, r, pos_in_sphere, list);
     
     vec3 sum_vec(0.0);
     double sum_dis = 0;
@@ -222,6 +261,8 @@ vec3 file_load::get_displacement_avg(vec3 pos)
 vec3 file_load::get_displacement(vec3 pos)
 {
     return get_displacement_avg(pos);
+//    return get_displacement_WENLAND_kernel(pos);
+//    return get_displacement_cubic_kernel(pos);
 }
 file_load::~file_load()
 {
@@ -230,6 +271,10 @@ file_load::~file_load()
 
 void file_load::load_time_step()
 {
+#ifdef DEMO_INTERFACE
+    m_interface.load_surface(m_cur_idx);
+#endif
+    
     if(m_cur_idx==0)
         load(0, m_current_particles);
     else
@@ -255,35 +300,24 @@ void particle::draw()
 
 void file_load::draw()
 {
-    glPointSize(2.5);
-    for (auto &p : m_current_particles)
-    {
-        p.draw();
-    }
-    
-//    auto list = m_hashTable->get_close_point(0.2, 0.2, 0.2, 0.052);
-//    for (auto p : list)
-//    {
-//        m_current_particles[p].draw();
-//    }
-//
-//    glPushMatrix();
-//    glTranslated(0.2, 0.2, 0.2);
-//    glutWireSphere(0.052, 10, 10);
-//    glPopMatrix();
+    personal_draw();
+
+#ifdef DEMO_INTERFACE
+    m_interface.draw();
+#endif
 }
 
 void file_load::build_hash()
 {
     m_vtree = Geometry::KDTree<vec3, int>();
     
-    m_hashTable = shared_ptr<hash3>( new hash3(get_domain_dimension(), get_influence_radius()));
+//    m_hashTable = shared_ptr<hash3>( new hash3(get_domain_dimension(), get_influence_radius()));
     int idx = 0;
     for (auto &p : m_current_particles)
     {
         if (p.type == 0)
         {
-            m_hashTable->insert_point(p.pos, idx);
+//            m_hashTable->insert_point(p.pos, idx);
             
             m_vtree.insert(p.pos, idx);
         }
@@ -296,41 +330,23 @@ void file_load::build_hash()
 
 void file_load::load(int idx, std::vector<particle> & par)
 {
-    try
-    {
-        stringstream s;
-#if defined(__APPLE__)
-        s << "../Large_data/DamBreak3D/my_format/iter_" << setfill('0') << setw(5) << idx << ".particle";
-#else
-        s << "../../Large_data/DamBreak3D/my_format/iter_" << setfill('0') << setw(5) << idx << ".particle";
-#endif
-        
-        std::ifstream f(s.str());
-        if(f.is_open())
-        {
-            int num_points;
-            f >> num_points;
-//            string comment;
-//            getline(f, comment);
-//            getline(f, comment);
-//            cout << "load " << idx << endl;
-//            cout << comment << endl;
-            
-            par.resize(num_points);
-            for (int i = 0; i < num_points; i++)
-            {
-                f >> par[i];
-            }
-        }
-        else{
-        	cout << s.str();
-            throw "Fail to load particle";
-        }
-    }
-    catch (exception e)
-    {
-        cout << "Error fail to load file" <<  e.what();
-    }
+    stringstream s;
+    s << m_data_path << setfill('0') << setw(5) << idx << ".particle";
 
     
+    std::ifstream f(s.str());
+    if(f.is_open())
+    {
+        int num_points;
+        f >> num_points;
+        
+        par.resize(num_points);
+        for (int i = 0; i < num_points; i++)
+        {
+            f >> par[i];
+        }
+    }
+    else{
+        cout << "Error: " <<  s.str() << endl;
+    }
 }

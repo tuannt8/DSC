@@ -25,6 +25,23 @@
 
 #include "DSC.h"
 
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+
+#ifdef _WIN32 // WINDOWS
+#include <GL/glut.h>
+#include <GL/glew.h>
+#elif defined(__APPLE__) // IOS
+#include <OpenGL/gl3.h>
+#include <GLUT/glut.h>
+#else // LINUX
+#include <GL/glew.h>
+#include <GL/glut.h>
+#endif
+
+
 class hash3
 {
 public:
@@ -70,10 +87,31 @@ public:
     void draw();
 };
 
+class fluid_interface
+{
+    std::vector<vec3> m_points;
+    std::vector<int> m_faces;
+public:
+    fluid_interface(){};
+    ~fluid_interface(){};
+    
+    void load_surface(int idx)
+    {
+        m_points.clear();
+        m_faces.clear();
+        
+        std::stringstream file_path;
+        file_path << "../Large_data/DamBreak3D/mesh/dam_break_1_obstacle/dsc_" << std::setfill('0') << std::setw(5) << idx << ".obj";
+        is_mesh::import_surface_mesh(file_path.str(), m_points, m_faces);
+    };
+    
+    void draw();
+};
+
 class file_load
 {
 public:
-    file_load();
+    file_load(){};
     ~file_load();
     
     std::vector<particle> m_current_particles;;
@@ -93,10 +131,16 @@ public:
     vec3 get_displacement_avg(vec3 pos);
     vec3 get_displacement_closet_point(vec3 pos);
     vec3 get_displacement_cubic_kernel(vec3 pos);
+    vec3 get_displacement_WENLAND_kernel(vec3 pos);
     
-    virtual void init_dsc(DSC::DeformableSimplicialComplex<> * dsc){};
+    std::string m_data_path;
+    
+    virtual void init_dsc(DSC::DeformableSimplicialComplex<> * dsc)=0;//{};
     virtual vec3 get_domain_dimension(){return vec3(0.0);};
     virtual double get_influence_radius(){return 0;};
+    virtual void personal_draw(){};
+public:
+    fluid_interface m_interface;
 };
 
 
