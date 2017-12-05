@@ -283,19 +283,62 @@ void file_load::load_time_step()
     load(++m_cur_idx, m_next_particles);
     
     build_hash();
+    build_anisotropic_kernel();
 }
 
-
-
-void particle::draw()
+bool file_load::get_projection(vec3 pos, vec3 direction, bool &bInside, double &t)
 {
-    static vector<vec3> _color = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
+    double max_search = get_influence_radius()*2;
+    double phi0 = m_aniso_kernel.get_value(pos);
     
-    glBegin(GL_POINTS);
-    glColor3dv(_color[type].get());
-    glVertex3dv(pos.get());
-    glEnd();
+    static double epsilon = 1e-8;
+    bInside = phi0 > epsilon;
+
+    if (phi0 < epsilon) // outside
+    {
+        t = -max_search;
+    }
+    else{
+        t = max_search;
+    }
     
+    double phi_t0 = m_aniso_kernel.get_value(pos + direction*t);
+    bool btInside0 = phi_t0 > epsilon;
+    if (!(btInside0 ^ bInside)) // both inside or outside
+    {
+        return false;
+    }
+    
+    double t2 = 0;
+    for (int iter = 0; iter < 3; iter++)
+    {
+        double phi_t = m_aniso_kernel.get_value(pos + direction*t);
+        bool btInside = phi_t > epsilon;
+        double phi_t2 = m_aniso_kernel.get_value(pos + direction*t2);
+        bool btInside2 = phi_t2 > epsilon;
+        
+        if (btInside2 ^ bInside) // t2 and pos
+        {
+            t = t2 + (t-t2)/2;
+        }
+        else
+        {
+            t2 = t2 + (t-t2)/2;
+        }
+    }
+    
+    t = (t+t2)/2;
+    
+    return true;
+}
+
+void file_load::build_anisotropic_kernel()
+{
+    m_aniso_kernel.m_shared_tree = &m_vtree;
+    m_aniso_kernel.m_shared_particles = m_current_particles;
+    m_aniso_kernel.m_h = get_influence_radius();
+    
+    m_aniso_kernel.build();
 }
 
 void file_load::draw()
@@ -303,6 +346,7 @@ void file_load::draw()
     personal_draw();
 
 #ifdef DEMO_INTERFACE
+    glColor3f(0, 0, 1);
     m_interface.draw();
 #endif
 }
@@ -311,14 +355,11 @@ void file_load::build_hash()
 {
     m_vtree = Geometry::KDTree<vec3, int>();
     
-//    m_hashTable = shared_ptr<hash3>( new hash3(get_domain_dimension(), get_influence_radius()));
     int idx = 0;
     for (auto &p : m_current_particles)
     {
         if (p.type == 0)
         {
-//            m_hashTable->insert_point(p.pos, idx);
-            
             m_vtree.insert(p.pos, idx);
         }
         idx++;

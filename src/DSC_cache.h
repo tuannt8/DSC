@@ -16,7 +16,9 @@
 
 #pragma once
 
-#ifndef DSC_ORIGIN
+#define DSC_NEW
+
+#ifdef DSC_NEW
 
 #include "is_mesh.h"
 #include "attributes.h"

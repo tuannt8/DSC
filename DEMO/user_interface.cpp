@@ -190,7 +190,7 @@ UI::UI(int &argc, char** argv)
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL | GLUT_MULTISAMPLE);
     
     glutCreateWindow("Shadowy Leapin' Lizards");
-    
+
     glutDisplayFunc(display_);
     glutKeyboardFunc(keyboard_);
     glutSetKeyRepeat(GLUT_KEY_REPEAT_ON);
@@ -199,16 +199,16 @@ UI::UI(int &argc, char** argv)
     glutMotionFunc(mouse_move_);
     glutMouseFunc(mouse_down_);
     
-    
+ 
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     glEnable(GL_DEPTH_TEST);
     glLineWidth(1.0);
-    
+   
     setup_light();
     
     glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
     check_gl_error();
-    
+//
     
     // Dam break
     _obj_dim = m_fluid.m_file_load.get_domain_dimension();
@@ -234,8 +234,11 @@ void UI::init_dsc()
     std::vector<int> tets;
     std::vector<int> tet_labels;
     
-    
-    int DISCRETIZATION = 30;
+#ifdef __APPLE__
+    int DISCRETIZATION = 10;
+#else
+    int DISCRETIZATION = 70;
+#endif
     double delta = _obj_dim[0]/(double)DISCRETIZATION;
     
     vec3 _dsc_dim = _obj_dim + vec3(delta)*2;
@@ -345,11 +348,11 @@ void UI::load_model(const std::string& file_name, real discretization)
 
 void UI::update_title()
 {
-    std::ostringstream oss;
-    oss << "3D DSC\t" << vel_fun->get_name() << ", Time step " << vel_fun->get_time_step();
-    oss << " (Nu = " << vel_fun->get_velocity() << ", Delta = " << dsc->get_avg_edge_length() << ", Alpha = " << vel_fun->get_accuracy() << ")";
-    std::string str(oss.str());
-    glutSetWindowTitle(str.c_str());
+//    std::ostringstream oss;
+//    oss << "3D DSC\t" << vel_fun->get_name() << ", Time step " << vel_fun->get_time_step();
+//    oss << " (Nu = " << vel_fun->get_velocity() << ", Delta = " << dsc->get_avg_edge_length() << ", Alpha = " << vel_fun->get_accuracy() << ")";
+//    std::string str(oss.str());
+//    glutSetWindowTitle(str.c_str());
 }
 
 void UI::draw_dsc_layer(double y_lim)

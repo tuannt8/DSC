@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include "DSC_cache.h"
 
+#ifdef DSC_NEW
+
 #define NUM_THREADS 4
 
 using namespace std;
@@ -693,3 +695,6 @@ template<> void dsc_class::normal_coloring_vertices()
 }
 
 #endif
+
+
+#endif // #ifdef DSC_CACHE

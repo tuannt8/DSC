@@ -115,7 +115,6 @@ public:
     {
         static std::vector<vec3> _color = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
         
-        
         glDisable(GL_LIGHTING);
         glPointSize(2.5);
         glBegin(GL_POINTS);

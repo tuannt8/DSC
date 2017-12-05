@@ -41,6 +41,10 @@
 #include <GL/glut.h>
 #endif
 
+#include "particle.h"
+#include "anisotrpic_kernel.h"
+#include "glut_menu.hpp"
+//#define DEMO_INTERFACE
 
 class hash3
 {
@@ -70,23 +74,6 @@ private:
     }
 };
 
-class particle
-{
-public:
-    particle(){}
-    ~particle(){}
-    
-    double pressure;
-    double density;
-    double mass;
-    int type;
-    int flag;
-    int object;
-    vec3 vel, pos;
-    
-    void draw();
-};
-
 class fluid_interface
 {
     std::vector<vec3> m_points;
@@ -114,13 +101,16 @@ public:
     file_load(){};
     ~file_load();
     
-    std::vector<particle> m_current_particles;;
+    std::vector<particle> m_current_particles;
     std::vector<particle> m_next_particles;
     int m_cur_idx = 0;
     
     std::shared_ptr<hash3> m_hashTable;
     Geometry::KDTree<vec3, int> m_vtree;
     void build_hash();
+    
+    anisotropic_kernel m_aniso_kernel;
+    void build_anisotropic_kernel();
     
     void load_time_step();
     void load(int idx, std::vector<particle> & par);
@@ -132,6 +122,8 @@ public:
     vec3 get_displacement_closet_point(vec3 pos);
     vec3 get_displacement_cubic_kernel(vec3 pos);
     vec3 get_displacement_WENLAND_kernel(vec3 pos);
+    
+    bool get_projection(vec3 pos, vec3 direction, bool &bInside, double &t);
     
     std::string m_data_path;
     

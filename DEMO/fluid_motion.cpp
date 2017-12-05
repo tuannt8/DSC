@@ -23,49 +23,84 @@ void fluid_motion::draw()
 
 void fluid_motion::deform()
 {
+    project_interface();
+    return;
+    
     // 1. Interpolate the displacement
     static int idx = 0;
     std::cout << "Iter: " << idx << std::endl;
-    
+
     double max_dis = -INFINITY;
-    
+
     profile *t = new profile("compute displacement");
-    
+
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
         if (nit->is_interface())
         {
             auto pos = nit->get_pos();
             vec3 dis = m_file_load.get_displacement(pos);
-            
+
             s_dsc->set_destination(nit.key(), pos + dis);
-            
+
             if (max_dis < dis.length())
             {
                 max_dis = dis.length();
             }
         }
     }
-    
-    
+
+
     std::cout << "Max displacement: " << max_dis << std::endl;
-    
+
     t->change("Load next grid");
     m_file_load.load_time_step();
-    
+
     t->change("displace DSC");
     s_dsc->deform();
     
+    
+    ///////////////////////////////////////////
+    //  2. Project interface
+    t->change("Project DSC");
+    project_interface();
     delete t;
-    
+
     profile::close();
-    
+
     log_dsc_surface(idx);
-    
+
     if (idx++ > 300)
     {
         exit(0);
     }
+}
+
+void fluid_motion::project_interface()
+{
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface())
+        {
+            auto norm = s_dsc->get_normal_interface(nit.key());
+            bool bInside;
+            double t;
+            if(m_file_load.get_projection(nit->get_pos(), norm, bInside, t))
+            {
+                // project ok
+                vec3 new_pos = nit->get_pos() + norm*t;
+                s_dsc->set_destination(nit.key(), new_pos);
+            }
+            else
+            {
+                // can not project
+                std::cout << "Can not project a vertex" << std::endl;
+//                assert(0);
+            }
+        }
+    }
+    
+    s_dsc->deform();
 }
 
 void fluid_motion::log_dsc_surface(int idx)

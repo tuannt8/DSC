@@ -848,7 +848,7 @@ namespace is_mesh {
                 }
                 return FaceKey();
             }
-//            //
+            //
 //            // Old
 //            SimplexSet<FaceKey> fids1 = get_faces(nid1);
 //            SimplexSet<FaceKey> fids2 = get_faces(nid2);

@@ -36,6 +36,7 @@ public:
     bubble m_file_load;
     
     void deform();
+    void project_interface();
     
     void log_dsc_surface(int idx);
 };

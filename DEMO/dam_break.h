@@ -61,50 +61,50 @@ public:
             }
         }
         
-        // Fix boundary
-        // 4 planes
-        vec3 center(0.9, 0.67/2.0, 0);
-        double size = 0.06;
-        vec3 point[4];
-        vec3 norm[4];
-        for(int i = 0; i < 4; i++)
-        {
-            double alpha = i*M_PI_2 + M_PI_4;
-            norm[i] = vec3(cos(alpha), sin(alpha), 0.0);
-            point[i] = center + norm[i]*size;
-        }
-        
-        std::vector<int> interface_boundary(dsc->get_no_nodes(), 0);
-        for (auto tit = dsc->tetrahedra_begin(); tit!=dsc->tetrahedra_end(); tit++)
-        {
-            auto center_p = dsc->barycenter(tit.key());
-            bool is_outside = false;
-            for (int i = 0; i < 4; i++)
-            {
-                double sign = Util::dot(norm[i], center_p - point[i]);
-                if(sign >= 0)
-                    is_outside = true;
-            }
-            if (!is_outside)
-            {
-                dsc->set_label(tit.key(), 2);
-                auto nodes = dsc->get_nodes(tit.key());
-                for (int idx = 0; idx < nodes.size(); idx++)
-                {
-                    interface_boundary[nodes[idx]] = 1;
-                }
-            }
-        }
-        // Project
-        double gap_thres = dsc->get_avg_edge_length()/2;
-        for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
-        {
-            if (nit->is_interface() && interface_boundary[nit.key()]==1)
-            {
-                // rotate it
-                
-            }
-        }
+//        // Fix boundary
+//        // 4 planes
+//        vec3 center(0.9, 0.67/2.0, 0);
+//        double size = 0.06;
+//        vec3 point[4];
+//        vec3 norm[4];
+//        for(int i = 0; i < 4; i++)
+//        {
+//            double alpha = i*M_PI_2 + M_PI_4;
+//            norm[i] = vec3(cos(alpha), sin(alpha), 0.0);
+//            point[i] = center + norm[i]*size;
+//        }
+//
+//        std::vector<int> interface_boundary(dsc->get_no_nodes(), 0);
+//        for (auto tit = dsc->tetrahedra_begin(); tit!=dsc->tetrahedra_end(); tit++)
+//        {
+//            auto center_p = dsc->barycenter(tit.key());
+//            bool is_outside = false;
+//            for (int i = 0; i < 4; i++)
+//            {
+//                double sign = Util::dot(norm[i], center_p - point[i]);
+//                if(sign >= 0)
+//                    is_outside = true;
+//            }
+//            if (!is_outside)
+//            {
+//                dsc->set_label(tit.key(), 2);
+//                auto nodes = dsc->get_nodes(tit.key());
+//                for (int idx = 0; idx < nodes.size(); idx++)
+//                {
+//                    interface_boundary[nodes[idx]] = 1;
+//                }
+//            }
+//        }
+//        // Project
+//        double gap_thres = dsc->get_avg_edge_length()/2;
+//        for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+//        {
+//            if (nit->is_interface() && interface_boundary[nit.key()]==1)
+//            {
+//                // rotate it
+//
+//            }
+//        }
         
         dsc->deform();
     }
