@@ -19,7 +19,9 @@ class anisotropic_kernel
 public:
     Geometry::KDTree<vec3, int> *m_shared_tree;
     double m_h;//influence radius of the particles
+    double m_ra; // Spacing distance betwwen particle
     std::vector<mat3x3d> m_G;
+    std::vector<mat3x3d> m_principle;
     std::vector<double> m_det_G;
     std::vector<particle> m_shared_particles;
     
@@ -29,13 +31,15 @@ public:
     
     void build();
     
+    void Taubin_smooth();
+    
     double get_value(vec3 pos){
         // dam-break hard code test
         
-        double h = 0.02;
-        double r = h;
+        double h = m_h;
+        double r = h/2;
         
-        static double kernel_sigma = 315.0 / (64 * 3.14159 * std::pow(m_h, 6));
+        static double kernel_sigma = 315.0 / (64 * 3.14159);
         
         std::vector<int> close_particles;
         std::vector<vec3> close_particles_pos;
@@ -43,7 +47,7 @@ public:
         
         if(close_particles.size() == 0)
         {
-            return 0;
+            return -1;
         }
         double phi = 0.0;
         for (auto n_p : close_particles)
@@ -52,8 +56,13 @@ public:
             auto & G = m_G[n_p];
             vec3 ro = pos-part.pos;
             vec3 ra = G*(pos-part.pos);
-            // Use WENLAND kernel
-            double contribute = kernel_sigma/std::pow(m_h,3)*std::pow(h*h - Util::dot(ra, ra), 3)*m_det_G[n_p];
+            
+            double contribute = kernel_sigma*std::pow(1 - Util::dot(ra, ra), 3)*m_det_G[n_p];
+            
+            if (ra.length() > 1)
+            {
+                contribute = 0;
+            }
             
             phi += part.mass/part.density * contribute;
         }

@@ -235,7 +235,7 @@ void UI::init_dsc()
     std::vector<int> tet_labels;
     
 #ifdef __APPLE__
-    int DISCRETIZATION = 10;
+    int DISCRETIZATION = 17;
 #else
     int DISCRETIZATION = 70;
 #endif

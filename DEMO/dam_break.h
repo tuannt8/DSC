@@ -23,6 +23,9 @@ public:
         m_data_path = "../../Large_data/DamBreak3D/my_format/iter_";
 #endif
         load_time_step();
+        
+        m_cur_idx = 250;
+        load_time_step();
     }
     ~dam_break()
     {
@@ -107,6 +110,11 @@ public:
 //        }
         
         dsc->deform();
+    }
+    
+    virtual double get_spacing_distance()
+    {
+        return 0.025;
     }
     
     virtual vec3 get_domain_dimension()

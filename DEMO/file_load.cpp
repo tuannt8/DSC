@@ -288,48 +288,49 @@ void file_load::load_time_step()
 
 bool file_load::get_projection(vec3 pos, vec3 direction, bool &bInside, double &t)
 {
-    double max_search = get_influence_radius()*2;
-    double phi0 = m_aniso_kernel.get_value(pos);
+    double ra = get_spacing_distance();
+    double phi_pre = m_aniso_kernel.get_value(pos);
+    double epsilon = ra*(phi_pre<0? -1:1);
     
-    static double epsilon = 1e-8;
-    bInside = phi0 > epsilon;
-
-    if (phi0 < epsilon) // outside
-    {
-        t = -max_search;
-    }
-    else{
-        t = max_search;
-    }
+    bInside = phi_pre < 0;
     
-    double phi_t0 = m_aniso_kernel.get_value(pos + direction*t);
-    bool btInside0 = phi_t0 > epsilon;
-    if (!(btInside0 ^ bInside)) // both inside or outside
-    {
-        return false;
-    }
+    double phi_epsilon = m_aniso_kernel.get_value(pos + direction*epsilon);
     
-    double t2 = 0;
-    for (int iter = 0; iter < 3; iter++)
+    if (phi_pre * phi_epsilon < 0) //the point is somewhere in between
     {
-        double phi_t = m_aniso_kernel.get_value(pos + direction*t);
-        bool btInside = phi_t > epsilon;
-        double phi_t2 = m_aniso_kernel.get_value(pos + direction*t2);
-        bool btInside2 = phi_t2 > epsilon;
+        double ep1 = epsilon;
+        double ep2 = 0;
+        double phi1 = phi_epsilon;
+        double phi2 = phi_pre;
         
-        if (btInside2 ^ bInside) // t2 and pos
+        for (int i = 0; i < 4; i++)
         {
-            t = t2 + (t-t2)/2;
+            double phi_middle = m_aniso_kernel.get_value(pos + direction*(ep1+ep2)/2);
+            if (phi_middle < 0.0001)
+            {
+                break;
+            }
+            
+            if (phi_middle*phi1 < 0)
+            {
+                ep2 = (ep1 + ep2)/2;
+            }
+            else
+            {
+                ep1 = (ep1 + ep2)/2;
+                phi1 = phi_middle;
+            }
+            
+            
         }
-        else
-        {
-            t2 = t2 + (t-t2)/2;
-        }
+        
+        t = (ep1 + ep2)/2;
+        
+        return true;
     }
-    
-    t = (t+t2)/2;
-    
-    return true;
+
+    // fail to project
+    return false;
 }
 
 void file_load::build_anisotropic_kernel()
@@ -337,14 +338,177 @@ void file_load::build_anisotropic_kernel()
     m_aniso_kernel.m_shared_tree = &m_vtree;
     m_aniso_kernel.m_shared_particles = m_current_particles;
     m_aniso_kernel.m_h = get_influence_radius();
+    m_aniso_kernel.m_ra = get_spacing_distance();
     
     m_aniso_kernel.build();
 }
 
 void file_load::draw()
 {
-    personal_draw();
+//    personal_draw();
+    
+    
 
+    if(glut_menu::get_state("particle points", 0))
+    {
+        glColor3d(1,0,0);
+        glDisable(GL_LIGHTING);
+        glPointSize(6);
+        glBegin(GL_POINTS);
+        //            int idx = 0;
+        //            for (int idx : idx_list)
+        for(int idx = 0; idx < m_current_particles.size(); idx++)
+        {
+            auto &p = m_current_particles[idx];
+            
+            glVertex3dv(p.pos.get());
+            //                idx++;
+            //                if(idx>100)
+            //                    break;
+        }
+        glEnd();
+    }
+    if(glut_menu::get_state("Principle component axis", 0))
+    {
+        std::vector<vec3> axis = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
+        
+        double ra = get_spacing_distance();
+        //            int idx = 0;
+        //            for (int idx : idx_list)
+        for(int idx = 0; idx < m_current_particles.size(); idx++)
+        {
+            auto &p = m_current_particles[idx];
+            
+            auto pos = p.pos;
+            
+            glPushMatrix();
+            glTranslated(pos[0], pos[1], pos[2]);
+            
+            auto G = m_aniso_kernel.m_G[idx];
+            double m[16] = {G[0][0], G[0][1], G[0][2], 0,
+                G[1][0], G[1][1], G[1][2], 0,
+                G[2][0], G[2][1], G[2][2], 0,
+                0, 0, 0, 1
+            };
+            glMultMatrixd(m);
+            
+            glDisable(GL_LIGHTING);
+            glBegin(GL_LINES);
+            for (auto a : axis)
+            {
+                glColor3f(a[0], a[1], a[2]);
+                glVertex3f(0, 0, 0);
+                glVertex3dv((a*ra).get());
+            }
+            glEnd();
+            
+            
+            glPopMatrix();
+        }
+    }
+    
+    if(glut_menu::get_state("Iso surface field", 1))
+    {
+        static vector<vec3> pos;
+        static vector<double> phi;
+        if (pos.size()==0)
+        {
+            int N = 200;
+            vec3 delta = get_domain_dimension()/N;
+            for (int i=0; i < N; i++)
+            {
+                for (int j = 0; j < N; j++)
+                {
+//                    for (int k = 0; k < N; k++)
+                    int k = 80;
+                    {
+                        vec3 cur_p(i*delta[0], j*delta[1], k*delta[2]);
+                        pos.push_back(cur_p);
+                        phi.push_back(m_aniso_kernel.get_value(cur_p));
+                    }
+                }
+            }
+            
+            // Log
+            ofstream f("test.txt");;
+            for (auto phi_i : phi)
+            {
+                f << phi_i << " ";
+            }
+            f.close();
+            
+            double max = *std::max_element(phi.begin(), phi.end());
+            double min = *std::min_element(phi.begin(), phi.end());
+            cout << "\nMax field: " << max << "; min: " << min << endl;
+            for (auto & pp : phi)
+            {
+                if (pp < 0)
+                {
+                    pp /= abs(min);
+                }else{
+                    pp /= abs(max);
+                }
+            }
+        }
+        
+        glDisable(GL_LIGHTING);
+        glPointSize(4);
+        glBegin(GL_POINTS);
+
+        vec3 RED(1,0,0);
+        vec3 BLUE(0,0,1);
+        for (int i = 0; i < pos.size(); i++)
+        {
+            if(phi[i] == 0)
+                continue;
+            
+            double dis_red = abs(phi[i] + 1)/2;
+            double dis_blue = abs(1 - phi[i])/2;
+            vec3 c = RED*dis_red + BLUE*dis_blue;
+//            c.normalize();
+            glColor3f(c[0], c[1], c[2]);
+            glVertex3dv(pos[i].get());
+        }
+        glEnd();
+    }
+    
+    if(glut_menu::get_state("Principle component", 1))
+    {
+        double ra = get_spacing_distance();
+        //            int idx = 0;
+        //            for (int idx : idx_list)
+        for(int idx = 0; idx < m_current_particles.size(); idx++)
+        {
+//            if (idx > 20)
+//            {
+//                break;
+//            }
+            
+            auto &p = m_current_particles[idx];
+            auto pos = p.pos;
+            
+            glPushMatrix();
+            glTranslated(pos[0], pos[1], pos[2]);
+            
+            //                auto G = m_aniso_kernel.m_principle[idx];
+            auto G = m_aniso_kernel.m_G[idx]*ra;
+            double m[16] = {G[0][0], G[0][1], G[0][2], 0,
+                G[1][0], G[1][1], G[1][2], 0,
+                G[2][0], G[2][1], G[2][2], 0,
+                0, 0, 0, 1
+            };
+            glMultMatrixd(m);
+            
+            glEnable(GL_LIGHTING);
+            glEnable(GL_COLOR_MATERIAL);
+            glColor3f(1, 0, 0);
+            glutSolidSphere(ra, 10, 10);
+            
+            
+            glPopMatrix();
+        }
+    }
+    
 #ifdef DEMO_INTERFACE
     glColor3f(0, 0, 1);
     m_interface.draw();

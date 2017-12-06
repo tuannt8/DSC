@@ -123,13 +123,14 @@ public:
     vec3 get_displacement_cubic_kernel(vec3 pos);
     vec3 get_displacement_WENLAND_kernel(vec3 pos);
     
-    bool get_projection(vec3 pos, vec3 direction, bool &bInside, double &t);
+    bool get_projection(vec3 pos, vec3 direction, bool &bInside, double &t);//Using anisotropic kernel
     
     std::string m_data_path;
     
     virtual void init_dsc(DSC::DeformableSimplicialComplex<> * dsc)=0;//{};
     virtual vec3 get_domain_dimension(){return vec3(0.0);};
     virtual double get_influence_radius(){return 0;};
+    virtual double get_spacing_distance()=0;
     virtual void personal_draw(){};
 public:
     fluid_interface m_interface;

@@ -90,6 +90,8 @@ void fluid_motion::project_interface()
                 // project ok
                 vec3 new_pos = nit->get_pos() + norm*t;
                 s_dsc->set_destination(nit.key(), new_pos);
+                
+                std::cout << "Project a vertex ---" << std::endl;
             }
             else
             {

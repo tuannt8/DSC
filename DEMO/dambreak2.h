@@ -125,6 +125,11 @@ public:
         }
         glEnd();
     }
+    
+    virtual double get_spacing_distance()
+    {
+        return 0.2;
+    }
 };
 
 #endif /* dambreak2_h */
