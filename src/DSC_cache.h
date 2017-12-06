@@ -16,7 +16,9 @@
 
 #pragma once
 
-//#define DSC_NEW
+#ifdef __APPLE__
+#define DSC_NEW
+#endif
 
 #ifdef DSC_NEW
 

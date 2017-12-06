@@ -16,7 +16,9 @@
 
 #pragma once
 
+#ifndef __APPLE__
 #define DSC_ORIGIN
+#endif
 
 #ifdef DSC_ORIGIN
 
