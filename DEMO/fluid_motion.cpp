@@ -23,9 +23,9 @@ void fluid_motion::draw()
 
 void fluid_motion::deform()
 {
-    project_interface();
-    return;
-    
+//    project_interface();
+//    return;
+//
     // 1. Interpolate the displacement
     static int idx = 0;
     std::cout << "Iter: " << idx << std::endl;

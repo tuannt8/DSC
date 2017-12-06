@@ -109,7 +109,11 @@ public:
     
     int m_cur_idx = 0;
     int m_cur_sub_step = 0;
+#ifdef __APPLE__
+    int m_max_step=1;
+#else
     int m_max_step=3;
+#endif
     
     std::shared_ptr<hash3> m_hashTable;
     Geometry::KDTree<vec3, int> m_vtree;
