@@ -82,7 +82,7 @@ void fluid_motion::project_interface()
     {
         if (nit->is_interface())
         {
-            auto norm = s_dsc->get_normal_interface(nit.key());
+            auto norm = s_dsc->get_normal(nit.key());
             bool bInside;
             double t;
             if(m_file_load.get_projection(nit->get_pos(), norm, bInside, t))
