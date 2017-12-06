@@ -190,7 +190,7 @@ vec3 file_load::get_displacement_cubic_kernel(vec3 pos)
     return sum_vec;
 }
 
-vec3 file_load::get_displacement_avg(vec3 pos)
+bool file_load::get_displacement_avg(vec3 pos, vec3 & dis)
 {
     double r = get_influence_radius();
     vector<int> list;
@@ -199,7 +199,7 @@ vec3 file_load::get_displacement_avg(vec3 pos)
     
     if (list.size() == 0) // found nothing
     {
-        return vec3(INFINITY);
+        return false;
     }
     
     vec3 sum_vec(0.0);
@@ -216,12 +216,14 @@ vec3 file_load::get_displacement_avg(vec3 pos)
     
     sum_vec /= sum_dis;
     
-    return sum_vec;
+    dis = sum_vec;
+    return true;
 }
 
-vec3 file_load::get_displacement(vec3 pos)
+bool file_load::get_displacement(vec3 pos, vec3 & dis)
 {
-    return get_displacement_avg(pos);
+    
+    return get_displacement_avg(pos, dis);
 //    return get_displacement_WENLAND_kernel(pos);
 //    return get_displacement_cubic_kernel(pos);
 }
@@ -278,9 +280,9 @@ bool file_load::get_projection(vec3 pos, vec3 direction, bool &bInside, double &
 {
     double ra = get_spacing_distance();
     double phi_pre = m_aniso_kernel.get_value(pos);
-    double epsilon = ra*(phi_pre<0? -1:1);
+    double epsilon = -ra*(phi_pre>0? -1:1);
     
-    bInside = phi_pre < 0;
+    bInside = phi_pre > 0;
     
     double phi_epsilon = m_aniso_kernel.get_value(pos + direction*epsilon);
     
@@ -294,7 +296,7 @@ bool file_load::get_projection(vec3 pos, vec3 direction, bool &bInside, double &
         for (int i = 0; i < 4; i++)
         {
             double phi_middle = m_aniso_kernel.get_value(pos + direction*(ep1+ep2)/2);
-            if (phi_middle < 0.0001)
+            if (std::abs(phi_middle) < 0.0001)
             {
                 break;
             }
@@ -317,6 +319,7 @@ bool file_load::get_projection(vec3 pos, vec3 direction, bool &bInside, double &
         return true;
     }
 
+//    t = epsilon;
     // fail to project
     return false;
 }

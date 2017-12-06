@@ -467,18 +467,21 @@ void UI::display()
     {
         if(glut_menu::get_state("DSC domain", 1))
        {
+           glEnable(GL_LIGHTING);
             glColor3f(0.8, 0.8, 0.8);
             draw_helper::dsc_draw_domain(*dsc);
        }
         
         if(glut_menu::get_state("DSC interface", 0))
         {
+            glEnable(GL_LIGHTING);
             glColor3f(0.0, 0.9, 1.0);
             draw_helper::dsc_draw_interface(*dsc);
         }
         
         if(glut_menu::get_state("DSC interface edges", 1))
         {
+            glDisable(GL_LIGHTING);
             glColor3f(0.0, 0.0, 1.0);
             draw_helper::dsc_draw_interface_edge(*dsc);
         }

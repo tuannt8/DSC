@@ -123,8 +123,8 @@ public:
     
     void draw();
     
-    vec3 get_displacement(vec3 pos);
-    vec3 get_displacement_avg(vec3 pos);
+    bool get_displacement(vec3 pos, vec3 & dis);
+    bool get_displacement_avg(vec3 pos, vec3 & dis);
     vec3 get_displacement_closet_point(vec3 pos);
     vec3 get_displacement_cubic_kernel(vec3 pos);
     vec3 get_displacement_WENLAND_kernel(vec3 pos);

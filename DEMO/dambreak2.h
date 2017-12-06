@@ -128,7 +128,7 @@ public:
     
     virtual double get_spacing_distance()
     {
-        return 0.2;
+        return 0.025;
     }
 };
 

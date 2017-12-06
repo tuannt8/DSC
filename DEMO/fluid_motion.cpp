@@ -39,10 +39,16 @@ void fluid_motion::deform()
         if (nit->is_interface())
         {
             auto pos = nit->get_pos();
-            vec3 dis = m_file_load.get_displacement(pos);
+            vec3 dis;
+            if(!m_file_load.get_displacement(pos, dis))
+            {
+                // invert normal
+                auto norm = s_dsc->get_normal(nit.key());
+                dis = norm*m_file_load.get_spacing_distance()*DT_NORM;
+            }
 
             s_dsc->set_destination(nit.key(), pos + dis);
-
+            
             if (max_dis < dis.length())
             {
                 max_dis = dis.length();
@@ -84,23 +90,13 @@ void fluid_motion::project_interface()
         {
             auto norm = s_dsc->get_normal(nit.key());
             bool bInside;
-            double t;
-            if(m_file_load.get_projection(nit->get_pos(), norm, bInside, t))
+            double t = 0;
+            if(!m_file_load.get_projection(nit->get_pos(), norm, bInside, t))
             {
-                // project ok
-                vec3 new_pos = nit->get_pos() + norm*t;
-                s_dsc->set_destination(nit.key(), new_pos);
-                
-//                std::cout << "Project a vertex ---" << std::endl;
+//                 t = m_file_load.get_spacing_distance()*(bInside? 1:-1)*DT_NORM;
             }
-            else
-            {
-                // can not project
-//                std::cout << "Can not project a vertex" << std::endl;
-//                assert(0);
-                // Apply normal displacement
-                
-            }
+            vec3 new_pos = nit->get_pos() + norm*t;
+            s_dsc->set_destination(nit.key(), new_pos);
         }
     }
     

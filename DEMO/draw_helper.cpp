@@ -197,7 +197,7 @@ void draw_helper::dsc_draw_interface(dsc_class & dsc, std::vector<double> * colo
 //                    curvature = curvature>0? curvature*2-1 : curvature*2 + 1;
                     auto c = blue*(curvature + 1)/2 + red*(1 - curvature)/2;
                     
-                    auto norm = -dsc.get_normal(nodes[i]);
+                    auto norm = dsc.get_normal(nodes[i]);
                     glColor3d(c[0], c[1], c[2]);
                     glNormal3dv(norm.get());
                     glVertex3dv(v.get());
@@ -215,7 +215,7 @@ void draw_helper::dsc_draw_interface(dsc_class & dsc, std::vector<double> * colo
             {
                 auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
                 //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
-                auto norm = -dsc.get_normal(f.key());
+                auto norm = dsc.get_normal(f.key());
                 
 //                glColor3f(0.0, 0.9, 1.0);
                 glBegin(GL_TRIANGLES);

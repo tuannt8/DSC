@@ -22,6 +22,7 @@
 #include "bubble.h"
 #include "dambreak2.h"
 
+#define DT_NORM 0.1
 
 class fluid_motion
 {
@@ -33,7 +34,7 @@ public:
 
 public:
     DSC::DeformableSimplicialComplex<>* s_dsc;
-    dam_break m_file_load;
+    dam_break2 m_file_load;
     
     void deform();
     void project_interface();
