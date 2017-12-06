@@ -100,11 +100,12 @@ void anisotropic_kernel::build(){
         // Modify the strech matrix
         mat3x3d Sigma(0.0);
         double kr = 4.0;
-        double ks = 1400;
+        double ks = 3000;
+//        double ks = 1/CGLA::determinant(C);
         double kn = 0.5;
         for (int d = 0; d < 3; d++)
         {
-            if(close_particles.size() > 25)
+            if(close_particles.size() > 20)
             {
                 Sigma[d][d] = std::max(L[d][d], L[0][0] / kr) * ks;
             }

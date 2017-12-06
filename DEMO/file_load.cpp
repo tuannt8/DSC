@@ -479,10 +479,10 @@ void file_load::draw()
         //            for (int idx : idx_list)
         for(int idx = 0; idx < m_current_particles.size(); idx++)
         {
-//            if (idx > 20)
-//            {
-//                break;
-//            }
+            if (idx > 0)
+            {
+                break;
+            }
             
             auto &p = m_current_particles[idx];
             auto pos = p.pos;
@@ -491,7 +491,7 @@ void file_load::draw()
             glTranslated(pos[0], pos[1], pos[2]);
             
             //                auto G = m_aniso_kernel.m_principle[idx];
-            auto G = m_aniso_kernel.m_G[idx]*ra;
+            auto G = m_aniso_kernel.m_G[idx]*0.2;
             double m[16] = {G[0][0], G[0][1], G[0][2], 0,
                 G[1][0], G[1][1], G[1][2], 0,
                 G[2][0], G[2][1], G[2][2], 0,

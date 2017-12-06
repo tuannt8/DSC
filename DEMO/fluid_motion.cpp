@@ -23,8 +23,8 @@ void fluid_motion::draw()
 
 void fluid_motion::deform()
 {
-    project_interface();
-    return;
+//    project_interface();
+//    return;
     
     // 1. Interpolate the displacement
     static int idx = 0;
@@ -91,13 +91,15 @@ void fluid_motion::project_interface()
                 vec3 new_pos = nit->get_pos() + norm*t;
                 s_dsc->set_destination(nit.key(), new_pos);
                 
-                std::cout << "Project a vertex ---" << std::endl;
+//                std::cout << "Project a vertex ---" << std::endl;
             }
             else
             {
                 // can not project
-                std::cout << "Can not project a vertex" << std::endl;
+//                std::cout << "Can not project a vertex" << std::endl;
 //                assert(0);
+                // Apply normal displacement
+                
             }
         }
     }
