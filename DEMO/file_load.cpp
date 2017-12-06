@@ -408,10 +408,11 @@ void file_load::draw()
             vec3 delta = get_domain_dimension()/N;
             for (int i=0; i < N; i++)
             {
-                for (int j = 0; j < N; j++)
+//                for (int j = 0; j < N; j++)
+                int j = 100;
                 {
-//                    for (int k = 0; k < N; k++)
-                    int k = 80;
+                    for (int k = 0; k < N; k++)
+//                    int k = 1;
                     {
                         vec3 cur_p(i*delta[0], j*delta[1], k*delta[2]);
                         pos.push_back(cur_p);
@@ -470,19 +471,14 @@ void file_load::draw()
         //            for (int idx : idx_list)
         for(int idx = 0; idx < m_current_particles.size(); idx++)
         {
-            if (idx > 0)
-            {
-                break;
-            }
-            
             auto &p = m_current_particles[idx];
             auto pos = p.pos;
             
             glPushMatrix();
             glTranslated(pos[0], pos[1], pos[2]);
-            
+
             //                auto G = m_aniso_kernel.m_principle[idx];
-            auto G = m_aniso_kernel.m_G[idx]*0.2;
+            auto G = m_aniso_kernel.m_G[idx]*ra;
             double m[16] = {G[0][0], G[0][1], G[0][2], 0,
                 G[1][0], G[1][1], G[1][2], 0,
                 G[2][0], G[2][1], G[2][2], 0,

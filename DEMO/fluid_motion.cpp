@@ -23,8 +23,8 @@ void fluid_motion::draw()
 
 void fluid_motion::deform()
 {
-//    project_interface();
-//    return;
+    project_interface();
+    return;
     
     // 1. Interpolate the displacement
     static int idx = 0;
@@ -59,8 +59,7 @@ void fluid_motion::deform()
 
     std::cout << "Max displacement: " << max_dis << std::endl;
 
-    t->change("Load next grid");
-    m_file_load.load_time_step();
+
 
     t->change("displace DSC");
     s_dsc->deform();
@@ -70,6 +69,10 @@ void fluid_motion::deform()
     //  2. Project interface
     t->change("Project DSC");
     project_interface();
+    
+    t->change("Load next grid");
+    m_file_load.load_time_step();
+    
     delete t;
 
     profile::close();
@@ -93,7 +96,7 @@ void fluid_motion::project_interface()
             double t = 0;
             if(!m_file_load.get_projection(nit->get_pos(), norm, bInside, t))
             {
-//                 t = m_file_load.get_spacing_distance()*(bInside? 1:-1)*DT_NORM;
+                 t = m_file_load.get_spacing_distance()*(bInside? 1:-1);
             }
             vec3 new_pos = nit->get_pos() + norm*t;
             s_dsc->set_destination(nit.key(), new_pos);

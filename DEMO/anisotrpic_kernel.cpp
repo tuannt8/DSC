@@ -28,8 +28,11 @@ void anisotropic_kernel::build(){
     // Bubble hardcode test
     double ra = m_ra;
     double h = 2*ra;
-    double r = 2*h;
-    m_h = h;
+//    double r = h;
+//    m_h = h;
+    m_r = ra;
+    
+    double r = m_r;
 
     for (int i = 0; i < m_shared_particles.size(); i++)
     {
@@ -121,7 +124,7 @@ void anisotropic_kernel::build(){
         Sigma_inv[1][1] = 1.0 / Sigma[1][1];
         Sigma_inv[2][2] = 1.0 / Sigma[2][2];
 
-        G = CGLA::transpose(Q)*Sigma*Q *(1/h);
+        G = CGLA::transpose(Q)*Sigma*Q *(1/r);
     
         m_G[i] = G;
         m_det_G[i] = CGLA::determinant(G);

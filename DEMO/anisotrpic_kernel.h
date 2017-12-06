@@ -20,6 +20,8 @@ public:
     Geometry::KDTree<vec3, int> *m_shared_tree;
     double m_h;//influence radius of the particles
     double m_ra; // Spacing distance betwwen particle
+    
+    double m_r;//particle radius
     std::vector<mat3x3d> m_G;
     std::vector<mat3x3d> m_principle;
     std::vector<double> m_det_G;
@@ -36,8 +38,9 @@ public:
     double get_value(vec3 pos){
         // dam-break hard code test
         
-        double h = m_h;
-        double r = h/2;
+//        double ra = m_ra;
+//        double h = 2*ra;
+        double r = m_r;
         
         static double kernel_sigma = 315.0 / (64 * 3.14159);
         
@@ -57,11 +60,11 @@ public:
             vec3 ro = pos-part.pos;
             vec3 ra = G*(pos-part.pos);
             
-            double contribute = kernel_sigma*std::pow(1 - Util::dot(ra, ra), 3)*m_det_G[n_p];
+            double contribute = 0;
             
-            if (ra.length() > 1)
+            if (ra.length() < 1)
             {
-                contribute = 0;
+                contribute = kernel_sigma*std::pow(1 - Util::dot(ra, ra), 3)*m_det_G[n_p];
             }
             
             phi += part.mass/part.density * contribute;
