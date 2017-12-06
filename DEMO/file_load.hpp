@@ -103,7 +103,13 @@ public:
     
     std::vector<particle> m_current_particles;
     std::vector<particle> m_next_particles;
+    
+    std::vector<particle> m_sub_step_particles;
+    std::vector<vec3> m_sub_step_vel;
+    
     int m_cur_idx = 0;
+    int m_cur_sub_step = 0;
+    int m_max_step=3;
     
     std::shared_ptr<hash3> m_hashTable;
     Geometry::KDTree<vec3, int> m_vtree;

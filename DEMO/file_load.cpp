@@ -121,16 +121,12 @@ std::vector<long> hash3::get_close_point(double x, double y, double z, double ra
 
 vec3 file_load::get_displacement_closet_point(vec3 pos)
 {
-    
     double r = get_influence_radius()*2;
     int idx;
     vec3 pp;
     if(m_vtree.closest_point(pos, r, pp, idx))
     {
-        vec3 cur_pos = m_current_particles[idx].pos;
-        vec3 nex_pos = m_next_particles[idx].pos;
-        
-        return nex_pos - cur_pos;
+        return m_sub_step_vel[idx];
     }
     else
     {
@@ -149,14 +145,14 @@ vec3 file_load::get_displacement_WENLAND_kernel(vec3 pos)
     vec3 sum_vec(0);
     for (auto key : pt_in_sphere)
     {
-        vec3 cur_pos = m_current_particles[key].pos;
-        vec3 nex_pos = m_next_particles[key].pos;
-        auto cur_dis = (cur_pos - pos).length();
+        vec3 pos_key = m_sub_step_particles[key].pos;
+        vec3 vel = m_sub_step_vel[key];
+        auto cur_dis = (pos_key - pos).length();
         
         double q = cur_dis/h;
         double contribute = 21.0/16.0/3.14159/pow(h,3)*pow(1-q/2.0,4)*(1 +2*q);
         
-        sum_vec += (nex_pos - cur_pos)*(contribute * m_current_particles[key].mass/m_current_particles[key].density);
+        sum_vec += vel*(contribute * m_current_particles[key].mass/m_current_particles[key].density);
     }
     
     return sum_vec;
@@ -174,9 +170,9 @@ vec3 file_load::get_displacement_cubic_kernel(vec3 pos)
     vec3 sum_vec(0);
     for (auto key : pt_in_sphere)
     {
-        vec3 cur_pos = m_current_particles[key].pos;
-        vec3 nex_pos = m_next_particles[key].pos;
-        auto cur_dis = (cur_pos - pos).length();
+        vec3 pos_key = m_sub_step_particles[key].pos;
+        vec3 vel = m_sub_step_vel[key];
+        auto cur_dis = (pos_key - pos).length();
         
         double q = cur_dis/h;
         double contribute;
@@ -188,11 +184,8 @@ vec3 file_load::get_displacement_cubic_kernel(vec3 pos)
         {
             contribute = 0.25*pow(2-q, 3);
         }
-        
-        sum_vec += (nex_pos - cur_pos)*(contribute/3.1415/(h*h*h) * m_current_particles[key].mass/m_current_particles[key].density);
+        sum_vec += vel*(contribute/3.1415/(h*h*h) * m_current_particles[key].mass/m_current_particles[key].density);
     }
-    
-//    sum_vec += closest_v*(1 - pow((pp-pos).length()/r, 3));
     
     return sum_vec;
 }
@@ -204,53 +197,21 @@ vec3 file_load::get_displacement_avg(vec3 pos)
     vector<vec3> pos_in_sphere;
     m_vtree.in_sphere(pos, r, pos_in_sphere, list);
     
-    vec3 sum_vec(0.0);
-    double sum_dis = 0;
-    double epsilon = 1e-8;
-    for (auto p : list)
+    if (list.size() == 0) // found nothing
     {
-        vec3 cur_pos = m_current_particles[p].pos;
-        vec3 nex_pos = m_next_particles[p].pos;
-        
-        auto cur_dis = (cur_pos - pos).length() + epsilon;
-        if (cur_dis < r)
-        {
-            sum_vec += (nex_pos - cur_pos)*cur_dis;
-            sum_dis += cur_dis;
-        }
+        return vec3(INFINITY);
     }
     
-    if (sum_dis < epsilon) // found nothing
+    vec3 sum_vec(0.0);
+    double sum_dis = 0;
+    for (auto p : list)
     {
-        //        assert(0);
-        // Displace to closset point
-        if(list.size() == 0)
-        {
-            // Tuan: Must be optimized later
-            list.resize(m_current_particles.size());
-            for (int i = 0; i < list.size(); i++)
-            {
-                list[i] = i;
-            }
-            
-        }
+        vec3 pos_key = m_sub_step_particles[p].pos;
+        vec3 vel = m_sub_step_vel[p];
+        auto cur_dis = (pos_key - pos).length();
         
-        double min_dis = INFINITY;
-        int min_pt = -1;
-        for (auto p : list)
-        {
-            vec3 cur_pos = m_next_particles[p].pos;
-            
-            auto cur_dis = (cur_pos - pos).length() + epsilon;
-            if (cur_dis < min_dis)
-            {
-                min_dis = cur_dis;
-                min_pt = p;
-            }
-        }
-        
-        sum_vec = m_next_particles[min_pt].pos - pos;
-        sum_dis = 1;
+        sum_vec += vel*cur_dis;
+        sum_dis += cur_dis;
     }
     
     sum_vec /= sum_dis;
@@ -275,13 +236,40 @@ void file_load::load_time_step()
     m_interface.load_surface(m_cur_idx);
 #endif
     
-    if(m_cur_idx==0)
+    static bool first_load = true;
+    if (first_load)
+    {
+        first_load = false;
+        m_cur_idx = 0;
+        m_cur_sub_step = 0;
         load(0, m_current_particles);
+        load(++m_cur_idx, m_next_particles);
+    }
     else
-        m_current_particles = m_next_particles;
+    {
+        if(m_cur_sub_step == m_max_step)
+        {
+            m_current_particles = m_next_particles;
+            load(++m_cur_idx, m_next_particles);
+            m_cur_sub_step = 0;
+        }
+    }
     
-    load(++m_cur_idx, m_next_particles);
     
+    
+    m_sub_step_particles = m_current_particles;
+    m_sub_step_vel.resize(m_current_particles.size());
+    for (int i = 0; i<m_current_particles.size(); i++)
+    {
+        auto pre_pos = m_current_particles[i].pos;
+        auto next_pos = m_next_particles[i].pos;
+        
+        m_sub_step_vel[i] = (next_pos - pre_pos)/m_max_step;
+        m_sub_step_particles[i].pos = pre_pos + (next_pos - pre_pos)*(m_cur_sub_step/(double)m_max_step);
+    }
+    
+    m_cur_sub_step++;
+
     build_hash();
     build_anisotropic_kernel();
 }
@@ -336,7 +324,7 @@ bool file_load::get_projection(vec3 pos, vec3 direction, bool &bInside, double &
 void file_load::build_anisotropic_kernel()
 {
     m_aniso_kernel.m_shared_tree = &m_vtree;
-    m_aniso_kernel.m_shared_particles = m_current_particles;
+    m_aniso_kernel.m_shared_particles = m_sub_step_particles;
     m_aniso_kernel.m_h = get_influence_radius();
     m_aniso_kernel.m_ra = get_spacing_distance();
     
@@ -357,14 +345,14 @@ void file_load::draw()
         glBegin(GL_POINTS);
         //            int idx = 0;
         //            for (int idx : idx_list)
-        for(int idx = 0; idx < m_current_particles.size(); idx++)
+        for(int idx = 0; idx < m_sub_step_particles.size(); idx++)
         {
-            auto &p = m_current_particles[idx];
+            auto &p = m_sub_step_particles[idx];
             
+            static vector<vec3> _color = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
+            auto c = _color[p.type];
+            glColor3f(c[0], c[1], c[2]);
             glVertex3dv(p.pos.get());
-            //                idx++;
-            //                if(idx>100)
-            //                    break;
         }
         glEnd();
     }
@@ -375,9 +363,9 @@ void file_load::draw()
         double ra = get_spacing_distance();
         //            int idx = 0;
         //            for (int idx : idx_list)
-        for(int idx = 0; idx < m_current_particles.size(); idx++)
+        for(int idx = 0; idx < m_sub_step_particles.size(); idx++)
         {
-            auto &p = m_current_particles[idx];
+            auto &p = m_sub_step_particles[idx];
             
             auto pos = p.pos;
             
@@ -520,7 +508,7 @@ void file_load::build_hash()
     m_vtree = Geometry::KDTree<vec3, int>();
     
     int idx = 0;
-    for (auto &p : m_current_particles)
+    for (auto &p : m_sub_step_particles)
     {
         if (p.type == 0)
         {
