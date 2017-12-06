@@ -8,7 +8,7 @@
 
 #include "eigen_wrapper.hpp"
 
-#include <Eigen/SVD>
+#include "Eigen/SVD"
 
 using namespace Eigen;
 void svd_solve(double * C, double *Q, double *L)
