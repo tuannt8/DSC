@@ -78,6 +78,8 @@ void fluid_motion::deform()
     profile::close();
 
     log_dsc_surface(idx);
+    
+    idx++;
 }
 
 void fluid_motion::project_interface()
