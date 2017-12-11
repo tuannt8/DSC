@@ -21,9 +21,21 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
+    if (argc > 1)
+    {
+        // No display
+        UI ui;
+        while (1)
+        {
+            ui.m_fluid.deform();
+        }
+    }
+    else
+    {
     
-    UI ui(argc, argv);
+        UI ui(argc, argv);
 
-    glutMainLoop();
+        glutMainLoop();
+    }
     return 0;
 }

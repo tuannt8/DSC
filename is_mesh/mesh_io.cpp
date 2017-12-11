@@ -326,7 +326,7 @@ namespace is_mesh {
             {
                 obj_file << "f ";
             }
-            obj_file << faces[i] + 1;
+            obj_file << faces[i];
             if (i%3 == 2)
             {
                 obj_file << std::endl;

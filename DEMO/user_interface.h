@@ -29,6 +29,7 @@
  */
 class UI
 {
+public:
     std::unique_ptr<DSC::VelocityFunc<>> vel_fun;
     std::unique_ptr<DSC::DeformableSimplicialComplex<>> dsc;
     std::unique_ptr<Log> basic_log;
@@ -62,6 +63,9 @@ class UI
 public:
     
     UI(int &argc, char** argv);
+    
+    UI();
+    void init_data();
     
     static UI* get_instance()
     {

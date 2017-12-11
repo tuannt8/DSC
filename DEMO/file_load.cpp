@@ -556,5 +556,6 @@ void file_load::load(int idx, std::vector<particle> & par)
     }
     else{
         cout << "Error: " <<  s.str() << endl;
+        exit(0);
     }
 }

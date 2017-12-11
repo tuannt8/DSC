@@ -182,6 +182,25 @@ void UI::update_gl()
     glClearColor(0.1, 0.1, 0.1, 1.0);
 }
 
+UI::UI()
+{
+        init_data();
+}
+
+void UI::init_data()
+{
+    // Dam break
+    _obj_dim = m_fluid.m_file_load.get_domain_dimension();
+    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2]);
+    
+    init_dsc();
+    
+    m_fluid.s_dsc = &*dsc;
+    
+    // Init Surface
+    m_fluid.m_file_load.init_dsc(&*dsc);
+}
+
 UI::UI(int &argc, char** argv)
 {
     instance = this;
@@ -208,18 +227,9 @@ UI::UI(int &argc, char** argv)
     
     glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
     check_gl_error();
-//
-    
-    // Dam break
-    _obj_dim = m_fluid.m_file_load.get_domain_dimension();
-    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2]);
-    
-    init_dsc();
-    
-    m_fluid.s_dsc = &*dsc;
 
-    // Init Surface
-    m_fluid.m_file_load.init_dsc(&*dsc);
+    init_data();
+
 }
 
 void UI::init_dam_break()
