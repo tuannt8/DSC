@@ -502,6 +502,22 @@ void file_load::draw()
 #endif
 }
 
+void file_load::fix_output_boundary()
+{
+    vec3 ld(0.0);
+    vec3 ru = get_domain_dimension();
+    double epsilon = get_spacing_distance()*0.1;
+    std::string path_in = "../Large_data/DamBreak3D/mesh/dam_break_1_obstacle/dsc_";
+    std::string path_out = "../Large_data/DamBreak3D/mesh/dam_break_1_obstacle_projected/dsc_";
+    for (int i = 0; i < 891; i++)
+    {
+        m_interface.load_surface(path_in, i);
+        m_interface.project_boundary(ld, ru, epsilon);
+        m_interface.write_surface(path_out, i);
+        cout<<"idx: " << i << endl;
+    }
+}
+
 void file_load::build_hash()
 {
     m_vtree = Geometry::KDTree<vec3, int>();

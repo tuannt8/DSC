@@ -84,8 +84,8 @@ public:
     
     virtual vec3 get_domain_dimension()
     {
-//        return vec3(0.17, 0.17, 0.27);
-         return vec3(0.15, 0.15, 0.15);
+        return vec3(0.17, 0.17, 0.27);
+//         return vec3(0.15, 0.15, 0.15);
     }
     
     virtual double get_influence_radius()
@@ -101,7 +101,7 @@ public:
     
     virtual double get_spacing_distance()
     {
-        return 0.003;
+        return 0.002;
     }
 };
 #endif /* bubble_h */

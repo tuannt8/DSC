@@ -44,6 +44,7 @@
 #include "particle.h"
 #include "anisotrpic_kernel.h"
 #include "glut_menu.hpp"
+
 //#define DEMO_INTERFACE
 
 class hash3
@@ -92,6 +93,48 @@ public:
         is_mesh::import_surface_mesh(file_path.str(), m_points, m_faces);
     };
     
+    void project_boundary(vec3 ld, vec3 ru, double epsilon)
+    {
+        for(auto & p : m_points)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if(p[i] < ld[i])
+                    p[i] = ld[i];
+                
+                if(p[i] > ru[i])
+                    p[i] = ru[i];
+                
+                if (p[i] - ld[i] < epsilon)
+                {
+                    p[i] = ld[i];
+                }
+                if (ru[i] - p[i] < epsilon)
+                {
+                    p[i] = ru[i];
+                }
+            }
+        }
+    }
+    
+    void load_surface(std::string path, int idx)
+    {
+        m_points.clear();
+        m_faces.clear();
+        
+        std::stringstream file_path;
+        file_path << path << std::setfill('0') << std::setw(5) << idx << ".obj";
+        is_mesh::import_surface_mesh(file_path.str(), m_points, m_faces);
+    };
+    
+    void write_surface(std::string path, int idx)
+    {
+        std::stringstream file_path;
+        file_path << path << std::setfill('0') << std::setw(5) << idx << ".obj";
+        
+        is_mesh::export_surface_mesh(file_path.str(), m_points, m_faces);
+    }
+    
     void draw();
 };
 
@@ -112,7 +155,7 @@ public:
 #ifdef __APPLE__
     int m_max_step=1;
 #else
-    int m_max_step=3;
+    int m_max_step=2;
 #endif
     
     std::shared_ptr<hash3> m_hashTable;
@@ -133,6 +176,8 @@ public:
     vec3 get_displacement_cubic_kernel(vec3 pos);
     vec3 get_displacement_WENLAND_kernel(vec3 pos);
     
+    void fix_output_boundary();
+    
     bool get_projection(vec3 pos, vec3 direction, bool &bInside, double &t);//Using anisotropic kernel
     
     std::string m_data_path;
@@ -142,6 +187,7 @@ public:
     virtual double get_influence_radius(){return 0;};
     virtual double get_spacing_distance()=0;
     virtual void personal_draw(){};
+    
 public:
     fluid_interface m_interface;
 };

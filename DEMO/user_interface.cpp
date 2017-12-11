@@ -768,8 +768,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             painter->update(*dsc);
             break;
         case 'r':
-            std::cout << "RELOAD MODEL" << std::endl;
-            load_model(model_file_name, dsc->get_avg_edge_length());
+            m_fluid.m_file_load.fix_output_boundary();
             break;
         case 't':
             std::cout << "TEST VELOCITY FUNCTION" << std::endl;
