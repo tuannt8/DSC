@@ -16,11 +16,10 @@
 
 #pragma once
 
-#ifdef __APPLE__
-#define DSC_NEW
-#endif
+#include "dsc_cache.hpp"
 
-#ifdef DSC_NEW
+#ifndef DSC_ORIGIN
+
 
 #include "is_mesh.h"
 #include "attributes.h"
