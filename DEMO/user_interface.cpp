@@ -245,7 +245,7 @@ void UI::init_dsc()
     std::vector<int> tet_labels;
     
 #ifdef __APPLE__
-    int DISCRETIZATION = 17;
+    int DISCRETIZATION = 70;
 #else
     int DISCRETIZATION = 70;
 #endif
@@ -570,89 +570,7 @@ void UI::animate()
 
 
 #ifdef DSC_CACHE
-void UI::build_node_curvature()
-{
-    std::vector<double> node_cur(100000, 0);
-    
-    profile t("curvature");
 
-    for(auto n = dsc->nodes_begin(); n!= dsc->nodes_end(); n++)
-    {
-        if(n->is_interface())
-        {
-            // 1. Build nodes around
-
-            
-            auto node_around = dsc->node_on_one_ring_cache(n.key());
-            
-            // 2. Compute the curvature
-            auto p = dsc->get_pos(n.key());
-            // 2a. Mixed area
-//            vec3 normal(0.0);
-            double area_mixed = 0;
-            for (int i = 0; i < node_around->size(); i++)
-            {
-                vec3 v0 = p;
-                vec3 v1 = dsc->get_pos((*node_around)[i]);
-                vec3 v2 = dsc->get_pos( (*node_around)[(i+1)% (node_around->size()) ] );
-                
-                double f_area = Util::area<real>(v0, v1, v2);
-                
-                double a0 = acos(dot(v1-v0, v2-v0)/(length(v1-v0)*length(v2-v0)));
-                double a1 = acos(dot(v2-v1, v0-v1)/(length(v2-v1)*length(v0-v1)));
-                double a2 = acos(dot(v0-v2, v1-v2)/(length(v0-v2)*length(v1-v2)));
-                
-                if(a0>(M_PI/2.0) && a1>(M_PI/2.0) && a2>(M_PI/2.0)) // f is non-obtuse
-                {
-                    // Add Voronoi formula (see Section 3.3)
-                    area_mixed += (1.0/8) *
-                    ((1.0/tan(a1)) * sqr_length(v2-v0) +
-                     (1.0/tan(a2)) * sqr_length(v1-v0));
-                }
-                else // Voronoi inappropriate
-                {
-                    // Add either area(f)/4 or area(f)/2
-                    area_mixed += f_area/3;
-                }
-            }
-            // 2b. unnormalize curvature normal
-            auto curv_normal = vec3(0);
-            for (int i = 0; i < node_around->size(); i++)
-            {
-                auto nbr = dsc->get_pos((*node_around)[i]);
-                auto right = dsc->get_pos((*node_around)[(i+1)%node_around->size()]);
-                auto left = dsc->get_pos((*node_around)[( i-1 + node_around->size() ) %node_around->size()]);
-                
-                double d_left = Util::dot(Util::normalize(nbr-left), Util::normalize(p-left));
-                double d_right = Util::dot(Util::normalize(nbr-right), Util::normalize(p-right));
-                double cos_left = std::min(1.0, std::max(-1.0, d_left));
-                double cos_right = std::min(1.0, std::max(-1.0, d_right));
-                double sin_left = sqrt(1 - cos_left*cos_left);
-                double sin_right = sqrt(1 - cos_right*cos_right);
-                
-                double w = (sin_left*cos_right + sin_right*cos_left)/(1e-300 + sin_left*sin_right);
-                
-//                double a_left  = acos(std::min(1.0, std::max(-1.0, d_left)));
-//                double a_right = acos(std::min(1.0, std::max(-1.0, d_right)));
-//                
-//                double w = sin(a_left + a_right) / (1e-300 + sin(a_left)*sin(a_right));
-                
-                curv_normal += w * (nbr-p);
-            }
-            // 2c. The curvature
-            auto mean_curvature_norm = curv_normal / (4*area_mixed);
-//            auto normn = dsc->get_normal(n.key()); // also cache here
-
-            node_cur[n.key()] = Util::dot(mean_curvature_norm, mean_curvature_norm);
-
-            
-//            delete node_around;
-        }
-    }
-    
-
-    _node_curvature = node_cur;
-}
 #endif
 
 is_mesh::SimplexSet<is_mesh::EdgeKey> * get_edge_around(DSC::DeformableSimplicialComplex<> *dsc, is_mesh::NodeKey n)
@@ -681,51 +599,6 @@ is_mesh::SimplexSet<is_mesh::EdgeKey> * get_edge_around(DSC::DeformableSimplicia
 }
 
 #ifdef DSC_CACHE
-void UI::compute_volume_gradient()
-{
-    profile t("volume gradient");
-    for (auto nk = dsc->nodes_begin(); nk != dsc->nodes_end(); nk++)
-    {
-        if (nk->is_interface())
-        {
-            auto edge_around = dsc->get_edge_around_cache(nk.key());
-            
-            auto p = dsc->get_pos(nk.key());
-            vec3 gradient(0.0);
-            for (auto e : *edge_around)
-            {
-                auto pts = dsc->get_pos(dsc->get_nodes(e));
-                
-                auto p12 = pts[1] - pts[0];
-                auto l = p12.length();
-                auto p1p = p - pts[0];
-                
-                auto cc = Util::cross(p12, p1p);
-                auto alpha = cc.length()/l;
-                
-                auto H = p12*(alpha/l);
-                
-                gradient += (p-H)*l;
-            }
-        }
-    }
-}
-
-
-
-void UI::compute_volume()
-{
-    profile t("Compute volume");
-    double v = 0;
-    for (auto tk = dsc->tetrahedra_begin(); tk != dsc->tetrahedra_end(); tk++)
-    {
-        if(dsc->get_label(tk.key()) == 1)
-        {
-            auto pts = dsc->get_pos(*dsc->get_nodes_cache(tk.key()));
-            v += Util::volume<real>(pts[0], pts[1], pts[2], pts[3]);
-        }
-    }
-}
 
 #endif
 

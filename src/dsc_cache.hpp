@@ -16,7 +16,8 @@
 #include "is_mesh.h"
 
 #ifndef __APPLE__
-#define DSC_ORIGIN // Not apple, use DSC origin
+#define DSC_ORIGIN  // Not apple, use DSC origin
+#else
 #endif
 
 #define DSC_CACHE

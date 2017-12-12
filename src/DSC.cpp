@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include "DSC_cache.h"
 
-#ifdef DSC_NEW
+#ifndef DSC_ORIGIN
 
 #define NUM_THREADS 4
 
@@ -150,41 +150,23 @@ void min_quality_parallel(DSC::DeformableSimplicialComplex<> * dsc, const is_mes
 
 template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
 {
-#ifdef DSC_CACHE // laplacian smooth
-//    profile t("smooth get cache 1");
-    auto fids = get_link(nid);
-
-//    t.change("get pos cache");
-    
-    vec3 old_pos = get_pos(nid);
-    
-    vec3 avg_pos = get_barycenter(*get_nodes_cache(nid));
-    vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
-
-    real q_old, q_new;
-    
-//    for (auto ff : *fids)
-//    {
-//        is_mesh::SimplexSet<node_key> nids = *get_nodes_cache(ff); // Funny we need this line of code
-//        
-//        if(nids.size() != 3)
-//        {
-//            if(ff.is_valid())
-//            {
-//                printf("Valid face: %d\n", (int)ff);
-//                
-//                auto nids1 = get_nodes(ff);
-//                assert(nids1.size()==3);
-//            }
-//            
-//        }
-//    }
-    
-//    t.change("quality");
-    min_quality(*fids, old_pos, new_pos, q_old, q_new);
-       
-#else
-    
+//#ifdef DSC_CACHE // laplacian smooth
+////    profile t("smooth get cache 1");
+//    auto fids = get_link(nid);
+//
+////    t.change("get pos cache");
+//
+//    vec3 old_pos = get_pos(nid);
+//
+//    vec3 avg_pos = get_barycenter(*get_nodes_cache(nid));
+//    vec3 new_pos = old_pos + alpha * (avg_pos - old_pos);
+//
+//    real q_old, q_new;
+//
+//    min_quality(*fids, old_pos, new_pos, q_old, q_new);
+//
+//#else
+//
     
 
     is_mesh::SimplexSet<tet_key> tids1 = get_tets(nid);
@@ -200,7 +182,7 @@ template<> bool dsc_class::smart_laplacian(const node_key& nid, real alpha)
     real q_old, q_new;
     
     min_quality(fids1, old_pos, new_pos, q_old, q_new);
-#endif
+//#endif
     
     if(q_new > pars.MIN_TET_QUALITY || q_new > q_old)
     {
