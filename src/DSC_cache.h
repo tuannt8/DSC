@@ -332,17 +332,6 @@ namespace DSC {
         real quality_cache(tet_key t)
         {
             return quality(t);
-            
-            if (!cache.quality_tet[t])
-            {
-                CACHE_MISS
-                cache.quality_tet[t] = new real;
-                *cache.quality_tet[t] = quality(t);
-            }
-            
-            CACHE_REFER
-            
-            return *cache.quality_tet[t];
         }
         
         is_mesh::SimplexSet<tet_key> * get_tets_cache(is_mesh::NodeKey nid)
@@ -795,33 +784,15 @@ namespace DSC {
                 Q[i][i+1] = INFINITY;
             }
             
-            //            static std::vector<int> count(20,0);
-            //            count[m]++;
-            //
-            //            for (int i = 0; i < 20; i++)
-            //            {
-            //                if (count[i] > 0)
-            //                {
-            //                    std::cout << count[i] << " - " << i << ";";
-            //                }
-            //                std::cout<<"\n";
-            //            }
-            
-            // TUAN: Get pos first; It helps reduce 30% computation time
-            auto pt = get_pos(polygon);
-            auto pte = get_pos(nids);
-            
             for (int i = m-3; i >= 0; i--)
             {
                 for (int j = i+2; j < m; j++)
                 {
                     for (int k = i+1; k < j; k++)
                     {
-                        real q2 = Util::quality<real>(pt[i], pt[k], pte[0], pt[j]);
-                        real q1 = Util::quality<real>(pt[k], pt[i], pte[1], pt[j]);
-                        
+                        real q2 = Util::quality<real>(get_pos(polygon[i]), get_pos(polygon[k]), get_pos(nids[0]), get_pos(polygon[j]));
+                        real q1 = Util::quality<real>(get_pos(polygon[k]), get_pos(polygon[i]), get_pos(nids[1]), get_pos(polygon[j]));
                         real q = Util::min(q1, q2);
-                        
                         if (k < j-1)
                         {
                             q = Util::min(q, Q[k][j]);
@@ -1204,13 +1175,10 @@ namespace DSC {
             
             if(m2 <= 2) {
                 // Find the faces to flip about.
-#ifdef DSC_CACHE
+
                 face_key f1 = get_face(nids[0], nids[1], polygon1.front());
                 face_key f2 = get_face(nids[0], nids[1], polygon1.back());
-#else
-                face_key f1 = get_face(nids[0], nids[1], polygon1.front());
-                face_key f2 = get_face(nids[0], nids[1], polygon1.back());
-#endif
+
 #ifdef DEBUG
                 assert(get(f1).is_boundary() && get(f2).is_boundary());
 #endif
@@ -1226,13 +1194,10 @@ namespace DSC {
                 flip_23_recursively(polygon2, nids[0], nids[1], K2, k, m2-1);
                 
                 // Find the faces to flip about.
-#ifdef DSC_CACHE
+
                 face_key f1 = get_face(nids[0], nids[1], polygon1.front());
                 face_key f2 = get_face(nids[0], nids[1], polygon1.back());
-#else
-                face_key f1 = get_face(nids[0], nids[1], polygon1.front());
-                face_key f2 = get_face(nids[0], nids[1], polygon1.back());
-#endif
+
                 
                 if(precond_flip_edge(get_edge(f1, f2), f1, f2))
                 {
@@ -1433,7 +1398,7 @@ namespace DSC {
             edge_key e = get_edge(u,w);
             
             auto faces_e = get_faces(e);
-            if (faces_e.size() == 4)
+//            if (faces_e.size() == 4)
             {
                 
                 is_mesh::SimplexSet<face_key> g_set = faces_e - get_faces(get_tets(f));
@@ -2561,17 +2526,18 @@ namespace DSC {
             // Check that the edge is not a feature edge if it is a part of the interface or boundary.
             if(get(eid).is_interface() || get(eid).is_boundary())
             {
-                //                return is_flat(fids);
+                return is_flat(fids);
+                
                 // TUAN
                 // The is_flat takes time
                 // Here it is simpler
                 // Check if it is flat
-                vec3 norm = Util::normal_direction(get_pos(e_nids[0]), get_pos(e_nids[1]), get_pos(new_e_nids[0]));
-                vec3 vv = get_pos(new_e_nids[1]) - get_pos(e_nids[0]);
-                vv.normalize();
-                static real thres = sqrt(1 - FLIP_EDGE_INTERFACE_FLATNESS*FLIP_EDGE_INTERFACE_FLATNESS);
-                
-                return dot(norm, vv) < thres;
+//                vec3 norm = Util::normal_direction(get_pos(e_nids[0]), get_pos(e_nids[1]), get_pos(new_e_nids[0]));
+//                vec3 vv = get_pos(new_e_nids[1]) - get_pos(e_nids[0]);
+//                vv.normalize();
+//                static real thres = sqrt(1 - FLIP_EDGE_INTERFACE_FLATNESS*FLIP_EDGE_INTERFACE_FLATNESS);
+//                
+//                return dot(norm, vv) < thres;
                 
             }
             

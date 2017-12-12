@@ -835,30 +835,30 @@ namespace is_mesh {
          */
         FaceKey get_face(const NodeKey& nid1, const NodeKey& nid2, const NodeKey& nid3)
         {
-            //TUAN
-            {
-                auto fids = get_faces(get_edge(nid1, nid2));
-                for (auto f : fids)
-                {
-                    auto nids = get_nodes(f);
-                    if (nids.contains(nid3))
-                    {
-                        return f;
-                    }
-                }
-                return FaceKey();
-            }
-            //
-//            // Old
-//            SimplexSet<FaceKey> fids1 = get_faces(nid1);
-//            SimplexSet<FaceKey> fids2 = get_faces(nid2);
-//            for (const FaceKey& f : get_faces(nid3)) {
-//                if(fids1.contains(f) && fids2.contains(f))
+//            //TUAN
+//            {
+//                auto fids = get_faces(get_edge(nid1, nid2));
+//                for (auto f : fids)
 //                {
-//                    return f;
+//                    auto nids = get_nodes(f);
+//                    if (nids.contains(nid3))
+//                    {
+//                        return f;
+//                    }
 //                }
+//                return FaceKey();
 //            }
-//            return FaceKey();
+            //
+            // Old
+            SimplexSet<FaceKey> fids1 = get_faces(nid1);
+            SimplexSet<FaceKey> fids2 = get_faces(nid2);
+            for (const FaceKey& f : get_faces(nid3)) {
+                if(fids1.contains(f) && fids2.contains(f))
+                {
+                    return f;
+                }
+            }
+            return FaceKey();
         }
         
         /**
