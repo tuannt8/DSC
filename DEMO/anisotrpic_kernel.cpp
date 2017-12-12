@@ -108,7 +108,7 @@ void anisotropic_kernel::build(){
         double kn = 0.5;
         for (int d = 0; d < 3; d++)
         {
-            if(close_particles.size() > 20)
+            if(close_particles.size() > 3)
             {
                 Sigma[d][d] = std::max(L[d][d], L[0][0] / kr) * ks;
             }

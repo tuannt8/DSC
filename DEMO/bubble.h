@@ -65,27 +65,27 @@ public:
 //        dsc->deform();
 //
         // Project point
-        for(auto nit = dsc->nodes_begin(); nit!= dsc->nodes_end(); nit++)
-        {
-            if(nit->is_interface())
-            {
-                auto pos = nit->get_pos();
-                auto r_pos = pos - center;
-
-                r_pos.normalize();
-                vec3 new_pos = center + r_pos*R;
-
-                dsc->set_destination(nit.key(), new_pos);
-            }
-        }
-
-        dsc->deform();
+//        for(auto nit = dsc->nodes_begin(); nit!= dsc->nodes_end(); nit++)
+//        {
+//            if(nit->is_interface())
+//            {
+//                auto pos = nit->get_pos();
+//                auto r_pos = pos - center;
+//
+//                r_pos.normalize();
+//                vec3 new_pos = center + r_pos*R;
+//
+//                dsc->set_destination(nit.key(), new_pos);
+//            }
+//        }
+//
+//        dsc->deform();
     }
     
     virtual vec3 get_domain_dimension()
     {
-        return vec3(0.17, 0.17, 0.27);
-//         return vec3(0.15, 0.15, 0.15);
+//        return vec3(0.17, 0.17, 0.27);
+         return vec3(0.15, 0.15, 0.15);
     }
     
     virtual double get_influence_radius()
@@ -101,7 +101,7 @@ public:
     
     virtual double get_spacing_distance()
     {
-        return 0.002;
+        return 0.003;
     }
 };
 #endif /* bubble_h */

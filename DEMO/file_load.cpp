@@ -257,8 +257,6 @@ void file_load::load_time_step()
         }
     }
     
-    
-    
     m_sub_step_particles = m_current_particles;
     m_sub_step_vel.resize(m_current_particles.size());
     for (int i = 0; i<m_current_particles.size(); i++)
@@ -477,7 +475,7 @@ void file_load::draw()
             glPushMatrix();
             glTranslated(pos[0], pos[1], pos[2]);
 
-            //                auto G = m_aniso_kernel.m_principle[idx];
+//                            auto G = m_aniso_kernel.m_principle[idx];
             auto G = m_aniso_kernel.m_G[idx]*ra;
             double m[16] = {G[0][0], G[0][1], G[0][2], 0,
                 G[1][0], G[1][1], G[1][2], 0,
@@ -488,7 +486,7 @@ void file_load::draw()
             
             glEnable(GL_LIGHTING);
             glEnable(GL_COLOR_MATERIAL);
-            glColor3f(1, 0, 0);
+            glColor3f(0.6, 0.6, 0.6);
             glutSolidSphere(ra, 10, 10);
             
             

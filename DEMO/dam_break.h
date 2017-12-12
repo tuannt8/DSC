@@ -113,6 +113,7 @@ public:
     virtual double get_spacing_distance()
     {
         return 0.025;
+//        return 0.052;
     }
     
     virtual vec3 get_domain_dimension()
