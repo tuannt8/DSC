@@ -74,7 +74,7 @@ public:
 //    int _layer_size; // Size of image in 1 layer
     std::vector<double> _voxels;
     std::vector<double> _sum_table; // This sumtable is used for line integration, not 3D rectangle integration.
-private:
+public:
     void get_integral_recur(std::vector<vec3> const & tet_points, int loops, double * total, int deep);
     std::vector<std::vector<vec3>> subdivide_tet(std::vector<vec3> const & tet_points);
     

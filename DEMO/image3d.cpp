@@ -384,17 +384,16 @@ double image3d::get_variation(std::vector<vec3> tet_points, double c)
 
     double total = 0;
     auto const a = tet_dis_coord[dis];
-
-//    assert(a.size() < v); // The discretization should not be too small
-
+    
     for (auto tb : a)
     {
         auto pt = get_coord(tet_points, tb);
         total += std::abs(get_value(pt[0], pt[1], pt[2]) - c);
     }
 
-    total = total * v / a.size();
-    return total / v;
+    return total;
+//    total = total * v / a.size();
+//    return total / v;
 }
 
 void image3d::get_integral_recur(std::vector<vec3> const & tet_points, int loops, double * total, int deep)

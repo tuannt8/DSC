@@ -10,6 +10,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "tet_dis_coord.hpp"
+
 using namespace std;
 
 probability_image::probability_image()
@@ -91,6 +93,8 @@ void probability_image::cache_binary(std::string path)
                     im3d->load_raw(m_dimension.get(), f);
                     m_prob_map.push_back(im3d);
                 }
+                
+
             }
         }
         catch (std::exception e)
@@ -107,4 +111,24 @@ void probability_image::cache_binary(std::string path)
             f_cache_write.write((char*)m_prob_map[i]->_voxels.data(), size);
         }
     }
+    
+    
+    for (auto im : m_prob_map)
+    {
+        im->build_sum_table();
+    }
+    set_size();
+}
+
+vector<double> probability_image::get_avg_prob(std::vector<vec3> tet_points)
+{
+    vector<double> avg_iten;
+    avg_iten.resize(m_num_phases);
+    
+    for (int i = 0; i < m_num_phases; i++)
+    {
+        avg_iten[i] = m_prob_map[i]->get_tetra_intensity(tet_points);
+    }
+    
+    return avg_iten;
 }

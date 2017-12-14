@@ -23,6 +23,8 @@ public:
     void load(std::string path);
     
     void draw();
+    
+    std::vector<double> get_avg_prob(std::vector<vec3> tet_points);
 public:
     std::vector<std::shared_ptr<image3d>> m_prob_map;
     vec3i m_dimension;

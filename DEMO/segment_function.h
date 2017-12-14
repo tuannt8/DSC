@@ -91,11 +91,14 @@ public:
     ~segment_function(){};
     
     void init(); // Load image
+    void threshold_init_probability();
     void initialze_segmentation(); // Label initialization
     void random_initialization(); // Label initialization
     void initialization_discrete_opt(); // Optimize the initialization automatically
     
     void segment();
+    
+    void segment_probability();
     
 public:// Configuration parametters
     int NB_PHASE;
@@ -136,15 +139,16 @@ public:
     void compute_surface_curvature();
     void compute_external_force();
     void compute_internal_force();
+    void compute_external_prob_force();
     void compute_mesh_quality_control_force();
     
     void work_around_on_boundary_vertices();
     void update_vertex_stability();
     
-    
+    double get_energy_tet_assume_label(is_mesh::TetrahedronKey tkey, int );
     double get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, int );
     void relabel_tetrahedra();
-    
+    void relabel_probability();
     
     double min_edge, min_V;
     void set_min_edge_length(double l){min_edge = l; min_V = pow(min_edge, 3)/6;};

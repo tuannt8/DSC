@@ -248,6 +248,24 @@ void segment_function::initialization_discrete_opt()
     }
 }
 
+void segment_function::threshold_init_probability()
+{
+    for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
+    {
+        if (_dsc->get_label(tit.key()) == BOUND_LABEL)
+        {
+            continue;
+        }
+        
+        auto avg_prob = m_prob_img.get_avg_prob(_dsc->get_pos(_dsc->get_nodes(tit.key())));
+        auto max_element = std::max_element(avg_prob.begin(), avg_prob.end());
+        
+        int label = (int)(max_element - avg_prob.begin());
+
+        _dsc->set_label(tit.key(), label);
+    }
+}
+
 void segment_function::initialze_segmentation()
 {
 //    /**
@@ -365,6 +383,31 @@ inline std::bitset<4> get_direction(vec3 a)
     
     
     return d;
+}
+
+double segment_function::get_energy_tet_assume_label(is_mesh::TetrahedronKey tkey, int assumed_label)
+{
+#ifdef DSC_CACHE
+    auto nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tkey));
+#else
+    auto nodes_pos = _dsc->get_pos(_dsc->get_nodes(tkey));
+#endif
+    
+    auto energy = m_prob_img.m_prob_map[assumed_label]->get_variation(nodes_pos, 1);
+    for (auto fid : _dsc->get_faces(tkey))
+    {
+        auto cobound_tets = _dsc->get_tets(fid); // We assume that this face is not DSC boundary, as there is a gap between DSC boundary and the image domain
+        cobound_tets -= tkey;
+        assert(cobound_tets.size() == 1);
+        auto other_label = _dsc->get_label(cobound_tets[0]);
+        
+        if (other_label != BOUND_LABEL && other_label != assumed_label)
+        {
+            energy += _dsc->area(fid)*ALPHA;
+        }
+    }
+    
+    return energy;
 }
 
 double segment_function::get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, int assumed_label)
@@ -554,6 +597,40 @@ void segment_function::adapt_tetrahedra()
         {
             num_relabel ++;
             continue;
+        }
+    }
+}
+
+void segment_function::relabel_probability()
+{
+    for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
+    {
+        if (_dsc->get_label(tid.key()) == BOUND_LABEL)
+        {
+            continue;
+        }
+        
+        int old_idx = _dsc->get_label(tid.key());
+        
+#ifdef DSC_CACHE
+        auto nodes_pos = _dsc->get_pos(*_dsc->get_nodes_cache(tid.key()));
+#else
+        auto nodes_pos = _dsc->get_pos(_dsc->get_nodes(tid.key()));
+#endif
+        auto avg_prob = m_prob_img.get_avg_prob(nodes_pos);
+        auto max_element = std::max_element(avg_prob.begin(), avg_prob.end());
+        int new_idx = (int)(max_element - avg_prob.begin());
+        
+        // Check if it is worth relabeling
+        if (new_idx != old_idx)
+        {
+            auto old_energy = get_energy_tet_assume_label(tid.key(), old_idx);
+            auto new_energy = get_energy_tet_assume_label(tid.key(), new_idx);
+            
+            if (new_energy < old_energy)
+            {
+                _dsc->set_label(tid.key(), new_idx);
+            }
         }
     }
 }
@@ -1089,6 +1166,77 @@ void segment_function::compute_surface_curvature()
 
 }
 
+void segment_function::compute_external_prob_force()
+{
+    // Buffer to keep the forces
+    std::vector<vec3> forces = std::vector<vec3>(_dsc->get_no_nodes_buffer(), vec3(0.0));
+    
+    // Loop on interface faces
+    for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
+    {
+        if (fid->is_interface() && !fid->is_boundary())
+        {
+            auto tets = _dsc->get_tets(fid.key());
+            
+            if (_dsc->get_label(tets[0]) == BOUND_LABEL || // dont ignore
+                _dsc->get_label(tets[1]) == BOUND_LABEL )
+            {
+                // Ignore the faces on the boundary.
+                //   These boundary vertices should only move along the boundary
+                //   Forces faces on boundary will make them move perpendicullar to the boundary
+                continue;
+            }
+            
+            auto verts = _dsc->get_nodes(fid.key());
+            auto pts = _dsc->get_pos(verts);
+            
+            auto l0 = _dsc->get_label(tets[0]);
+            auto l1 = _dsc->get_label(tets[1]);
+            
+            // get normal
+            vec3 Norm = _dsc->get_normal(fid.key());
+            auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
+            Norm = Norm*dot(Norm, l01);// modify normal direction
+            Norm.normalize();
+            
+            // Discretize the face
+            double area = Util::area<double>(pts[0], pts[1], pts[2]);
+            
+            size_t tri_sample_index = std::ceil( sqrt(area) ) - 1;
+            if (tri_sample_index >= tri_coord_size.size())
+            {
+                tri_sample_index = tri_coord_size.size() - 1;
+            }
+            if(tri_sample_index < 1)tri_sample_index = 1;
+            
+            auto a = tri_dis_coord[tri_sample_index - 1];
+            
+            if(a.size() > 1 && a.size() > _dsc->area(fid.key()))
+            {
+                std::cout << "--Error in triangle decomposition. Each sample point represents the area < 1 pixel^2 ----: "
+                << a.size() << " - " << _dsc->area(fid.key()) << std::endl;
+            }
+            
+            double da = 1.0/a.size();
+            for (auto coord : a)
+            {
+                auto p = get_coord_tri(pts, coord);
+                auto prob0 = m_prob_img.m_prob_map[l0]->get_value_f(p);
+                auto prob1 = m_prob_img.m_prob_map[l1]->get_value_f(p);
+                
+                auto f = Norm* ((prob0-prob1) * da); // Normalized already
+                
+                // distribute
+                forces[verts[0]] += f*coord[0];
+                forces[verts[1]] += f*coord[1];
+                forces[verts[2]] += f*coord[2];
+            }
+        }
+    }
+    
+    _forces = forces;
+}
+
 // Discrete Differential-Geometry Operators for Triangulated 2-Manifolds
 void segment_function::compute_internal_force()
 {
@@ -1493,6 +1641,34 @@ void segment_function::update_average_intensity()
 }
 
 #pragma mark MAIN FUNCTION
+
+void segment_function::segment_probability()
+{
+    static int iteration = 0;
+    cout << "--------------- Iteration " << iteration++ << " ----------------" << endl;
+    
+    // Curvature force
+    compute_surface_curvature();
+    compute_internal_force();
+    
+    // Segmentation force
+    compute_external_prob_force();
+    
+    // 3. Work around to align boundary vertices
+    //  including set displacement for interface vertices
+    work_around_on_boundary_vertices();
+    
+    _dsc->deform();
+    
+    if (iteration % 5 == 0)
+    {
+        relabel_probability();
+    }
+    
+    iteration++;
+}
+
+
 void segment_function::segment()
 {
     int num_phases = NB_PHASE;

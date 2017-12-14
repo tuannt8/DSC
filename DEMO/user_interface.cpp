@@ -309,7 +309,7 @@ void UI::init_data()
     
     _seg._dsc = &*dsc;
     _seg.set_min_edge_length(_min_edge_length);
-    _seg.initialization_discrete_opt();
+    _seg.threshold_init_probability();
     
 //    extern std::string config_file;
 //    std::string file_name = std::string("./LOG/") + config_file.substr(0, config_file.size() - 11)
@@ -779,8 +779,8 @@ void UI::display()
     
     if(CONTINUOUS)
     {
-        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
-        _seg.segment();
+//        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
+        _seg.segment_probability();
         m_iters++;
     }
 }
