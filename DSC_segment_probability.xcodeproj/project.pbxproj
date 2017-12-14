@@ -122,6 +122,7 @@
 		A65A0C2E1C15E018005A8106 /* image3d.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A65A0C2C1C15E018005A8106 /* image3d.cpp */; settings = {COMPILER_FLAGS = "-Wno-c++11-narrowing"; }; };
 		A681F1831C19CF0000831E2E /* tetralizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A3438E6183C7B7800829EEB /* tetralizer.cpp */; };
 		A681F1881C19CFB400831E2E /* tetgen.h in Headers */ = {isa = PBXBuildFile; fileRef = A681F1851C19CFB400831E2E /* tetgen.h */; };
+		A6BB33C21FE152F600A9FE93 /* probability_image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6BB33C01FE152F600A9FE93 /* probability_image.cpp */; };
 		A6C7361A1ECD769500A6EB65 /* predicates.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6C736181ECD769500A6EB65 /* predicates.cpp */; };
 		A6C7361B1ECD769500A6EB65 /* predicates.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6C736181ECD769500A6EB65 /* predicates.cpp */; };
 		A6C7361C1ECD769500A6EB65 /* tetgen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6C736191ECD769500A6EB65 /* tetgen.cpp */; };
@@ -304,6 +305,8 @@
 		A66650721ED5661E005CBE85 /* define.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = define.h; sourceTree = "<group>"; };
 		A66650731ED6B1C5005CBE85 /* test_cache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = test_cache.h; sourceTree = "<group>"; };
 		A681F1851C19CFB400831E2E /* tetgen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tetgen.h; path = TetGen/tetgen.h; sourceTree = SOURCE_ROOT; };
+		A6BB33C01FE152F600A9FE93 /* probability_image.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = probability_image.cpp; sourceTree = "<group>"; };
+		A6BB33C11FE152F600A9FE93 /* probability_image.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = probability_image.hpp; sourceTree = "<group>"; };
 		A6C736181ECD769500A6EB65 /* predicates.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = predicates.cpp; path = TetGen/predicates.cpp; sourceTree = SOURCE_ROOT; };
 		A6C736191ECD769500A6EB65 /* tetgen.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tetgen.cpp; path = TetGen/tetgen.cpp; sourceTree = SOURCE_ROOT; };
 		A6EA334B1C18579500FFA69B /* libboost_filesystem.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_filesystem.dylib; path = ../../../../../usr/local/lib/libboost_filesystem.dylib; sourceTree = "<group>"; };
@@ -593,6 +596,8 @@
 				A6FF2BB81C6A47BC00EDC141 /* tet_dis_coord.hpp */,
 				A66650721ED5661E005CBE85 /* define.h */,
 				A66650731ED6B1C5005CBE85 /* test_cache.h */,
+				A6BB33C01FE152F600A9FE93 /* probability_image.cpp */,
+				A6BB33C11FE152F600A9FE93 /* probability_image.hpp */,
 			);
 			path = DEMO;
 			sourceTree = "<group>";
@@ -806,7 +811,7 @@
 				LastUpgradeCheck = 0500;
 				ORGANIZATIONNAME = "Asger Nyman Christiansen";
 			};
-			buildConfigurationList = 7AE27AB217675A1E000F8238 /* Build configuration list for PBXProject "DSC_segment" */;
+			buildConfigurationList = 7AE27AB217675A1E000F8238 /* Build configuration list for PBXProject "DSC_segment_probability" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -899,6 +904,7 @@
 				A6F2930C1C18738200ED6916 /* glut_menu.cpp in Sources */,
 				A65A0C2E1C15E018005A8106 /* image3d.cpp in Sources */,
 				7AF7E9BA176B402200F43714 /* user_interface.cpp in Sources */,
+				A6BB33C21FE152F600A9FE93 /* probability_image.cpp in Sources */,
 				A6EA33511C18589300FFA69B /* segment_function.cpp in Sources */,
 				A6F293141C1885AC00ED6916 /* draw_helper.cpp in Sources */,
 				7A470AE317F51DC3001FC0CB /* log.cpp in Sources */,
@@ -1158,7 +1164,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7AE27AB217675A1E000F8238 /* Build configuration list for PBXProject "DSC_segment" */ = {
+		7AE27AB217675A1E000F8238 /* Build configuration list for PBXProject "DSC_segment_probability" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7AE27ABE17675A1E000F8238 /* Debug */,

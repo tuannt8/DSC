@@ -18,6 +18,8 @@
 #include <cstdint>
 #include "util.h"
 
+#include <fstream>
+
 #define BOUND_LABEL 999
 #define BOUND_INTENSITY 0
 
@@ -37,6 +39,8 @@ public:
      Load images from directory.
      */
     void load(std::string path);
+    void init_raw(int dimension[3]);
+    void load_raw(int dimension[3], std::ifstream& f);
     
     // return average intensity
     // ouput intensity sum and volume optional
@@ -64,10 +68,10 @@ public:
     
     int* dimension(){return _dim;}
     const vec3 dimension_v() const{return vec3(_dim[X], _dim[Y], _dim[Z]);}
-private:
+public:
     // Currently hold all images.
     int _dim[3]; // x - y - z
-    int _layer_size; // Size of image in 1 layer
+//    int _layer_size; // Size of image in 1 layer
     std::vector<double> _voxels;
     std::vector<double> _sum_table; // This sumtable is used for line integration, not 3D rectangle integration.
 private:

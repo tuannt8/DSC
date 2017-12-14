@@ -41,7 +41,9 @@ void segment_function::init()
 #else
     _directory_path = std::string("../") + _directory_path;
 #endif
-    _img.load(_directory_path);
+//    _img.load(_directory_path);
+    
+    m_prob_img.load("../Large_data/Camilla/P_map.txt");
     
     cout << "Done loading " << _directory_path << endl;
 }
@@ -1186,7 +1188,7 @@ void segment_function::compute_external_force()
                 auto p = get_coord_tri(pts, coord);
                 auto g = _img.get_value_f(p);
 
-                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area); // Normalized already
+                auto f = - Norm* ((2*g - c0 - c1) * (c1-c0) / area); // Normalized already
                 
                 // distribute
                 forces[verts[0]] += f*coord[0];
@@ -1261,7 +1263,7 @@ void segment_function::face_split()
             // Somehow should be related to 2\pi\alpha
             // IMPORTANT: Parameter
             double aa = (c1 - c0)*(c1-c0);
-            if (std::abs(avg_f[fid.key()]) < 0.1*aa
+            if (std::abs(avg_f[fid.key()]) < 0.02*aa
                 && avg_f_abs[fid.key()] > 0.5*aa)
             {
                 // shall be split

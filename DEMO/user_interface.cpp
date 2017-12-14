@@ -180,12 +180,50 @@ void UI::setup_light()
 int num_images;
 
 extern string config_file;
+
+inline string get_option(std::map<std::string, std::string> & option, string key, bool bAcceptVoid = false)
+{
+    if (option.find(key) == option.end())
+    {
+        ostringstream err;
+        err << "Can not read key: " << key;
+        if (bAcceptVoid)
+        {
+            return "";
+        }
+        else
+            throw err.str().c_str();
+    }else{
+        return option[key];
+    }
+}
+
+#define get_opt(v,k) \
+if(options.find(k) != options.end()){\
+    if(typeid(v) == typeid(string)){ \
+        v = options[k];\
+    }\
+    if(typeid(v) == typeid(int)){ \
+        v = stoi(options[k]);\
+    }\
+    if(typeid(v) == typeid(double)){ \
+        v = stof(options[k]);\
+    }\
+}else{\
+cout<<"Could not load key: " << k << endl;\
+}
+
 void UI::load_config_file()
 {
     try
     {
         // 1. Read the configuration file
         ifstream infile(config_file);
+        
+        if (!infile.is_open())
+        {
+            throw "config file path incorrect";
+        }
         
         std::map<std::string, std::string> options;
         
@@ -211,24 +249,30 @@ void UI::load_config_file()
         cout << "Config file with " << options.size() << "values" << endl;
         
         //2. Set property
-        _seg._directory_path = options["directory-path"];
-        _seg._dt = stof(options["time-step"]);
-        _seg.NB_PHASE = stoi(options["number-of-phase"]);
-        _seg.VARIATION_THRES_FOR_RELABELING = stof(options["Variation-threshold-for-relabeling"]);
-        _seg.ALPHA = stof(options["length-penalty-coefficient"]);
+        get_opt(_seg._directory_path, "directory-path");
+//        _seg._directory_path = get_option(options,"directory-path");
+        _seg._dt = stof(get_option(options,"time-step"));
+        _seg.NB_PHASE = stoi(get_option(options,"number-of-phase"));
+        _seg.VARIATION_THRES_FOR_RELABELING = stof(get_option(options,"Variation-threshold-for-relabeling"));
+        _seg.ALPHA = stof(get_option(options,"length-penalty-coefficient"));
 
-        m_edge_length = stof(options["average-edge-length"]);
+        m_edge_length = stof(get_option(options,"average-edge-length"));
         
         if(options.find("min-edge-length") != options.end())
         {
             _min_edge_length = stof(options["min-edge-length"]);
         }
-        num_images = stoi(options["number_images"]);
+        if(options.find("number_images") != options.end())
+        {
+            num_images = stoi(get_option(options,"number_images", true));
+        }
+        
+        infile.close();
         
     }
-    catch (std::exception e)
+    catch (const char* msg)
     {
-        cout << "Fail to read config file " << config_file << " with error " << e.what() << endl;
+        cout << "Fail to read config file: \" " << config_file << "\" with error " << msg << endl;
     }
 
 }
@@ -251,7 +295,7 @@ void UI::init_data()
     
     // Load cross sections
     _seg.init();
-    _obj_dim = _seg._img.dimension_v();
+    _obj_dim = vec3(_seg.m_prob_img.m_dimension);
     _dsc_dim = _obj_dim + vec3(2*m_edge_length);
     
     cout << "Image dimension " << _obj_dim[0] << " " << _obj_dim[1] << " " <<  _obj_dim[2] << " " ;
@@ -312,7 +356,7 @@ UI::UI(int &argc, char** argv)
     init_data();
     
     // Update texture draw
-    draw_helper::update_texture(_seg._img, 0,0,0);
+    draw_helper::update_texture(*_seg.m_prob_img.m_prob_map[0], 0,0,0);
 }
 
 // Label the gap between DSC boundary and image boundary to BOUND_LABEL (999)
@@ -595,12 +639,12 @@ void UI::display()
         glEnd();
         glEnable(GL_LIGHTING);
     }
-    
+
     if (glut_menu::get_state("Transparent surface", 0))
     {
         draw_helper::draw_transparent_surface(*dsc, _seg.NB_PHASE);
     }
-    
+
     if (glut_menu::get_state("Triple interface", 0))
     {
         draw_helper::draw_triple_interface(*dsc);
@@ -627,8 +671,8 @@ void UI::display()
         glEnd();
         glEnable(GL_LIGHTING);
     }
-    
-    if (glut_menu::get_state("Draw DSC single interface edge", 1))
+
+    if (glut_menu::get_state("Draw DSC single interface edge", 0))
     {
 //        glDisable(GL_CULL_FACE);
         glDisable(GL_LIGHTING);
@@ -636,7 +680,7 @@ void UI::display()
         draw_helper::dsc_draw_one_interface_edge(*dsc, phase_draw);
     }
 
-    if (glut_menu::get_state("Draw DSC single interface", 1))
+    if (glut_menu::get_state("Draw DSC single interface", 0))
     {
 //        glEnable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
@@ -654,7 +698,7 @@ void UI::display()
         draw_helper::dsc_draw_edge(*dsc);
     }
 
-    if (glut_menu::get_state("Draw DSC domain", 1))
+    if (glut_menu::get_state("Draw DSC domain", 0))
     {
         glColor3f(0.3, 0.3, 0.3);
         draw_helper::dsc_draw_domain(*dsc);
@@ -683,42 +727,42 @@ void UI::display()
 
     if (glut_menu::get_state("Draw Image slide", 1))
     {
-        draw_helper::draw_image_slice(_seg._img);
+        draw_helper::draw_image_slice(*_seg.m_prob_img.m_prob_map[0]);
     }
-    
+
     if (glut_menu::get_state("Draw internal force", 0))
     {
         glColor3f(1, 0, 0);
         draw_helper::dsc_draw_node_arrow(*dsc, _seg._internal_forces);
     }
-    
+
     if (glut_menu::get_state("area force", 0))
     {
         glColor3f(0, 0, 1);
         draw_helper::dsc_draw_node_multi_arrow(*dsc, _seg._area_force, 0.002);
     }
-    
+
     if (glut_menu::get_state("Mean curvature", 0))
     {
         glColor3f(0, 1, 1);
         draw_helper::dsc_draw_node_multi_arrow(*dsc, _seg._curvature_force, 5);
     }
-    
+
     if (glut_menu::get_state("Draw boundary destination", 0))
     {
         draw_helper::draw_boundary_destination(_seg, &*dsc);
     }
-    
+
     if (glut_menu::get_state("Interface Vertices indices", 0))
     {
         draw_helper::draw_dsc_interface_vertices_indices(*dsc, phase_draw);
     }
-    
+
     if (glut_menu::get_state("Tets indices", 0))
     {
         draw_helper::draw_dsc_tet_indices(*dsc);
     }
-    
+
     if (glut_menu::get_state("Debug", 0))
     {
         std::vector<int> tet_list = {126,321,322};
@@ -758,10 +802,10 @@ void UI::animate()
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
         case GLUT_KEY_UP:
-            draw_helper::update_texture(_seg._img, 0,0,1);
+            draw_helper::update_texture(*_seg.m_prob_img.m_prob_map[0] , 0,0,1);
             break;
         case GLUT_KEY_DOWN:
-            draw_helper::update_texture(_seg._img, 0,0,-1);
+            draw_helper::update_texture(*_seg.m_prob_img.m_prob_map[0], 0,0,-1);
             break;
         case ' ':
             CONTINUOUS = !CONTINUOUS;

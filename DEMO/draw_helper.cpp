@@ -40,30 +40,30 @@ void draw_helper::draw_image_slice(const image3d & im)
     glEnable(GL_TEXTURE_2D);
     glColor3f(1, 1, 1);
     glBegin(GL_QUADS);
-    
+
     glTexCoord3f(0., 0., 0.);
     glVertex3f(ld[0], ld[1], ld[2]);
 
     glTexCoord3f(1., 0., 0.);
     glVertex3f(ru[0], ld[1], ld[2]);
-    
+
     glTexCoord3f(1., 1., 0.);
     glVertex3f(ru[0], ru[1], ld[2]);
-    
+
     glTexCoord3f(0., 1., 0.);
     glVertex3f(ld[0], ru[1], ld[2]);
-    
+
     glEnd();
     glDisable(GL_TEXTURE_2D);
     
-    // border
-    glColor3f(1, 0, 0);
-    glBegin(GL_LINE_LOOP);
-    glVertex3f(ld[0], ld[1], ld[2]);
-    glVertex3f(ru[0], ld[1], ld[2]);
-    glVertex3f(ru[0], ru[1], ld[2]);
-    glVertex3f(ld[0], ru[1], ld[2]);
-    glEnd();
+//    // border
+//    glColor3f(1, 0, 0);
+//    glBegin(GL_LINE_LOOP);
+//    glVertex3f(ld[0], ld[1], ld[2]);
+//    glVertex3f(ru[0], ld[1], ld[2]);
+//    glVertex3f(ru[0], ru[1], ld[2]);
+//    glVertex3f(ld[0], ru[1], ld[2]);
+//    glEnd();
 }
 
 void RenderString(vec3 pos, const std::string &string)

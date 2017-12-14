@@ -30,6 +30,33 @@ image3d::~image3d()
 {
 
 }
+void image3d::init_raw(int dimension[3])
+{
+    _dim[X] = dimension[X];
+    _dim[Y] = dimension[Y];
+    _dim[Z] = dimension[Z];
+    
+    _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
+}
+void image3d::load_raw(int dimension[3], std::ifstream& f)
+{
+    _dim[X] = dimension[X];
+    _dim[Y] = dimension[Y];
+    _dim[Z] = dimension[Z];
+    
+    _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
+    
+    for (int i = 0; i < _dim[X]; i++)
+    {
+        for (int j = 0; j < _dim[Y]; j++)
+        {
+            for (int k = 0; k < _dim[Z]; k++)
+            {
+                f >> _voxels[index(i,j,k)];
+            }
+        }
+    }
+}
 
 extern int num_images;
 void image3d::load(std::string path)
@@ -77,7 +104,7 @@ void image3d::load(std::string path)
          _dim[Z] = (int)files.size();
          _dim[X] = im.width();
          _dim[Y] = im.height();
-         _layer_size = _dim[X]*_dim[Y];
+//         _layer_size = _dim[X]*_dim[Y];
     
          _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
     

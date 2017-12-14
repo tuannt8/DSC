@@ -13,6 +13,7 @@
 #include "image3d.h"
 #include "DSC.h"
 
+#include "probability_image.hpp"
 #include "define.h"
 #include <queue>
 
@@ -110,7 +111,7 @@ public:// Configuration parametters
 public:// Variables
     image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
-    
+    probability_image m_prob_img;
 public:
     std::vector<double> _mean_intensities;
     std::vector<double> _total_intensities; // To update mean intensity during relabeling
