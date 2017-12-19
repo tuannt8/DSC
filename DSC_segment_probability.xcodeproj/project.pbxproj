@@ -307,6 +307,7 @@
 		A681F1851C19CFB400831E2E /* tetgen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tetgen.h; path = TetGen/tetgen.h; sourceTree = SOURCE_ROOT; };
 		A6BB33C01FE152F600A9FE93 /* probability_image.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = probability_image.cpp; sourceTree = "<group>"; };
 		A6BB33C11FE152F600A9FE93 /* probability_image.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = probability_image.hpp; sourceTree = "<group>"; };
+		A6BB33D61FE2C9EA00A9FE93 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		A6C736181ECD769500A6EB65 /* predicates.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = predicates.cpp; path = TetGen/predicates.cpp; sourceTree = SOURCE_ROOT; };
 		A6C736191ECD769500A6EB65 /* tetgen.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tetgen.cpp; path = TetGen/tetgen.cpp; sourceTree = SOURCE_ROOT; };
 		A6EA334B1C18579500FFA69B /* libboost_filesystem.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_filesystem.dylib; path = ../../../../../usr/local/lib/libboost_filesystem.dylib; sourceTree = "<group>"; };
@@ -598,6 +599,7 @@
 				A66650731ED6B1C5005CBE85 /* test_cache.h */,
 				A6BB33C01FE152F600A9FE93 /* probability_image.cpp */,
 				A6BB33C11FE152F600A9FE93 /* probability_image.hpp */,
+				A6BB33D61FE2C9EA00A9FE93 /* config.h */,
 			);
 			path = DEMO;
 			sourceTree = "<group>";

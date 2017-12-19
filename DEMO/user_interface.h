@@ -102,8 +102,8 @@ public:
     
 private:
 public:
-    double _min_edge_length = 7;
-    double m_edge_length = 7;
+    double _min_edge_length = 7; // Smallest edge length
+    double m_edge_length = 7; //
     float gl_dis_max;
     vec3 _obj_dim;
     vec3 _dsc_dim; // contain boundary gap
