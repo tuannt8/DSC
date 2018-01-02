@@ -832,7 +832,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             profile::close();
             break;
         case 'v':// Change surface type
-            phase_draw = (phase_draw+1) % _seg.NB_PHASE;
+            phase_draw = (phase_draw+1) % 5;
             break;
         case 'u':
             draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);

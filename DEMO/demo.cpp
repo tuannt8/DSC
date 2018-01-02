@@ -70,8 +70,6 @@ void parse_arg(int argc, char** argv)
                 config_file = std::string(argv[++i]);;
             }
         }
-        
-        
     }
     catch (exception e)
     {

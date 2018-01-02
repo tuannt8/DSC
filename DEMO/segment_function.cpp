@@ -37,13 +37,12 @@ std::bitset<4> Z_direction("0100");
 void segment_function::init()
 {
 #if defined(__APPLE__) || defined(_WIN32)
-    
-#else
-    _directory_path = std::string("../") + _directory_path;
-#endif
-//    _img.load(_directory_path);
-    
     m_prob_img.load("../Large_data/Camilla/P_map.txt");
+#else
+    m_prob_img.load("../../Large_data/Camilla/P_map.txt");
+#endif
+    
+    
     
     cout << "Done loading " << _directory_path << endl;
 }
