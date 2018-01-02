@@ -355,7 +355,7 @@ void segment_function::update_vertex_stability()
 
 vec3 segment_function::get_node_displacement(is_mesh::NodeKey nkey)
 {
-    return _forces[(long)nkey]*_dt_adapt[nkey];
+    return (_forces[(long)nkey]  + ALPHA*_internal_forces[(long)nkey])*_dt_adapt[nkey];
 }
 
 inline std::bitset<4> get_direction(vec3 a)
@@ -831,6 +831,7 @@ void segment_function::work_around_on_boundary_vertices()
     }
     
     // Update time step
+    // Adaptive time step
     for (int i = 0; i < _previous_dis.size(); i++)
     {
         if(_dsc->cache.is_clean[i])
