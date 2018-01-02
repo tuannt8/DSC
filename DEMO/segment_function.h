@@ -112,7 +112,7 @@ public:// Configuration parametters
     double ratio_signed_and_mag_mean = 0.2;
     
 public:// Variables
-    image3d _img; // Store crossection -> voxel
+//    image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
     probability_image m_prob_img;
 public:
@@ -164,6 +164,7 @@ public:
     std::vector<ray_z> _d_rayz;
     
     std::vector<std::vector<vec3>> _mean_curvature_of_each_hat;
+    std::vector<std::vector<int>> _mean_curvature_label;
     std::vector<std::vector<is_mesh::SimplexSet<is_mesh::TetrahedronKey>>> _tets_in_hat;
     std::vector<std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>>> _node_in_hat;
     

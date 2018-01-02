@@ -491,6 +491,118 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
     }
 }
 
+void draw_helper::draw_curvature(dsc_class & dsc, std::vector<std::vector<vec3>> const & mean_curvature_hats, int phase, std::vector<std::vector<int>> const & correspond_label)
+{
+    if(mean_curvature_hats.size() == 0)
+        return;
+    
+    // Find the vertices color base on curvature
+    static std::vector<double> vertices_color; //(dsc.get_no_nodes_buffer(), 0.0);
+    double max = 0.0;
+
+    static bool bool_t_inited = false;
+//    if (!bool_t_inited)
+    {
+        bool_t_inited = true;
+     
+        vertices_color = std::vector<double>(dsc.get_no_nodes_buffer(), 0.0);
+        for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+        {
+            if (f->is_interface() && !f->is_boundary())
+            {
+                auto tets = dsc.get_tets(f.key());
+                if (!(dsc.get_label(tets[0]) == phase
+                      or dsc.get_label(tets[1]) == phase)
+                    )
+                {
+                    continue;
+                }
+            }
+            
+            for (auto & node : dsc.get_nodes(f.key()))
+            {
+                if (std::abs(vertices_color[node]) > 0)
+                {
+                    continue;
+                }
+                
+                auto mean_curvature = mean_curvature_hats[node];
+                auto corres_label = correspond_label[node];
+                
+                auto find_pos = std::find(corres_label.begin(), corres_label.end(), phase);
+                
+                if (find_pos == corres_label.end())
+                {
+                    // error
+                    vertices_color[node] = -1;
+                }else{
+                    vertices_color[node] = mean_curvature[find_pos - corres_label.begin()].length();
+                }
+                
+                max = std::max(max, vertices_color[node]);
+            }
+        }
+        // Normalize the curvature???
+        for (auto & cc : vertices_color)
+        {
+            cc /= max;
+        }
+    }
+    
+
+    
+    
+    for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+    {
+        if (f->is_interface() && !f->is_boundary())
+        {
+            auto tets = dsc.get_tets(f.key());
+            if (!(dsc.get_label(tets[0]) == phase
+                  or dsc.get_label(tets[1]) == phase)
+                //                || dsc.get_label(tets[0]) == BOUND_LABEL
+                //                || dsc.get_label(tets[1]) == BOUND_LABEL
+                )
+            {
+                continue;
+            }
+#ifdef DSC_CACHE
+            auto nodes=*dsc.get_nodes_cache(f.key());
+#else
+            auto nodes=dsc.get_nodes(f.key());
+#endif
+            auto pts = dsc.get_pos(nodes);
+            
+            // normalize the normal to the eye
+            is_mesh::TetrahedronKey other_tet = (dsc.get_label(tets[0]) == phase)? tets[0] : tets[1];
+            
+            
+            auto norm = dsc.get_normal(f.key(), other_tet);
+            
+            
+            
+            
+            // Draw triangle
+            glBegin(GL_TRIANGLES);
+            for (int i =0; i < 3; i++)
+            {
+                auto v = pts[i];
+                auto n = nodes[i];
+                vec3 real_norm = norm;
+                if((int)n < node_normal_vector.size() && node_normal_vector[n].length() > 0.1)
+                    real_norm = node_normal_vector[n];
+                
+                glColor3f(vertices_color[n], 0, 1 - vertices_color[n]);
+                
+                glNormal3dv(real_norm.get());
+                glVertex3dv(v.get());
+            }
+            glEnd();
+            
+            
+        }
+    }
+}
+
 void draw_helper::draw_transparent_surface(dsc_class & dsc, int nb_phase)
 {
     std::vector<vec3> color = {vec3(0), vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};

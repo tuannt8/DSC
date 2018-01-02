@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include "DSC.h"
 #include "segment_function.h"
+#include <vector>
 
 #include "define.h"
 
@@ -45,6 +46,8 @@ public:
     /*
      Draw DSC
      */
+    static void draw_curvature(dsc_class & dsc, std::vector<std::vector<vec3>> const & mean_curvature_hats, int phase, std::vector<std::vector<int>> const & correspond_label);
+    
     static void dsc_draw_edge(dsc_class & dsc);
     static void dsc_draw_domain(dsc_class & dsc);
     

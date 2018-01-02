@@ -593,7 +593,7 @@ void UI::update_gl()
 //    glEnable(GL_POINT_SMOOTH);
 //    glEnable(GL_LINE_SMOOTH);
 //    glEnable(GL_POLYGON_SMOOTH);
-//    
+//
 //    glHint( GL_POLYGON_SMOOTH_HINT,GL_NICEST );
 //    glHint( GL_POINT_SMOOTH,GL_NICEST );
 //    glHint( GL_LINE_SMOOTH,GL_NICEST );
@@ -601,12 +601,6 @@ void UI::update_gl()
 
 void UI::display()
 {
-//    if (CONTINUOUS)
-//    {
-//        _seg.segment();
-//        m_iters++;
-//    }
-    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     update_gl();
@@ -634,10 +628,14 @@ void UI::display()
                     glVertex3f(r.x, r.y, j);
                 }
             }
-
         }
         glEnd();
         glEnable(GL_LIGHTING);
+    }
+    
+    if (glut_menu::get_state("Surface curvature", 0))
+    {
+        draw_helper::draw_curvature(*dsc, _seg._mean_curvature_of_each_hat, phase_draw, _seg._mean_curvature_label);
     }
 
     if (glut_menu::get_state("Transparent surface", 0))
@@ -742,11 +740,11 @@ void UI::display()
         draw_helper::dsc_draw_node_multi_arrow(*dsc, _seg._area_force, 0.002);
     }
 
-    if (glut_menu::get_state("Mean curvature", 0))
-    {
-        glColor3f(0, 1, 1);
-        draw_helper::dsc_draw_node_multi_arrow(*dsc, _seg._curvature_force, 5);
-    }
+//    if (glut_menu::get_state("Mean curvature", 0))
+//    {
+//        glColor3f(0, 1, 1);
+//        draw_helper::dsc_draw_node_multi_arrow(*dsc, _seg._curvature_force, 5);
+//    }
 
     if (glut_menu::get_state("Draw boundary destination", 0))
     {
@@ -802,10 +800,10 @@ void UI::animate()
 void UI::keyboard(unsigned char key, int x, int y) {
     switch(key) {
         case GLUT_KEY_UP:
-            draw_helper::update_texture(*_seg.m_prob_img.m_prob_map[0] , 0,0,1);
+            draw_helper::update_texture(*_seg.m_prob_img.m_prob_map[phase_draw] , 0,0,1);
             break;
         case GLUT_KEY_DOWN:
-            draw_helper::update_texture(*_seg.m_prob_img.m_prob_map[0], 0,0,-1);
+            draw_helper::update_texture(*_seg.m_prob_img.m_prob_map[phase_draw], 0,0,-1);
             break;
         case ' ':
             CONTINUOUS = !CONTINUOUS;
@@ -835,7 +833,8 @@ void UI::keyboard(unsigned char key, int x, int y) {
             phase_draw = (phase_draw+1) % 5;
             break;
         case 'u':
-            draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);
+//            draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);
+            _seg.compute_surface_curvature();
             break;
         case 't':
             dsc->deform();
