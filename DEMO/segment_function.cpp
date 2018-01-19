@@ -502,6 +502,14 @@ void segment_function::adapt_tetrahedra_1()
     
     delete subdivide_tets;
 }
+
+void segment_function::adapt_interface()
+{
+    update_average_intensity();
+    
+    
+}
+
 void segment_function::adapt_tetrahedra()
 {
     tet_touched = vector<bool>(_dsc->get_no_tets_buffer()*1.1, false);
@@ -766,11 +774,12 @@ void segment_function::work_around_on_boundary_vertices()
                 && vcl > EPSILON)
             {
                 auto cosA = Util::dot(vp, vc)/vpl/vcl;
-                if ( cosA < -0.2) // 110o
+                if ( cosA < -0.8) // 150o
                 {
-                    _dt_adapt[i] /= 2.0;
+//                    _dt_adapt[i] /= 2.0;
+                    _dt_adapt[i] = _dt;
                 }
-                if (cosA > 0.2)
+                if (cosA > 0.5)
                 {
                     _dt_adapt[i] *= 1.05;
                 }
@@ -1087,6 +1096,34 @@ void segment_function::compute_surface_curvature()
 
 }
 
+void segment_function::compute_internal_force_simple()
+{
+    std::vector<vec3> internal_force(_dsc->get_no_nodes_buffer(), vec3(0));
+    
+    for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
+    {
+        if (fit->is_interface())
+        {
+            auto nodes = _dsc->get_nodes(fit.key());
+            auto pts = _dsc->get_pos(nodes);
+            
+            for (int i = 0; i < 3; i++)
+            {
+                auto p = pts[i];
+                auto p1 = pts[(i+1)%3];
+                auto p2 = pts[(i+2)%3];
+                
+                auto h = Util::project_point_line(p, p1, p2);
+                auto n = Util::normalize(p-h);
+                
+                internal_force[nodes[i]] += n*(p2-p1).length();
+            }
+        }
+    }
+    
+    _internal_forces = internal_force;
+}
+
 // Discrete Differential-Geometry Operators for Triangulated 2-Manifolds
 void segment_function::compute_internal_force()
 {
@@ -1186,7 +1223,7 @@ void segment_function::compute_external_force()
                 auto p = get_coord_tri(pts, coord);
                 auto g = _img.get_value_f(p);
 
-                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0) / area); // Normalized already
+                auto f = - Norm* ((2*g - c0 - c1) / (c1-c0)); // Normalized already
                 
                 // distribute
                 forces[verts[0]] += f*coord[0];
@@ -1487,7 +1524,6 @@ void segment_function::update_average_intensity()
         cout << _mean_intensities[i] << " ; ";
     }
     cout << endl;
-
 }
 
 #pragma mark MAIN FUNCTION
@@ -1513,9 +1549,12 @@ void segment_function::segment()
     
     
     // 2. Compute external force
-    compute_surface_curvature();
+//    compute_surface_curvature();
+//    compute_internal_force();
+    
+    compute_internal_force_simple();
+    
     compute_external_force();
-    compute_internal_force();
     
     // 3. Work around to align boundary vertices
     //  including set displacement for interface vertices
@@ -1526,11 +1565,11 @@ void segment_function::segment()
     /**
      4. RELABEL TETRAHEDRA
      */
-    if (iteration % 5 == 0)
-    {
-//        face_split();
-        relabel_tetrahedra();
-    }
+//    if (iteration % 5 == 0)
+//    {
+////        face_split();
+//        relabel_tetrahedra();
+//    }
     
     t.done();
     profile::close();

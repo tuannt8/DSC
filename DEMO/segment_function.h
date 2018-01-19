@@ -135,6 +135,7 @@ public:
     void compute_surface_curvature();
     void compute_external_force();
     void compute_internal_force();
+    void compute_internal_force_simple();
     void compute_mesh_quality_control_force();
     
     void work_around_on_boundary_vertices();
@@ -148,6 +149,9 @@ public:
     double min_edge, min_V;
     void set_min_edge_length(double l){min_edge = l; min_V = pow(min_edge, 3)/6;};
     void face_split();
+    
+    void adapt_interface();
+    
     void adapt_tetrahedra();
     void adapt_tetrahedra_1();
     void recursive_divide(std::vector<point_to_capture>* subdivide_tets, is_mesh::TetrahedronKey tkey, int depth, std::queue<is_mesh::TetrahedronKey> & debug_tet_queue);
