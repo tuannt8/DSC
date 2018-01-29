@@ -15,14 +15,15 @@
 #include "util.h"
 #include "is_mesh.h"
 
+// Always use cache
 #ifndef __APPLE__
-#define DSC_ORIGIN  // Not apple, use DSC origin
+//#define DSC_ORIGIN  // Not apple, use DSC origin
 #else
 #endif
 
 #define DSC_CACHE
 
-#define MAX_ELEMENTS 10000000
+#define MAX_ELEMENTS 50000000
 
 #define CLEAN_GARBAGE(a, b) if(a[b]){delete a[b]; a[b] = nullptr;}
 #define RELEASE_CACHE(a) \

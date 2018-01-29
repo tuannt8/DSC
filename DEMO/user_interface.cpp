@@ -245,9 +245,9 @@ void UI::init_dsc()
     std::vector<int> tet_labels;
     
 #ifdef __APPLE__
-    int DISCRETIZATION = 70;
+    int DISCRETIZATION = 200;
 #else
-    int DISCRETIZATION = 70;
+    int DISCRETIZATION = 200;
 #endif
     double delta = _obj_dim[0]/(double)DISCRETIZATION;
     

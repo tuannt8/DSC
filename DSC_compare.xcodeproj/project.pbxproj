@@ -494,6 +494,7 @@
 		A6C819721FD08A100063351E /* dam_break.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dam_break.h; sourceTree = "<group>"; };
 		A6DABB5B1FD6D9B400BC4D26 /* eigen_wrapper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eigen_wrapper.cpp; sourceTree = "<group>"; };
 		A6DABB5C1FD6D9B400BC4D26 /* eigen_wrapper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = eigen_wrapper.hpp; sourceTree = "<group>"; };
+		A6E76565201F30DA00CDC927 /* dambreak_high_res.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dambreak_high_res.h; sourceTree = "<group>"; };
 		A6FC7D451FD55A9200474C84 /* anisotrpic_kernel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = anisotrpic_kernel.h; sourceTree = "<group>"; };
 		A6FC7D461FD55DCE00474C84 /* particle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = particle.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -769,6 +770,7 @@
 				A668E3A01FD0A34700EF4C39 /* bubble.h */,
 				A6C819721FD08A100063351E /* dam_break.h */,
 				A668E3A71FD16BE300EF4C39 /* dambreak2.h */,
+				A6E76565201F30DA00CDC927 /* dambreak_high_res.h */,
 				A6FC7D461FD55DCE00474C84 /* particle.h */,
 				A6FC7D451FD55A9200474C84 /* anisotrpic_kernel.h */,
 				A639A3891FD6D3160030265E /* anisotrpic_kernel.cpp */,

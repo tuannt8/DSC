@@ -2536,7 +2536,7 @@ namespace DSC {
 //                vec3 vv = get_pos(new_e_nids[1]) - get_pos(e_nids[0]);
 //                vv.normalize();
 //                static real thres = sqrt(1 - FLIP_EDGE_INTERFACE_FLATNESS*FLIP_EDGE_INTERFACE_FLATNESS);
-//                
+//
 //                return dot(norm, vv) < thres;
                 
             }

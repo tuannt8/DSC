@@ -37,9 +37,7 @@ public:
     
     double get_value(vec3 pos){
         // dam-break hard code test
-        
-//        double ra = m_ra;
-//        double h = 2*ra;
+
         double r = m_r;
         
         static double kernel_sigma = 315.0 / (64 * 3.14159);

@@ -27,20 +27,18 @@ void anisotropic_kernel::build(){
 
     // Bubble hardcode test
     double ra = m_ra;
-    double h = 2*ra;
+//    double h = 2*ra;
 //    double r = h;
 //    m_h = h;
     m_r = ra;
     
-    double r = m_r;
+    double r = m_r; // Radius for computing?
 
+    long nb_neighbor=0;
+    int nb_particle = 0;
+    
     for (int i = 0; i < m_shared_particles.size(); i++)
     {
-        if(i==98)
-        {
-
-        }
-
         auto & pi = m_shared_particles.at(i);
 
         if(pi.type != 0)
@@ -48,8 +46,12 @@ void anisotropic_kernel::build(){
 
         std::vector<int> close_particles;
         std::vector<vec3> close_particles_pos;
-        m_shared_tree->in_sphere(pi.pos, r, close_particles_pos, close_particles);
+        // Search in larger area for correct principal component of neighbors
+        m_shared_tree->in_sphere(pi.pos, r*2, close_particles_pos, close_particles);
 
+        nb_neighbor += close_particles.size();
+        nb_particle++;
+        
         if(close_particles.size() == 0)
         {
             assert(0);
@@ -74,6 +76,7 @@ void anisotropic_kernel::build(){
         {
             auto neighbor_p = m_shared_particles.at(idx);
             vec3 r_v = neighbor_p.pos - pi.pos;
+            // Compute with radius r
             double omega = 1 - std::pow(r_v.length()/r, 3);
 
             mat3x3d oo;
@@ -108,7 +111,7 @@ void anisotropic_kernel::build(){
         double kn = 0.5;
         for (int d = 0; d < 3; d++)
         {
-            if(close_particles.size() > 3)
+            if(close_particles.size() > 15)
             {
                 Sigma[d][d] = std::max(L[d][d], L[0][0] / kr) * ks;
             }
@@ -134,6 +137,8 @@ void anisotropic_kernel::build(){
         Sigma[0][0] /= max; Sigma[1][1] /= max; Sigma[2][2] /= max;
         m_principle[i] = CGLA::transpose(Q)*Sigma*Q;
     }
+    
+    std::cout << "Average neighbor: " << nb_neighbor / nb_particle << std::endl;
     
     Taubin_smooth();
 };

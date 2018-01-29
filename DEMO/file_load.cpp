@@ -270,6 +270,8 @@ void file_load::load_time_step()
     
     m_cur_sub_step++;
 
+    m_cur_idx = 200;
+    
     build_hash();
     build_anisotropic_kernel();
 }
@@ -464,7 +466,7 @@ void file_load::draw()
     
     if(glut_menu::get_state("Principle component", 1))
     {
-        double ra = get_spacing_distance();
+        double ra = m_aniso_kernel.m_r;
         //            int idx = 0;
         //            for (int idx : idx_list)
         for(int idx = 0; idx < m_current_particles.size(); idx++)

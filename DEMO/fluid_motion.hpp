@@ -21,6 +21,7 @@
 #include "dam_break.h"
 #include "bubble.h"
 #include "dambreak2.h"
+#include "dambreak_high_res.h"
 
 #define DT_NORM 0.1
 
@@ -34,7 +35,7 @@ public:
 
 public:
     DSC::DeformableSimplicialComplex<>* s_dsc;
-    dam_break2 m_file_load;
+    dam_break_high_res m_file_load;
     
     void deform();
     void project_interface();
