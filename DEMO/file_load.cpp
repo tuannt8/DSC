@@ -269,8 +269,6 @@ void file_load::load_time_step()
     }
     
     m_cur_sub_step++;
-
-    m_cur_idx = 200;
     
     build_hash();
     build_anisotropic_kernel();
