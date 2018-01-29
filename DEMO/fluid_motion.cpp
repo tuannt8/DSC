@@ -23,9 +23,7 @@ void fluid_motion::draw()
 
 void fluid_motion::deform()
 {
-//    project_interface();
-//    return;
-//
+
     // 1. Interpolate the displacement
     static int idx = 0;
     std::cout << "Iter: " << idx << std::endl;
@@ -39,9 +37,10 @@ void fluid_motion::deform()
         if (nit->is_interface())
         {
             auto pos = nit->get_pos();
-            vec3 dis;
+            vec3 dis(0.0);
             if(!m_file_load.get_displacement(pos, dis))
             {
+                // cannot find displacement, then shrink the surface
                 // invert normal
                 auto norm = s_dsc->get_normal(nit.key());
                 dis = norm*m_file_load.get_spacing_distance()*DT_NORM;
@@ -67,9 +66,11 @@ void fluid_motion::deform()
     
     ///////////////////////////////////////////
     //  2. Project interface
-    t->change("Project DSC");
-    project_interface();
-    
+    if(idx%2==0)
+    {
+        t->change("Project DSC");
+        project_interface();
+    }
     t->change("Load next grid");
     m_file_load.load_time_step();
     

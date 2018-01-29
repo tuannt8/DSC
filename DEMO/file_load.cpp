@@ -134,13 +134,16 @@ vec3 file_load::get_displacement_closet_point(vec3 pos)
     }
 }
 
-vec3 file_load::get_displacement_WENLAND_kernel(vec3 pos)
+bool file_load::get_displacement_WENLAND_kernel(vec3 pos, vec3 &dis)
 {
     double h = get_influence_radius();
-    double r = h*2;
+    double r = h;
     vector<int> pt_in_sphere;
     vector<vec3> pos_in_sphere;
     m_vtree.in_sphere(pos, r, pos_in_sphere, pt_in_sphere);
+    
+    if(pt_in_sphere.size()==0)
+        return false;
     
     vec3 sum_vec(0);
     for (auto key : pt_in_sphere)
@@ -155,7 +158,8 @@ vec3 file_load::get_displacement_WENLAND_kernel(vec3 pos)
         sum_vec += vel*(contribute * m_current_particles[key].mass/m_current_particles[key].density);
     }
     
-    return sum_vec;
+    dis = sum_vec;
+    return true;
     
 }
 
@@ -223,8 +227,8 @@ bool file_load::get_displacement_avg(vec3 pos, vec3 & dis)
 bool file_load::get_displacement(vec3 pos, vec3 & dis)
 {
     
-    return get_displacement_avg(pos, dis);
-//    return get_displacement_WENLAND_kernel(pos);
+//    return get_displacement_avg(pos, dis);
+    return get_displacement_WENLAND_kernel(pos, dis);
 //    return get_displacement_cubic_kernel(pos);
 }
 file_load::~file_load()

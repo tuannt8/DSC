@@ -155,7 +155,7 @@ public:
 #ifdef __APPLE__
     int m_max_step=1;
 #else
-    int m_max_step=2;
+    int m_max_step=1;
 #endif
     
     std::shared_ptr<hash3> m_hashTable;
@@ -174,7 +174,7 @@ public:
     bool get_displacement_avg(vec3 pos, vec3 & dis);
     vec3 get_displacement_closet_point(vec3 pos);
     vec3 get_displacement_cubic_kernel(vec3 pos);
-    vec3 get_displacement_WENLAND_kernel(vec3 pos);
+    bool get_displacement_WENLAND_kernel(vec3 pos, vec3 & dis);
     
     void fix_output_boundary();
     
