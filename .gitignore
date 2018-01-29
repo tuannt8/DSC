@@ -43,3 +43,5 @@ DerivedData/
 
 *.d
 *.o
+._*
+*~
