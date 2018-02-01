@@ -103,7 +103,10 @@ DSC::DeformableSimplicialComplex<> * problem::init_dsc_domain(double scale)
     
     cout << "Init DSC from point\n";
     
-    return new DSC::DeformableSimplicialComplex<>(points, tets, tet_labels);
+    auto dsc = new DSC::DeformableSimplicialComplex<>(points, tets, tet_labels);
+    dsc->set_avg_edge_length(delta);
+    
+    return dsc;
 }
 
 DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
@@ -111,8 +114,47 @@ DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
     auto dsc = init_dsc_domain(scale);
     
     // Init fluid
+    auto fluid_size = domain_size();
+    for(auto tit = dsc->tetrahedra_begin(); tit != dsc->tetrahedra_end(); tit++)
+    {
+        auto center = dsc->barycenter(tit.key());
+        
+        if (center[0] < 0 || center[0] > fluid_size[0]
+            || center[1] < 0 || center[1] > fluid_size[1]
+            || center[2] < 0 || center[2] > fluid_size[2])
+        {
+            continue;
+        }
+        
+        if (center[2] < 0.0625)
+        {
+            dsc->set_label(tit.key(), 1);
+        }else if(center[2] < 0.125)
+        {
+            dsc->set_label(tit.key(), 2);
+        }
+    }
     
-    
+    auto avg_edge = dsc->get_avg_edge_length();
+    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface() || nit->is_crossing())
+        {
+            auto pos = nit->get_pos();
+            // project to 0.0625 and 0.125
+            if (std::abs(pos[2] - 0.0625) < avg_edge)
+            {
+                pos[2] = 0.0625;
+            }
+            if (std::abs(pos[2] - 0.125) < avg_edge)
+            {
+                pos[2] = 0.125;
+            }
+            
+            dsc->set_destination(nit.key(), pos);
+        }
+    }
+    dsc->deform();
     
     return dsc;
     

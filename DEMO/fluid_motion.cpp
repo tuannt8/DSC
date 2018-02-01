@@ -100,7 +100,7 @@ void fluid_motion::load_next_particle()
             m_particles[i]->load_time_step(cur_global_idx);
         }
         
-        sub_step_count = 1;// subdivide_time_step();
+        sub_step_count = subdivide_time_step();
     }
     
     for (int i = 0; i < m_problem->m_nb_phases; i++)
