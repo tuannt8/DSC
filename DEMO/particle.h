@@ -31,7 +31,7 @@ public:
     double mass;
     int type;
     int flag;
-    int object;
+    int object; // fluid number?
     vec3 vel, pos;
     
     void draw()

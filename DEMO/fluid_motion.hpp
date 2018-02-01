@@ -35,7 +35,7 @@ public:
 
 public:
     DSC::DeformableSimplicialComplex<>* s_dsc;
-    dam_break_high_res m_file_load;
+    dam_break m_file_load;
     
     void deform();
     void project_interface();
