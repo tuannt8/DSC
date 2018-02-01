@@ -11,7 +11,31 @@
 
 #include "KDTree.h"
 #include "define.h"
-#include "particle.h"
+
+class particle
+{
+public:
+    particle(){}
+    ~particle(){}
+    
+    double pressure;
+    double density;
+    double mass;
+    int type;
+    int flag;
+    int object; // fluid number?
+    vec3 vel, pos;
+    
+    void draw()
+    {
+//        static std::vector<vec3> _color = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
+//
+//        glBegin(GL_POINTS);
+//        glColor3dv(_color[type].get());
+//        glVertex3dv(pos.get());
+//        glEnd();
+    }
+};
 
 
 class anisotropic_kernel

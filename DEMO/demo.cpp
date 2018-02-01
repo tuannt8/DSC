@@ -16,11 +16,19 @@
 
 #include "user_interface.h"
 #include <iostream>
+#include "InputParser.h"
+#include "fluid_motion.hpp"
 
 using namespace std;
 
+string fluid_motion::m_data_path;
+
 int main(int argc, char** argv)
 {
+    InputParser input(argc, argv);
+    
+    fluid_motion::m_data_path = input.getCmdOption("-path", "../Large_data/two_phase_fluid");
+    
     if (argc > 1)
     {
         // No display

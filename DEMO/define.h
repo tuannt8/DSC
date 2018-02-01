@@ -21,4 +21,6 @@ typedef CGLA::Vec3d vec3;
 typedef CGLA::Vec3i vec3i;
 typedef CGLA::Mat3x3d mat3x3d;
 
+#define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
+
 #endif /* define_h */

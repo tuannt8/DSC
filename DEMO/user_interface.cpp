@@ -189,16 +189,15 @@ UI::UI()
 
 void UI::init_data()
 {
-    // Dam break
-    _obj_dim = m_fluid.m_file_load.get_domain_dimension();
-    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2]);
+    m_fluid.init();// Load configuration
     
-    init_dsc();
-    
+    // init DSC
+    _obj_dim = m_fluid.m_problem->domain_size();
+    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
+    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(5));
     m_fluid.s_dsc = &*dsc;
     
-    // Init Surface
-    m_fluid.m_file_load.init_dsc(&*dsc);
+    m_fluid.load_next_particle();
 }
 
 UI::UI(int &argc, char** argv)
@@ -237,7 +236,8 @@ void UI::init_dam_break()
 
 }
 
-#define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
+
+
 void UI::init_dsc()
 {
     std::vector<vec3> points;
@@ -651,7 +651,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             painter->update(*dsc);
             break;
         case 'r':
-            m_fluid.m_file_load.fix_output_boundary();
+//            m_fluid.m_file_load.fix_output_boundary();
             break;
         case 't':
             std::cout << "TEST VELOCITY FUNCTION" << std::endl;
@@ -727,7 +727,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case 'n':
         {
-            m_fluid.m_file_load.load_time_step();
+            m_fluid.load_next_particle();
         }
             break;
         case 'l':

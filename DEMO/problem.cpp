@@ -1,0 +1,120 @@
+//
+//  problem.cpp
+//  DEMO
+//
+//  Created by Tuan Nguyen Trung on 01/02/2018.
+//  Copyright © 2018 Asger Nyman Christiansen. All rights reserved.
+//
+
+#include <stdio.h>
+#include "problem.h"
+#include "config_file.h"
+
+using namespace std;
+
+void problem::init(std::string sumary_file_path)
+{
+    config_file c_f(sumary_file_path);
+    
+    m_deltap = c_f.get_double("deltap");
+    m_influenceRadius = c_f.get_double("influenceRadius");
+    m_slength = c_f.get_double("slength");
+    m_nb_phases = c_f.get_int("numFluids");
+}
+
+DSC::DeformableSimplicialComplex<> * problem::init_dsc_domain(double scale)
+{
+    double edge_length = m_deltap*scale;
+    
+    std::vector<vec3> points;
+    std::vector<int> tets;
+    std::vector<int> tet_labels;
+    
+    double delta = edge_length;
+    
+    vec3 _dsc_dim = domain_size() + vec3(delta)*2;
+    
+    cout << "delta " << delta << endl;
+    cout << _dsc_dim[0] << " " << _dsc_dim[1] << " " <<  _dsc_dim[2] << " " ;
+    
+    int NX = round(_dsc_dim[0] / delta) + 1; // number of vertices
+    int NY = round(_dsc_dim[1] / delta) + 1;
+    int NZ = round(_dsc_dim[2] / delta) + 1;
+    
+    cout << "Compute point" << NX << " " << NY << " " << NZ << "\n";
+    
+    double deltax = _dsc_dim[0]/(double)(NX-1);
+    double deltay = _dsc_dim[1]/(double)(NY - 1);
+    double deltaz = _dsc_dim[2]/(double)(NZ - 1);
+    
+    
+    // points. Push it back
+    for (int iz = 0; iz < NZ; iz++)
+    {
+        for (int iy = 0; iy < NY; iy++)
+        {
+            for (int ix = 0; ix < NX; ix++)
+            {
+                points.push_back(vec3(ix*deltax, iy*deltay, iz*deltaz) - vec3(delta));
+            }
+        }
+    }
+    
+    cout << "Compute tets\n";
+    
+    // tets
+    for (int iz = 0; iz < NZ - 1; iz++)
+    {
+        for (int iy = 0; iy < NY - 1; iy++)
+        {
+            for (int ix = 0; ix < NX - 1; ix++)
+            {
+                // 8 vertices
+                int vertices[] = {
+                    index_cube(ix, iy, iz),
+                    index_cube(ix+1, iy, iz),
+                    index_cube(ix+1, iy+1, iz),
+                    index_cube(ix, iy+1, iz),
+                    index_cube(ix, iy, iz + 1),
+                    index_cube(ix+1, iy, iz + 1),
+                    index_cube(ix+1, iy+1, iz + 1),
+                    index_cube(ix, iy+1, iz + 1)
+                };
+                
+                int tetras[] = {
+                    0, 4, 5, 7,
+                    0, 7, 5, 1,
+                    0, 1, 3, 7,
+                    1, 5, 6, 7,
+                    1, 6, 7, 3,
+                    1, 2, 6, 3
+                };
+                
+                for(int i = 0; i < 6*4; i++)
+                {
+                    tets.push_back(vertices[tetras[i]]);
+                }
+            }
+        }
+    }
+    
+    long nbTet = tets.size()/4;
+    tet_labels = std::vector<int>(nbTet, 0);
+    
+    cout << "Init DSC from point\n";
+    
+    return new DSC::DeformableSimplicialComplex<>(points, tets, tet_labels);
+}
+
+DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
+{
+    auto dsc = init_dsc_domain(scale);
+    
+    // Init fluid
+    
+    
+    
+    return dsc;
+    
+    
+}

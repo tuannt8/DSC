@@ -41,7 +41,7 @@
 #include <GL/glut.h>
 #endif
 
-#include "particle.h"
+#include "particle_manager.hpp"
 #include "anisotrpic_kernel.h"
 #include "glut_menu.hpp"
 
@@ -75,6 +75,7 @@ private:
     }
 };
 
+// This class loads obj object and does some processing
 class fluid_interface
 {
     std::vector<vec3> m_points;
