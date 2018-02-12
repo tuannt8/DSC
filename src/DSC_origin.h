@@ -1443,7 +1443,7 @@ namespace DSC {
         {
             profile t("Deform");
 #ifdef DEBUG
-            validity_check();
+//            validity_check();
             std::cout << std::endl << "********************************" << std::endl;
 #endif
             int missing;
@@ -1466,7 +1466,7 @@ namespace DSC {
                 std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
                 fix_complex();
 #ifdef DEBUG
-                validity_check();
+//                validity_check();
 #endif
                 ++step;
             } while (missing > 0 && step < num_steps);
@@ -1479,7 +1479,7 @@ namespace DSC {
                 nit->set_destination(nit->get_pos());
             }
 #ifdef DEBUG
-            validity_check();
+//            validity_check();
 #endif
         }
         

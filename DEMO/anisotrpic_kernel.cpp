@@ -12,173 +12,326 @@
 #include "eigen_wrapper.hpp"
 
 #include "eigensolution.h"
+#include <queue>
 
-void anisotropic_kernel::build(){
-    // We build connected coponent later
 
-    m_G.resize(m_shared_particles.size());
-    m_det_G.resize(m_shared_particles.size());
-    m_principle.resize(m_shared_particles.size());
-    //        // dam-break hard code test
-    //        double ra = 0.02;
-    //        double h = 2*ra;
-    //        double r = 2*h;
-    //        m_h = h;
+using namespace std;
 
-    // Bubble hardcode test
-    double ra = m_ra;
-//    double h = 2*ra;
-//    double r = h;
-//    m_h = h;
-    m_r = ra;
+double anisotropic_kernel::get_value(vec3 pos){
+    // dam-break hard code test
     
-    double r = m_r; // Radius for computing?
-
-    long nb_neighbor=0;
-    int nb_particle = 0;
+    double r = m_r;
     
-    for (int i = 0; i < m_shared_particles.size(); i++)
+    static double kernel_sigma = 315.0 / (64 * 3.14159);
+    
+    std::vector<int> close_particles = neighbor_search(pos, m_r);
+    
+    if(close_particles.size() == 0)
     {
-        auto & pi = m_shared_particles.at(i);
-
-        if(pi.type != 0)
-            continue;
-
-        std::vector<int> close_particles;
-        std::vector<vec3> close_particles_pos;
-        // Search in larger area for correct principal component of neighbors
-        m_shared_tree->in_sphere(pi.pos, r*2, close_particles_pos, close_particles);
-
-        nb_neighbor += close_particles.size();
-        nb_particle++;
+        return -1;
+    }
+    double phi = 0.0;
+    for (auto n_p : close_particles)
+    {
+        auto part = m_shared_particles->at(n_p);
+        auto & G = get_transform_mat(n_p);
+        vec3 ro = pos-part.pos;
+        vec3 ra = G*(pos-part.pos);
         
-        if(close_particles.size() == 0)
-        {
-            assert(0);
-        }
-
-        // Mean position
-        vec3 x_w(0.0);
-        double sum_omega = 0.0;
-        for (auto idx : close_particles)
-        {
-            auto neighbor_p = m_shared_particles.at(idx);
-            vec3 r_v = neighbor_p.pos - pi.pos;
-            double omega = 1 - std::pow(r_v.length()/r, 3);
-            x_w += neighbor_p.pos*omega;
-            sum_omega += omega;
-        }
-        x_w /= sum_omega;
-
-        // Orientation matrix
-        mat3x3d C(0.0);
-        for (auto idx : close_particles)
-        {
-            auto neighbor_p = m_shared_particles.at(idx);
-            vec3 r_v = neighbor_p.pos - pi.pos;
-            // Compute with radius r
-            double omega = 1 - std::pow(r_v.length()/r, 3);
-
-            mat3x3d oo;
-            vec3 r_w = neighbor_p.pos - x_w;
-            for (int ri = 0; ri < 3; ri++)
-                for (int ci = 0; ci < 3; ci++)
-                    oo[ri][ci] = r_w[ri]*r_w[ci];
-            C = C + oo*omega;
-        }
-
-        C = C / sum_omega;
-
-        // Solve svd using eigen
-        mat3x3d Q(0.0);
-        mat3x3d L(0.0);
-        svd_solve(C.get(), Q.get(), L.get());
+        double contribute = 0;
         
-        
-        
-//        // Singular value decomposition
-//        mat3x3d Q1;
-//        mat3x3d L1;
-//        int nb_singular = CGLA::power_eigensolution<mat3x3d>(C, Q1, L1);
-
-        mat3x3d G;
-
-        // Modify the strech matrix
-        mat3x3d Sigma(0.0);
-        double kr = 4.0;
-        double ks = 3000;
-//        double ks = 1/CGLA::determinant(C);
-        double kn = 0.5;
-        for (int d = 0; d < 3; d++)
+//        if (ra.length() < 1)
         {
-            if(close_particles.size() > 15)
-            {
-                Sigma[d][d] = std::max(L[d][d], L[0][0] / kr) * ks;
-            }
-            else
-            {
-                Sigma[d][d] = 1.0 * kn;
-            }
+            contribute = kernel_sigma*std::pow(1 - Util::dot(ra, ra), 3)*m_det_G[n_p];
         }
         
-        
-        mat3x3d Sigma_inv(0.0);
-        Sigma_inv[0][0] = 1.0 / Sigma[0][0];
-        Sigma_inv[1][1] = 1.0 / Sigma[1][1];
-        Sigma_inv[2][2] = 1.0 / Sigma[2][2];
-
-        G = CGLA::transpose(Q)*Sigma*Q *(1/r);
-    
-        m_G[i] = G;
-        m_det_G[i] = CGLA::determinant(G);
-        
-        Sigma = L;
-        double max = std::max(Sigma[0][0], std::max(Sigma[1][1], Sigma[2][2]));
-        Sigma[0][0] /= max; Sigma[1][1] /= max; Sigma[2][2] /= max;
-        m_principle[i] = CGLA::transpose(Q)*Sigma*Q;
+        phi += part.mass/part.density * contribute;
     }
     
-    std::cout << "Average neighbor: " << nb_neighbor / nb_particle << std::endl;
-    
-    Taubin_smooth();
+    return phi;
 };
+
+void anisotropic_kernel::compute_kd_tree()
+{
+    m_vtree = Geometry::KDTree<vec3, int>();
+    
+
+    for (int idx = 0; idx < m_shared_particles->size(); idx++)
+    {
+        auto & p = m_shared_particles->at(idx);
+        if (p.type == 0)
+        {
+            m_vtree.insert(p.pos, idx);
+        }
+    }
+
+    m_vtree.build();
+}
+std::vector<int> anisotropic_kernel::neighbor_search(vec3 pos, double radius)
+{
+    std::vector<int> close_particles;
+    std::vector<vec3> close_particles_pos;
+    m_vtree.in_sphere(pos, radius, close_particles_pos, close_particles);
+    
+    return close_particles;
+    
+}
+void anisotropic_kernel::build_connected_component()
+{
+    m_connected_component_label = std::vector<int>(m_shared_particles->size(), -1);
+    
+    // m_h or 1.1 m_ra
+    double connected_radius = 1.1*m_ra;
+    
+    int cc_count = 0;
+    int num_fluid_particles = 0;
+    for (int i = 0; i < m_shared_particles->size(); i++)
+    {
+        if (m_shared_particles->at(i).type != 0)
+        {
+            continue;
+        }
+        num_fluid_particles++;
+        
+        if (m_connected_component_label[i] == -1)
+        {
+            m_connected_component_label[i] = cc_count;
+            
+            std::queue<int> neighbor;
+            neighbor.push(i);
+            
+            while (!neighbor.empty())
+            {
+                int cur_idx = neighbor.front();
+                neighbor.pop();
+                
+                auto & p_cur = (*m_shared_particles)[cur_idx];
+                
+                // growing the neighbor
+                // Search for neighbor particles
+                std::vector<int> close_particles = neighbor_search(p_cur.pos, connected_radius);;
+                
+                for (auto nidx : close_particles)
+                {
+                    if (m_connected_component_label[nidx] == -1)
+                    {
+                        neighbor.push(nidx);
+                    }
+                    m_connected_component_label[nidx] = cc_count;
+                }
+            }
+            
+            cc_count++;
+        }
+    }
+    
+    m_nb_component = cc_count;
+    cout << cc_count << " connected components of " << num_fluid_particles << " particles" << endl;
+}
+
+void draw_connected_component()
+{
+    
+}
+
+void anisotropic_kernel::build(){
+    
+    m_r = 2*m_h;// Two times the smoothing radius
+    
+    // 1. Connected component
+    compute_kd_tree();
+    build_connected_component();
+    // 2. First smooth the particle
+//    Taubin_smooth();
+//    compute_kd_tree();
+
+    // 3. Build transformation matrix
+    m_G.resize(m_shared_particles->size());
+    m_det_G.resize(m_shared_particles->size());
+    m_b_kernel_computed = vector<bool>(m_shared_particles->size(), false);
+    
+    m_U.resize(m_shared_particles->size());
+    m_S.resize(m_shared_particles->size());
+    m_C.resize(m_shared_particles->size());
+    
+//    for (int i = 0; i < m_shared_particles->size(); i++)
+//    {
+//        compute_tranformation_mat_for_particle(i);
+//    }
+};
+
+const mat3x3d & anisotropic_kernel::get_transform_mat(int idx)
+{
+    if (!m_b_kernel_computed[idx])
+    {
+        m_b_kernel_computed[idx] = true;
+        compute_tranformation_mat_for_particle(idx);
+    }
+    
+    return m_G[idx];
+}
+
+void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
+{
+    cout << "---------------------------------------\n"
+        << "Particle: " << i;
+    auto & pi = m_shared_particles->at(i);
+    
+    if(pi.type != 0)
+        return;
+    
+    std::vector<int> close_particles = neighbor_search(pi.pos, m_r);
+    
+    if(close_particles.size() == 1)
+    {
+        assert(0);
+    }
+    
+    // Weighted mean position
+    vec3 x_w(0.0);
+    double sum_omega = 0.0;
+    for (auto idx : close_particles)
+    {
+        auto neighbor_p = m_shared_particles->at(idx);
+        double omega = weight_func(i, idx, m_r);
+        x_w += neighbor_p.pos*omega;
+        sum_omega += omega;
+    }
+    x_w /= sum_omega;
+    
+    // Orientation matrix
+    mat3x3d C(0.0);
+    for (auto idx : close_particles)
+    {
+        auto neighbor_p = m_shared_particles->at(idx);
+        double omega = weight_func(i, x_w, idx, m_r);
+        
+        mat3x3d oo;
+        vec3 r_w = neighbor_p.pos - x_w;
+        
+        // oo = rw*rw'
+        CGLA::outer_product(r_w, r_w, oo);
+        C = C + oo*omega;
+    }
+    C /= sum_omega;
+    
+    // Solve svd using eigen
+    mat3x3d Q(0.0);
+    mat3x3d L(0.0);
+    // C = Q*L*Q'
+    svd_solve(C.get(), Q.get(), L.get());
+    
+    cout << "C: " << C;
+    cout << "Q: " << Q;
+    cout << "L: " << L;
+    
+    cout << "C back: " << Q*L*CGLA::transpose(Q);
+    
+    // Modify the strecth matrix
+    mat3x3d Sigma(0.0);
+    double kr = 4.0;
+    double ks = 160000;//cbrt(1 / CGLA::determinant(C));// May optimize latter
+//    cout << ks << endl;
+    double kn = 0.5;
+    for (int d = 0; d < 3; d++)
+    {
+        if(close_particles.size() > 25)
+        {
+            Sigma[d][d] = std::max(L[d][d], L[0][0] / kr) * ks;
+        }
+        else
+        {
+            Sigma[d][d] = 1.0 * kn;
+        }
+    }
+    
+    mat3x3d Sigma_inv(0.0);
+    Sigma_inv[0][0] = 1.0 / Sigma[0][0];
+    Sigma_inv[1][1] = 1.0 / Sigma[1][1];
+    Sigma_inv[2][2] = 1.0 / Sigma[2][2];
+
+    m_G[i] = Q*(Sigma_inv*(CGLA::transpose(Q) *(1/m_h)));
+    m_det_G[i] = CGLA::determinant(m_G[i]);
+    
+    m_U[i] = Q;
+    m_S[i] = L;
+    m_C[i] = m_G[i] = Q*Sigma*CGLA::transpose(Q)*m_h;
+    // det(G) is equivilant to 1/h^3
+    // Gr is equivilant to r/h
+    
+
+}
 
 void anisotropic_kernel::Taubin_smooth()
 {
     double lamda = 0.93;
-    std::vector<particle> smoothed_particles = m_shared_particles;
+    std::vector<particle> smoothed_particles = *m_shared_particles;
     
-    double r = m_h;
-    for (int i = 0; i < m_shared_particles.size(); i++)
+    for (int i = 0; i < m_shared_particles->size(); i++)
     {
-        auto cur_particle = m_shared_particles[i];
-        
-        std::vector<int> close_particles;
-        std::vector<vec3> close_particles_pos;
-        m_shared_tree->in_sphere(cur_particle.pos, r, close_particles_pos, close_particles);
-        
-        vec3 new_pos(0.0);
-        double sum_omega = 0;
-        for (auto pidx : close_particles)
+        if (m_shared_particles->at(i).type != 0)
         {
-            auto pi = m_shared_particles[pidx];
-            
-            if (pidx == i)
-            {
-                continue;
-            }
-            
-            vec3 r_v = pi.pos - cur_particle.pos;
-            double omega = 1 - std::pow(r_v.length()/r, 3);
-            sum_omega += omega;
-            new_pos += pi.pos*omega;
+            continue;
         }
-        new_pos /= sum_omega;
-        new_pos = new_pos*lamda + cur_particle.pos*(1-lamda);
         
-        smoothed_particles[i].pos = new_pos;
+        auto cur_particle = (*m_shared_particles)[i];
+        
+        // Search for neighbor particles
+        std::vector<int> close_particles = neighbor_search(cur_particle.pos, m_r);
+        
+        if (close_particles.size() > 0)
+        {
+            vec3 new_pos(0.0);
+            double sum_omega = 0;
+            for (auto pidx : close_particles)
+            {
+                auto & pj = (*m_shared_particles)[pidx];
+                
+                double omega = weight_func(i, pidx, m_r);
+                sum_omega += omega;
+                new_pos += pj.pos*omega;
+            }
+            new_pos /= sum_omega;
+            new_pos = new_pos*lamda + cur_particle.pos*(1-lamda);
+            
+            smoothed_particles[i].pos = new_pos;
+        }
     }
     
-    m_shared_particles = smoothed_particles;
+    *m_shared_particles = smoothed_particles;
+}
+
+double anisotropic_kernel::weight_func(int i, vec3 posi, int j, double radius)
+{
+    if (m_connected_component_label[i] != m_connected_component_label[j])
+    {
+        return 0;
+    }
     
+    auto const & pj = m_shared_particles->at(j);
+    double r = (posi - pj.pos).length() / radius;
+    if (r > 1)
+    {
+        return 0;
+    }
+    
+    return 1 - r*r*r;
+}
+
+double anisotropic_kernel::weight_func(int i, int j, double h)
+{
+    if (m_connected_component_label[i] != m_connected_component_label[j])
+    {
+        return 0;
+    }
+    
+    auto const & pi = m_shared_particles->at(i);
+    auto const & pj = m_shared_particles->at(j);
+    double r = (pi.pos - pj.pos).length() / h;
+    if (r > 1)
+    {
+        return 0;
+    }
+    
+    return 1 - r*r*r;
 }

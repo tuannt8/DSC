@@ -29,6 +29,8 @@
 #include "draw_helper.h"
 #include "glut_menu.hpp"
 
+#include "debugger.h"
+
 using namespace DSC;
 using namespace std;
 
@@ -706,16 +708,12 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case '.':
         {
-            real discretization = std::min(dsc->get_avg_edge_length() + 0.5, 100.);
-            dsc->set_avg_edge_length(discretization);
-            update_title();
+            debugger<>::get_int("particle idx", 0) ++;
         }
             break;
         case ',':
         {
-            real discretization = std::max(dsc->get_avg_edge_length() - 0.5, 1.);
-            dsc->set_avg_edge_length(discretization);
-            update_title();
+            debugger<>::get_int("particle idx", 0) --;
         }
             break;
         case '<':

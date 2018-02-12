@@ -19,6 +19,7 @@
 #ifndef __APPLE__
 #define DSC_ORIGIN  // Not apple, use DSC origin
 #else
+#define DSC_ORIGIN
 #endif
 
 #define DSC_CACHE

@@ -26,7 +26,7 @@
 #include "problem.h"
 #include "particle_manager.hpp"
 
-#define DT_NORM 0.1
+#define DT_NORM 0.2
 
 class fluid_motion
 {
@@ -54,6 +54,7 @@ public:
     
     void deform();
     void project_interface();
+    void snapp_boundary_vertices();
     
     void log_dsc_surface(int idx);
 };

@@ -10,8 +10,11 @@
 #define eigen_wrapper_hpp
 
 #include <stdio.h>
+//#include "define.h"
 
 // C = Q'LQ
 void svd_solve(double * C, double *Q, double *L);
+
+void invert4x4(double * A, double *A_i);
 
 #endif /* eigen_wrapper_hpp */

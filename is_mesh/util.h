@@ -37,7 +37,7 @@ typedef CGLA::Vec4d       vec4;
 typedef CGLA::Mat3x3d     mat3;
 typedef CGLA::Mat4x4d     mat4;
 
-static const real EPSILON = 1e-8;
+static const real EPSILON = std::numeric_limits<real>::min();
 
 #undef INFINITY
 static const real INFINITY = std::numeric_limits<real>::max();;

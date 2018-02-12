@@ -191,7 +191,7 @@ namespace
 	M invert(const ArithSqMat4x4Float<V,M>& in)
 	{
 		double det = determinant( in );
-		if (is_tiny(det)) 
+		if (is_tiny(det))
 			throw(Mat4x4fSingular("Tried to invert Singular matrix"));
 		M out = adjoint(in);
 		out/=det;

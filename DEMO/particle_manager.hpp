@@ -79,13 +79,26 @@ public:
     // Estimate displacements
     bool get_displacement(vec3 pos, vec3 & dis);
     bool get_displacement_avg(vec3 pos, vec3 & dis);
+    bool get_displacement_weighted_avg(vec3 pos, vec3 & dis);
     vec3 get_displacement_closet_point(vec3 pos);
     vec3 get_displacement_cubic_kernel(vec3 pos);
     bool get_displacement_WENLAND_kernel(vec3 pos, vec3 & dis);
+    bool get_displacement_MLS_kernel(vec3 pos, vec3 & dis);
     
-    // Some other
+    enum weight_type
+    {
+        POLY_4 = 0
+    };
+    double weight_function(double r, int type = POLY_4);
+    
+    // Get max displacement between two time steps
     double get_max_displacement();
+    
     void draw();
+    void draw_intermediate_vel();
+    void draw_anisotropic_kernel(vec3 domain_size, bool refresh = false);
+    void draw_orientation_anisotropic();
+    void draw_anisotropic_kernel();
 };
 
 #endif /* particle_hpp */

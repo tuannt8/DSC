@@ -135,25 +135,27 @@ DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
         }
     }
     
+    double z1 = 0.0575, z2 = 0.125;
     auto avg_edge = dsc->get_avg_edge_length();
     for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
     {
         if (nit->is_interface() || nit->is_crossing())
         {
             auto pos = nit->get_pos();
-            // project to 0.0625 and 0.125
-            if (std::abs(pos[2] - 0.0625) < avg_edge)
+            // project to 0.0575 and 0.125
+            if (std::abs(pos[2] - z1) < avg_edge)
             {
-                pos[2] = 0.0625;
+                pos[2] = z1;
             }
-            if (std::abs(pos[2] - 0.125) < avg_edge)
+            if (std::abs(pos[2] - z2) < avg_edge)
             {
-                pos[2] = 0.125;
+                pos[2] = z2;
             }
             
             dsc->set_destination(nit.key(), pos);
         }
     }
+    
     dsc->deform();
     
     return dsc;

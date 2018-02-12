@@ -11,6 +11,7 @@
 
 #include "KDTree.h"
 #include "define.h"
+#include "util.h"
 
 class particle
 {
@@ -24,6 +25,8 @@ public:
     int type;
     int flag;
     int object; // fluid number?
+    double volume;
+    double sigma;
     vec3 vel, pos;
     
     void draw()
@@ -41,59 +44,44 @@ public:
 class anisotropic_kernel
 {
 public:
-    Geometry::KDTree<vec3, int> *m_shared_tree;
-    double m_h;//influence radius of the particles
+    Geometry::KDTree<vec3, int> m_vtree;
+    std::vector<int> m_connected_component_label;
+    int m_nb_component;
+    double m_h;// Smoothing radius. Used for connected component
     double m_ra; // Spacing distance betwwen particle
     
-    double m_r;//particle radius
-    std::vector<mat3x3d> m_G;
-    std::vector<mat3x3d> m_principle;
-    std::vector<double> m_det_G;
-    std::vector<particle> m_shared_particles;
+    double m_r;// Use for everything.
     
+    std::vector<mat3x3d> m_G;
+    std::vector<double> m_det_G;
+    std::vector<bool> m_b_kernel_computed;
+    std::vector<particle> *m_shared_particles;
+    
+    
+    const mat3x3d & get_transform_mat(int idx);
 public:
     anisotropic_kernel(){};
     ~anisotropic_kernel(){};
     
     void build();
-    
+    double weight_func(int i, int j, double radius);
+    double weight_func(int i, vec3 posi, int j, double);
     void Taubin_smooth();
+    void compute_kd_tree();
+    void build_connected_component();
     
-    double get_value(vec3 pos){
-        // dam-break hard code test
-
-        double r = m_r;
-        
-        static double kernel_sigma = 315.0 / (64 * 3.14159);
-        
-        std::vector<int> close_particles;
-        std::vector<vec3> close_particles_pos;
-        m_shared_tree->in_sphere(pos, r, close_particles_pos, close_particles);
-        
-        if(close_particles.size() == 0)
-        {
-            return -1;
-        }
-        double phi = 0.0;
-        for (auto n_p : close_particles)
-        {
-            auto part = m_shared_particles.at(n_p);
-            auto & G = m_G[n_p];
-            vec3 ro = pos-part.pos;
-            vec3 ra = G*(pos-part.pos);
-            
-            double contribute = 0;
-            
-            if (ra.length() < 1)
-            {
-                contribute = kernel_sigma*std::pow(1 - Util::dot(ra, ra), 3)*m_det_G[n_p];
-            }
-            
-            phi += part.mass/part.density * contribute;
-        }
-        
-        return phi;
-    };
+    double get_value(vec3 pos);
+    
+    void draw_connected_component();
+    void compute_tranformation_mat_for_particle(int);
+    
+    std::vector<int> neighbor_search(vec3 pos, double radius);
+    
+public:
+    // Debugging
+    std::vector<mat3x3d> m_U;
+    std::vector<mat3x3d> m_S;
+    std::vector<mat3x3d> m_C;
 };
 
 #endif /* anisotrpic_kernel_h */
