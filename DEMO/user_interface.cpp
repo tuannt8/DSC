@@ -491,6 +491,13 @@ void UI::display()
             draw_helper::dsc_draw_interface(*dsc);
         }
         
+        if(glut_menu::get_state("DSC shared interface", 0))
+        {
+            glEnable(GL_LIGHTING);
+            glColor3f(0.0, 0.9, 1.0);
+            draw_helper::dsc_draw_shared_interface(*dsc);
+        }
+        
         if(glut_menu::get_state("DSC interface edges", 1))
         {
             glDisable(GL_LIGHTING);

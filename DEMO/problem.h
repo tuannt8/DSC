@@ -42,4 +42,15 @@ public:
     virtual vec3 domain_size(){return vec3(0.15, 0.15, 0.15);};
 };
 
+class dam_break_fluid:public problem
+{
+public:
+    dam_break_fluid(){};
+    ~dam_break_fluid(){};
+    
+    virtual DSC::DeformableSimplicialComplex<> * init_dsc(double scale = 1);
+    virtual vec3 domain_size(){return vec3(1.6, 0.67, 0.6);};
+};
+
+
 #endif /* problem_h */

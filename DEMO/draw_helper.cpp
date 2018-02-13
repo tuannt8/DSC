@@ -171,6 +171,37 @@ void draw_helper::save_painting(int WIDTH, int HEIGHT, std::string folder)
     }
 }
 
+void draw_helper::dsc_draw_shared_interface(dsc_class & dsc)
+{
+    {
+        for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+        {
+            if (f->is_interface())
+            {
+                auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
+                //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
+                auto norm = dsc.get_normal(f.key());
+                
+                auto tets = dsc.get_tets(f.key());
+                if (! (dsc.get_label(tets[0]) != 0
+                    && dsc.get_label(tets[1]) != 0))
+                {
+                    continue;
+                }
+                
+                glBegin(GL_TRIANGLES);
+                for (auto v : pts)
+                {
+                    glNormal3dv(norm.get());
+                    glVertex3dv(v.get());
+                }
+                glEnd();
+                
+            }
+        }
+    }
+}
+
 void draw_helper::dsc_draw_interface(dsc_class & dsc, std::vector<double> * color)
 {
     if(color)

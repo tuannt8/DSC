@@ -48,9 +48,9 @@ public:
     
     // Data that need input
     std::string m_data_path;
-    double m_influence_radius;
-    double m_deltap;
-    double m_slength;
+    double m_influence_radius; // influent radius
+    double m_deltap; // Spacing distance
+    double m_slength; // Smoothing radius
     
     // Particles
     int m_cur_idx = 0;
@@ -64,6 +64,7 @@ public:
     // accelerating finding neighbor
     Geometry::KDTree<vec3, int> m_vtree;
     void build_kd_tree();
+    void rebuild_density();
     
     // Aniso tropic kernel
     anisotropic_kernel m_aniso_kernel;
@@ -80,6 +81,7 @@ public:
     bool get_displacement(vec3 pos, vec3 & dis);
     bool get_displacement_avg(vec3 pos, vec3 & dis);
     bool get_displacement_weighted_avg(vec3 pos, vec3 & dis);
+    bool get_displacement_sph_kernel(vec3 pos, vec3 & dis);
     vec3 get_displacement_closet_point(vec3 pos);
     vec3 get_displacement_cubic_kernel(vec3 pos);
     bool get_displacement_WENLAND_kernel(vec3 pos, vec3 & dis);

@@ -70,10 +70,17 @@ public:
     void compute_kd_tree();
     void build_connected_component();
     
+    // 0.0 means outside
+    //  Inside is larger than 0
     double get_value(vec3 pos);
+    bool get_projection(vec3 pos, vec3 direction, bool &bInside, vec3& projected_point);
+    bool is_inside(vec3 pos, std::vector<int> & neighbor);
+    bool is_inside(vec3 pos);
     
     void draw_connected_component();
     void compute_tranformation_mat_for_particle(int);
+    
+    double get_coeff(vec3 pos, int idx);
     
     std::vector<int> neighbor_search(vec3 pos, double radius);
     

@@ -42,6 +42,7 @@ public:
     static void dsc_draw_interface(dsc_class & dsc, std::vector<double> * color = nullptr);
     static void dsc_draw_interface_edge(dsc_class & dsc);
     static void dsc_draw_face_norm(dsc_class & dsc);
+    static void dsc_draw_shared_interface(dsc_class & dsc);
     
     static void dsc_draw_edges_colors(dsc_class & dsc);
     static void dsc_draw_node_color(dsc_class & dsc);

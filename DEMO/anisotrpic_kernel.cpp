@@ -17,39 +17,101 @@
 
 using namespace std;
 
+bool anisotropic_kernel::get_projection(vec3 pos, vec3 direction, bool &bInside, vec3& projected_point)
+{
+    double max_displace = m_h;
+    bInside = is_inside(pos);
+    
+    vec3 pos1 = pos;
+    vec3 pos2 = pos + direction * max_displace;
+    bool bInside_2 = is_inside(pos2);
+    bool bInside_1 = bInside;
+    
+    // Two sampling points are both outside or inside
+    if (bInside_1 == bInside_2)
+    {
+        pos2 = pos - direction * max_displace;
+        bInside_2 = is_inside(pos2);
+    }
+    
+    if (bInside_1 == bInside_2) // The point is completely inside or outside
+    {
+        return false;
+    }else{
+        for (int i = 0; i < 4; i++)
+        {
+            auto mid = (pos1 + pos2)*0.5;
+            bool bInside_mid = is_inside(mid);
+            if (bInside_1 == bInside_mid)
+            {
+                pos1 = mid;
+            }else{
+                pos2 = mid;
+            }
+        }
+        
+        projected_point = (pos1 + pos2)*0.5;
+        
+        return true;
+    }
+}
+
 double anisotropic_kernel::get_value(vec3 pos){
     // dam-break hard code test
-    
-    double r = m_r;
-    
     static double kernel_sigma = 315.0 / (64 * 3.14159);
     
     std::vector<int> close_particles = neighbor_search(pos, m_r);
     
     if(close_particles.size() == 0)
     {
-        return -1;
+        return 0; // OUTSIDE
     }
+    
     double phi = 0.0;
     for (auto n_p : close_particles)
     {
         auto part = m_shared_particles->at(n_p);
         auto & G = get_transform_mat(n_p);
-        vec3 ro = pos-part.pos;
-        vec3 ra = G*(pos-part.pos);
+
+        vec3 ra_h = G*(pos-part.pos);
         
-        double contribute = 0;
         
-//        if (ra.length() < 1)
+        if (ra_h.length() < 1)
         {
-            contribute = kernel_sigma*std::pow(1 - Util::dot(ra, ra), 3)*m_det_G[n_p];
+            return 1;
+            phi += part.mass/part.density * kernel_sigma *m_det_G[n_p]
+                * std::pow(1 - Util::dot(ra_h, ra_h), 3);
         }
-        
-        phi += part.mass/part.density * contribute;
     }
     
     return phi;
 };
+
+bool anisotropic_kernel::is_inside(vec3 pos)
+{
+    auto neighbor = neighbor_search(pos, m_r);
+    return is_inside(pos, neighbor);
+}
+
+bool anisotropic_kernel::is_inside(vec3 pos, std::vector<int> & neighbor)
+{
+    for (auto & n_p : neighbor)
+    {
+        auto part = m_shared_particles->at(n_p);
+        auto & G = get_transform_mat(n_p);
+        
+        vec3 ra_h = G*(pos-part.pos);
+
+        if (ra_h.length() < 1)
+        {
+            return true;
+        }
+    }
+    
+    return false;
+    
+    
+}
 
 void anisotropic_kernel::compute_kd_tree()
 {
@@ -142,8 +204,8 @@ void anisotropic_kernel::build(){
     compute_kd_tree();
     build_connected_component();
     // 2. First smooth the particle
-//    Taubin_smooth();
-//    compute_kd_tree();
+    Taubin_smooth();
+    compute_kd_tree();
 
     // 3. Build transformation matrix
     m_G.resize(m_shared_particles->size());
@@ -173,8 +235,6 @@ const mat3x3d & anisotropic_kernel::get_transform_mat(int idx)
 
 void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
 {
-    cout << "---------------------------------------\n"
-        << "Particle: " << i;
     auto & pi = m_shared_particles->at(i);
     
     if(pi.type != 0)
@@ -221,12 +281,6 @@ void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
     // C = Q*L*Q'
     svd_solve(C.get(), Q.get(), L.get());
     
-    cout << "C: " << C;
-    cout << "Q: " << Q;
-    cout << "L: " << L;
-    
-    cout << "C back: " << Q*L*CGLA::transpose(Q);
-    
     // Modify the strecth matrix
     mat3x3d Sigma(0.0);
     double kr = 4.0;
@@ -255,11 +309,28 @@ void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
     
     m_U[i] = Q;
     m_S[i] = L;
-    m_C[i] = m_G[i] = Q*Sigma*CGLA::transpose(Q)*m_h;
+    m_C[i] = Q*Sigma*CGLA::transpose(Q)*m_h;
     // det(G) is equivilant to 1/h^3
     // Gr is equivilant to r/h
-    
+}
 
+
+double anisotropic_kernel::get_coeff(vec3 pos, int idx)
+{
+    static double kernel_sigma = 315.0 / (64 * 3.14159);
+    
+    auto & part = (*m_shared_particles)[idx];
+    auto & G = get_transform_mat(idx);
+    
+    vec3 ra_h = G*(pos-part.pos);
+    
+    if (ra_h.length() < 1)
+    {
+        return part.mass/part.density * kernel_sigma *m_det_G[idx]
+        * std::pow(1 - Util::dot(ra_h, ra_h), 3);
+    }
+    else
+        return 0;
 }
 
 void anisotropic_kernel::Taubin_smooth()

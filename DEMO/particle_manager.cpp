@@ -242,16 +242,59 @@ vec3 particle_manager::get_displacement_cubic_kernel(vec3 pos)
     return sum_vec;
 }
 
+bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
+{
+    double h = m_slength;
+    
+    vector<int> list;
+    vector<vec3> pos_in_sphere;
+    m_vtree.in_sphere(pos, h, pos_in_sphere, list);
+    
+    if (list.size() == 0) // found nothing. Cannot project
+    {
+        return false;
+    }
+    
+    static double sigma = 314./64./3.14159;
+    static double h3 = h*h*h;
+    dis = vec3(0);
+    for (auto p : list)
+    {
+        auto part = m_sub_step_particles[p];
+        auto vel = m_sub_step_vel[p];
+        
+        double r_h = (part.pos - pos).length()/h;
+        
+        dis += vel * (
+                      part.mass / part.density
+                      * sigma / h3
+                      * std::pow(1 - r_h*r_h, 3)
+                      );
+    }
+    
+//    //// Test
+//    double vol_total = 0;
+//    double vol_total2 = 0;
+//    for (auto p : list)
+//    {
+//        auto part = m_sub_step_particles[p];
+//        vol_total += part.mass / part.density;
+//        vol_total2 += part.volume;
+//    }
+//    cout << "Compare: " << vol_total << " ---- " << vol_total2 << " --- "  << h3 << endl;
+//
+    return  true;
+}
+
 bool particle_manager::get_displacement_weighted_avg(vec3 pos, vec3 & dis)
 {
-    double r = m_deltap*2;
+    double r = m_slength;
     vector<int> list;
     vector<vec3> pos_in_sphere;
     m_vtree.in_sphere(pos, r, pos_in_sphere, list);
     
     if (list.size() == 0) // found nothing
     {
-        cout << "No neighbor \n";
         return false;
     }
     
@@ -322,7 +365,7 @@ void particle_manager::draw_intermediate_vel()
 
 void particle_manager::draw_anisotropic_kernel()
 {
-//    int frequencey = 20;
+    int frequencey = 20;
 //    for (int i = 0; i < m_sub_step_particles.size(); i++)
     {
 //        if (i%frequencey == 0)
@@ -357,7 +400,7 @@ void particle_manager::draw_anisotropic_kernel()
 
             
             // neighbor
-            if(glut_menu::get_state("Neighbor", 1))
+            if(glut_menu::get_state("Neighbor", 0))
             {
                 auto neighbor = m_aniso_kernel.neighbor_search(pos, m_slength*2);
                 glDisable(GL_LIGHTING);
@@ -371,18 +414,21 @@ void particle_manager::draw_anisotropic_kernel()
             }
             
             // coord
-            auto U = m_aniso_kernel.m_U[i];
-            auto S = m_aniso_kernel.m_S[i];
-            glBegin(GL_LINES);
-            for (int i = 0; i < 3; i++)
+            if(glut_menu::get_state("PCA coords", 0))
             {
-//                vec3 cc(U[i][0], U[i][1], U[i][2]);
-                vec3 cc(U[0][i], U[1][i], U[2][i]);
-                cc *= S[i][i]*5000;
-                glVertex3dv(pos.get());
-                glVertex3dv((pos + cc).get());
+                auto U = m_aniso_kernel.m_U[i];
+                auto S = m_aniso_kernel.m_S[i];
+                glBegin(GL_LINES);
+                for (int i = 0; i < 3; i++)
+                {
+    //                vec3 cc(U[i][0], U[i][1], U[i][2]);
+                    vec3 cc(U[0][i], U[1][i], U[2][i]);
+                    cc *= S[i][i]*5000;
+                    glVertex3dv(pos.get());
+                    glVertex3dv((pos + cc).get());
+                }
+                glEnd();
             }
-            glEnd();
         }
     }
 }
@@ -398,11 +444,12 @@ void particle_manager::draw_anisotropic_kernel(vec3 domain_size, bool refresh)
     static vector<double> phi;
     
     // Build
-    if (pos.size() == 0
-        || refresh)
+//    if (pos.size() == 0
+//        || refresh)
     {
         int N = 300;
         vec3 delta = domain_size / N;
+        pos.clear(); phi.clear();
         
         for (int i=0; i < N; i++)
         {
@@ -423,16 +470,17 @@ void particle_manager::draw_anisotropic_kernel(vec3 domain_size, bool refresh)
         double max = *std::max_element(phi.begin(), phi.end());
         double min = *std::min_element(phi.begin(), phi.end());
         cout << "\nMax field: " << max << "; min: " << min << endl;
-        for (auto & pp : phi)
-        {
-            if (pp < 0)
-            {
-                pp /= abs(min);
-            }else{
-                pp /= abs(max);
-            }
-        }
+//        for (auto & pp : phi)
+//        {
+//            if (pp < 0)
+//            {
+//                pp /= abs(min);
+//            }else{
+//                pp /= abs(max);
+//            }
+//        }
     }
+    
     
     // Draw
     glDisable(GL_LIGHTING);
@@ -442,9 +490,6 @@ void particle_manager::draw_anisotropic_kernel(vec3 domain_size, bool refresh)
     vec3 BLUE(0,0,1);
     for (int i = 0; i < pos.size(); i++)
     {
-        if(phi[i] == 0)
-            continue;
-        
         double dis_red = abs(phi[i] + 1)/2;
         double dis_blue = abs(1 - phi[i])/2;
         vec3 c = RED*dis_red + BLUE*dis_blue;
@@ -481,12 +526,16 @@ void particle_manager::draw()
 
 bool particle_manager::get_displacement(vec3 pos, vec3 & dis)
 {
-    
-        return get_displacement_weighted_avg(pos, dis);
+    return get_displacement_sph_kernel(pos, dis);
+//        return get_displacement_weighted_avg(pos, dis);
 //    return get_displacement_MLS_kernel(pos, dis);
     //    return get_displacement_cubic_kernel(pos);
 }
-
+double wendland(double q, double h)
+{
+    static double alpha = 21./(16*3.14159);
+    return alpha/(h*h*h) * std::pow(1 - q/2, 4) * (1 + 2*q);
+}
 void particle_manager::load_time_step(int idx)
 {
     if (idx == -1)
@@ -512,6 +561,7 @@ void particle_manager::interpolate(int sub_idx, int sub_count)
         m_sub_step_particles[i].pos = pre_pos + (next_pos - pre_pos)*(sub_idx/(double)sub_count);
     }
     
+    double max_vel = 0;
     if(sub_idx == 0)//velocity is unchanged hence only need one computation
     {
         m_sub_step_vel.resize(m_current_particles.size());
@@ -521,10 +571,18 @@ void particle_manager::interpolate(int sub_idx, int sub_count)
             auto next_pos = m_next_particles[i].pos;
             
             m_sub_step_vel[i] = (next_pos - pre_pos)/(double)sub_count;
+            
+            if (max_vel < m_sub_step_vel[i].length())
+            {
+                max_vel = m_sub_step_vel[i].length();
+            }
         }
     }
     
+    cout << "Max sub vel: " << max_vel << endl;
+    
     build_kd_tree(); // may not need to be build every time step
+    rebuild_density(); // Because the density output is different, and I dont know why.
     build_anisotropic_kernel();
 }
 
@@ -581,9 +639,23 @@ void particle_manager::load_time_step()
 
 bool particle_manager::get_projection(vec3 pos, vec3 direction, bool &bInside, double &t)
 {
-    double ra = m_influence_radius; // Important parameter
+    static double eps = std::numeric_limits<double>::min();
     double phi_pre = m_aniso_kernel.get_value(pos);
-    double epsilon = -ra*(phi_pre>0? -1:1);
+    
+    if (phi_pre >= 0)
+    {
+        
+    }
+    else // No particle nearby.
+    {
+        return false; 
+    }
+    
+    double ra = m_deltap; // Important parameter
+    
+    
+    
+    double epsilon = -ra*(phi_pre>eps? -1:1);
     
     bInside = phi_pre > 0;
     
@@ -635,6 +707,28 @@ void particle_manager::build_anisotropic_kernel()
     m_aniso_kernel.build();
 }
 
+void particle_manager::rebuild_density()
+{
+    for (auto & part : m_sub_step_particles)
+    {
+        vector<vec3> neighbor_pos;
+        vector<int> neighbor_idx;
+        
+        double h = m_slength;
+        double r = 2*h;
+        
+        m_vtree.in_sphere(part.pos, r, neighbor_pos, neighbor_idx);
+
+        double rho = 0;
+        for (auto & p : neighbor_idx)
+        {
+            double q = (m_sub_step_particles[p].pos - part.pos).length() / h;
+            rho += m_sub_step_particles[p].mass * wendland(q, h);
+        }
+        part.density = rho;
+    }
+}
+
 void particle_manager::build_kd_tree()
 {
     m_vtree = Geometry::KDTree<vec3, int>();
@@ -667,7 +761,6 @@ void particle_manager::load(int idx, std::vector<particle> & par)
         int num_points;
         f >> num_points;
         
-//        par.resize(num_points);
         for (int i = 0; i < num_points; i++)
         {
             particle p;
