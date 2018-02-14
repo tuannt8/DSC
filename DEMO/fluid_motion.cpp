@@ -78,8 +78,10 @@ int fluid_motion::subdivide_time_step()
     return ceil(max_displace / max_dsc_displacement);
 }
 
-void fluid_motion::load_next_particle()
+bool fluid_motion::load_next_particle()
 {
+    bool load_new = false;
+    
     static int cur_global_idx = -1;
     static int sub_step_idx = 0;
     static int sub_step_count = 0;
@@ -94,6 +96,8 @@ void fluid_motion::load_next_particle()
     
     if(sub_step_idx == sub_step_count)
     {
+        load_new = true;
+        
         cur_global_idx++;
         sub_step_idx = 0;
         
@@ -114,6 +118,8 @@ void fluid_motion::load_next_particle()
         m_particles[i]->interpolate(sub_step_idx, sub_step_count);
     }
     sub_step_idx++;
+    
+    return load_new;
 }
 
 void fluid_motion::draw()
@@ -135,7 +141,7 @@ void fluid_motion::draw()
         m_particles[0]->draw_anisotropic_kernel(m_problem->domain_size());
     }
     
-    if ((glut_menu::get_state("Isotropic sphere", 1)))
+    if ((glut_menu::get_state("Isotropic sphere", 0)))
     {
         m_particles[1]->draw_anisotropic_kernel();
     }
@@ -153,81 +159,90 @@ void fluid_motion::deform()
     // Because of fluid convection and advection, internal particles contribute
     //  false velocities
     ///////////////////////////////////////////////////////////////////////////
-//    double max_dis = -INFINITY;
-//
-//    profile *t = new profile("compute displacement");
-//
-//    static double dt = m_problem->m_deltap;
-//
-//    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
-//    {
-//        if (nit->is_interface())
-//        {
-//            auto pos = nit->get_pos();
-//            vec3 dis(0.0);
-//            bool bFound = false;
-//            // get displacement from multiple phase, then average
-//            for (int i = 0; i < m_problem->m_nb_phases; i++)
-//            {
-//                vec3 phase_dis(0.0);
-//                if (m_particles[i]->get_displacement(pos, phase_dis))
-//                {// found
-//                    if (dis.length() < phase_dis.length())
-//                    {
-//                        dis = phase_dis;
-//                    }
-//                    bFound = true;
-//                }
-//            }
-//
-//            if (!bFound)
-//            {
-//                // Shrink
-//                auto norm = s_dsc->get_normal(nit.key());
-//                dis = norm*(-dt);
-//            }
-//
-//            s_dsc->set_destination(nit.key(), pos + dis);
-//
-//            if (max_dis < dis.length())
-//            {
-//                max_dis = dis.length();
-//            }
-//        }
-//    }
-//
-//
-//    std::cout << "Max displacement from velocity projection: " << max_dis << std::endl;
-//
-//    snapp_boundary_vertices();
-//
-//    t->change("displace DSC");
-//    s_dsc->deform(20);
-//
-//#ifdef __APPLE__
-//#else
-//    log_dsc_surface(idx);
-//#endif
+    double max_dis = -INFINITY;
+
+    profile *t = new profile("compute displacement");
+
+    static double dt = m_problem->m_deltap;
+
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface())
+        {
+            auto pos = nit->get_pos();
+            vec3 dis(0.0);
+            bool bFound = false;
+            // get displacement from multiple phase, then average
+            for (int i = 0; i < m_problem->m_nb_phases; i++)
+            {
+                vec3 phase_dis(0.0);
+                if (m_particles[i]->get_displacement(pos, phase_dis))
+                {// found
+                    if (dis.length() < phase_dis.length())
+                    {
+                        dis = phase_dis;
+                    }
+                    bFound = true;
+                }
+            }
+
+            if (!bFound)
+            {
+                // Shrink
+                auto norm = s_dsc->get_normal(nit.key());
+                dis = norm*(-dt);
+            }
+
+            s_dsc->set_destination(nit.key(), pos + dis);
+
+            if (max_dis < dis.length())
+            {
+                max_dis = dis.length();
+            }
+        }
+    }
+
+
+    std::cout << "Max displacement from velocity projection: " << max_dis << std::endl;
+
+    snapp_boundary_vertices();
+
+    t->change("displace DSC");
+    s_dsc->deform(20);
+
+#ifdef __APPLE__
+#else
+    log_dsc_surface(idx);
+#endif
     
     
-    /////////////////////////////////////////////////////
-    // Try pure projection
-    /////////////////////////////////////////////////////
-    project_interface_itteratively();
+
     
-    load_next_particle();
+    if(load_next_particle())
+    {
+        /////////////////////////////////////////////////////
+        // Try pure projection
+        /////////////////////////////////////////////////////
+        project_interface_itteratively();
+    }
     idx++;
     
     cout << "DSC statistic (nodes, edges, faces, tets): " << s_dsc->get_no_nodes() << " " << s_dsc->get_no_edges() << " " << s_dsc->get_no_faces() << " " << s_dsc->get_no_tets() << endl;
 }
 
 void fluid_motion::project_interface_itteratively(){
+    
+    for (int i = 0; i < m_problem->m_nb_phases; i++)
+    {
+        m_particles[i]->build_anisotropic_kernel();
+    }
+    
     double thres_hold = m_problem->m_deltap/3;
     // It mean we perform binary search 3 times is enough
     
     while (1)
     {
-        double max_displace = project_interface();
+        double max_displace = project_interface(thres_hold*0.8);
         if (max_displace < thres_hold )
         {
             break;
@@ -245,21 +260,28 @@ bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
     auto pts = s_dsc->get_pos(s_dsc->get_nodes(fkey));
     for (int idx = 0; idx < 3; idx++)
     {
+        bool is_bound_vertex = false;
+        
         auto p = pts[idx];
         for (int i = 0; i < 3; i++)
         {
             if (abs(p[i] - dim[i]) < thres)
             {
-                return true;
+                is_bound_vertex = true;
             }
             if (abs(p[i] - origin[i]) < thres)
             {
-                return true;
+                is_bound_vertex = true;
             }
         }// Snap to boundary
+        
+        if (!is_bound_vertex)
+        {
+            return false;
+        }
     }
     
-    return false;
+    return true;
 }
 
 void fluid_motion::snapp_boundary_vertices()
@@ -299,7 +321,7 @@ void fluid_motion::snapp_boundary_vertices()
 
 #define get_barry_pos(b, pos) pos[0]*b[0] + pos[1]*b[1] + pos[2]*b[2]
 
-double fluid_motion::project_interface(){
+double fluid_motion::project_interface(double min_displace){
     vector<vec3> vertex_dis(s_dsc->get_no_nodes(), vec3(0.0));
     vector<double> contribution(s_dsc->get_no_nodes(), 0.0);
     
@@ -365,13 +387,15 @@ double fluid_motion::project_interface(){
     // Set destination and deform the DSC
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
-        if (contribution[nit.key()] > 0)
+        if (nit->is_interface()
+            && vertex_dis[nit.key()].length() > min_displace)
         {
             s_dsc->set_destination(nit.key(), nit->get_pos() + vertex_dis[nit.key()]);
         }
     }
     
     snapp_boundary_vertices();
+    
     double max_displace = 0;
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++){
         if (nit->is_interface()){
@@ -382,6 +406,7 @@ double fluid_motion::project_interface(){
     
     s_dsc->deform();
     
+    cout << "Max displace during projeciton: " << max_displace << endl;
     return max_displace;
 }
 

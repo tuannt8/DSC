@@ -50,13 +50,13 @@ public:
     std::unique_ptr<problem> m_problem; // Will be casted to specific problem
     std::vector<std::shared_ptr<particle_manager>> m_particles;
     
-    void load_next_particle();
+    bool load_next_particle(); // return true if loading new file
     int subdivide_time_step();
 //    dam_break m_file_load;
     
     void deform();
     void project_interface_itteratively();
-    double project_interface();
+    double project_interface(double );
     void snapp_boundary_vertices();
     
     void log_dsc_surface(int idx);

@@ -149,7 +149,7 @@ DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
         }
     }
     
-    auto avg_edge = dsc->get_avg_edge_length();
+    auto avg_edge = dsc->get_avg_edge_length()*1.3;
     for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
     {
         if (nit->is_interface())

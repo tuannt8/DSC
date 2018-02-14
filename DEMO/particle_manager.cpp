@@ -583,7 +583,7 @@ void particle_manager::interpolate(int sub_idx, int sub_count)
     
     build_kd_tree(); // may not need to be build every time step
     rebuild_density(); // Because the density output is different, and I dont know why.
-    build_anisotropic_kernel();
+//    build_anisotropic_kernel();
 }
 
 double particle_manager::get_max_displacement()
@@ -699,8 +699,7 @@ bool particle_manager::get_projection(vec3 pos, vec3 direction, bool &bInside, d
 
 void particle_manager::build_anisotropic_kernel()
 {
-//    m_aniso_kernel.m_shared_tree = &m_vtree;
-    m_aniso_kernel.m_shared_particles = &m_sub_step_particles;
+    m_aniso_kernel.m_particles = m_current_particles;
     m_aniso_kernel.m_h = m_slength;
     m_aniso_kernel.m_ra = m_deltap;
     

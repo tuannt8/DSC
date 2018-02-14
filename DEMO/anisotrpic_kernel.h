@@ -55,7 +55,7 @@ public:
     std::vector<mat3x3d> m_G;
     std::vector<double> m_det_G;
     std::vector<bool> m_b_kernel_computed;
-    std::vector<particle> *m_shared_particles;
+    std::vector<particle> m_particles;
     
     
     const mat3x3d & get_transform_mat(int idx);

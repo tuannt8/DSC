@@ -328,12 +328,12 @@ bool file_load::get_projection(vec3 pos, vec3 direction, bool &bInside, double &
 
 void file_load::build_anisotropic_kernel()
 {
-//    m_aniso_kernel.m_shared_tree = &m_vtree;
-    m_aniso_kernel.m_shared_particles = &m_sub_step_particles;
-    m_aniso_kernel.m_h = get_influence_radius();
-    m_aniso_kernel.m_ra = get_spacing_distance();
-    
-    m_aniso_kernel.build();
+////    m_aniso_kernel.m_shared_tree = &m_vtree;
+//    m_aniso_kernel.m_shared_particles = &m_sub_step_particles;
+//    m_aniso_kernel.m_h = get_influence_radius();
+//    m_aniso_kernel.m_ra = get_spacing_distance();
+//
+//    m_aniso_kernel.build();
 }
 
 void file_load::draw()

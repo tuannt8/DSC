@@ -104,7 +104,7 @@ double anisotropic_kernel::get_value(vec3 pos){
     double phi = 0.0;
     for (auto n_p : close_particles)
     {
-        auto part = m_shared_particles->at(n_p);
+        auto part = m_particles.at(n_p);
         auto & G = get_transform_mat(n_p);
 
         vec3 ra_h = G*(pos-part.pos);
@@ -131,7 +131,7 @@ bool anisotropic_kernel::is_inside(vec3 pos, std::vector<int> & neighbor)
 {
     for (auto & n_p : neighbor)
     {
-        auto part = m_shared_particles->at(n_p);
+        auto part = m_particles.at(n_p);
         auto & G = get_transform_mat(n_p);
         
         vec3 ra_h = G*(pos-part.pos);
@@ -152,9 +152,9 @@ void anisotropic_kernel::compute_kd_tree()
     m_vtree = Geometry::KDTree<vec3, int>();
     
 
-    for (int idx = 0; idx < m_shared_particles->size(); idx++)
+    for (int idx = 0; idx < m_particles.size(); idx++)
     {
-        auto & p = m_shared_particles->at(idx);
+        auto & p = m_particles.at(idx);
         if (p.type == 0)
         {
             m_vtree.insert(p.pos, idx);
@@ -174,16 +174,16 @@ std::vector<int> anisotropic_kernel::neighbor_search(vec3 pos, double radius)
 }
 void anisotropic_kernel::build_connected_component()
 {
-    m_connected_component_label = std::vector<int>(m_shared_particles->size(), -1);
+    m_connected_component_label = std::vector<int>(m_particles.size(), -1);
     
     // m_h or 1.1 m_ra
     double connected_radius = 1.1*m_ra;
     
     int cc_count = 0;
     int num_fluid_particles = 0;
-    for (int i = 0; i < m_shared_particles->size(); i++)
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        if (m_shared_particles->at(i).type != 0)
+        if (m_particles.at(i).type != 0)
         {
             continue;
         }
@@ -201,7 +201,7 @@ void anisotropic_kernel::build_connected_component()
                 int cur_idx = neighbor.front();
                 neighbor.pop();
                 
-                auto & p_cur = (*m_shared_particles)[cur_idx];
+                auto & p_cur = (m_particles)[cur_idx];
                 
                 // growing the neighbor
                 // Search for neighbor particles
@@ -242,15 +242,15 @@ void anisotropic_kernel::build(){
     compute_kd_tree();
 
     // 3. Build transformation matrix
-    m_G.resize(m_shared_particles->size());
-    m_det_G.resize(m_shared_particles->size());
-    m_b_kernel_computed = vector<bool>(m_shared_particles->size(), false);
+    m_G.resize(m_particles.size());
+    m_det_G.resize(m_particles.size());
+    m_b_kernel_computed = vector<bool>(m_particles.size(), false);
     
-    m_U.resize(m_shared_particles->size());
-    m_S.resize(m_shared_particles->size());
-    m_C.resize(m_shared_particles->size());
+    m_U.resize(m_particles.size());
+    m_S.resize(m_particles.size());
+    m_C.resize(m_particles.size());
     
-//    for (int i = 0; i < m_shared_particles->size(); i++)
+//    for (int i = 0; i < m_particles.size(); i++)
 //    {
 //        compute_tranformation_mat_for_particle(i);
 //    }
@@ -269,7 +269,7 @@ const mat3x3d & anisotropic_kernel::get_transform_mat(int idx)
 
 void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
 {
-    auto & pi = m_shared_particles->at(i);
+    auto & pi = m_particles.at(i);
     
     if(pi.type != 0)
         return;
@@ -286,7 +286,7 @@ void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
     double sum_omega = 0.0;
     for (auto idx : close_particles)
     {
-        auto neighbor_p = m_shared_particles->at(idx);
+        auto neighbor_p = m_particles.at(idx);
         double omega = weight_func(i, idx, m_r);
         x_w += neighbor_p.pos*omega;
         sum_omega += omega;
@@ -297,7 +297,7 @@ void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
     mat3x3d C(0.0);
     for (auto idx : close_particles)
     {
-        auto neighbor_p = m_shared_particles->at(idx);
+        auto neighbor_p = m_particles.at(idx);
         double omega = weight_func(i, x_w, idx, m_r);
         
         mat3x3d oo;
@@ -353,7 +353,7 @@ double anisotropic_kernel::get_coeff(vec3 pos, int idx)
 {
     static double kernel_sigma = 315.0 / (64 * 3.14159);
     
-    auto & part = (*m_shared_particles)[idx];
+    auto & part = (m_particles)[idx];
     auto & G = get_transform_mat(idx);
     
     vec3 ra_h = G*(pos-part.pos);
@@ -370,16 +370,16 @@ double anisotropic_kernel::get_coeff(vec3 pos, int idx)
 void anisotropic_kernel::Taubin_smooth()
 {
     double lamda = 0.93;
-    std::vector<particle> smoothed_particles = *m_shared_particles;
+    std::vector<particle> smoothed_particles = m_particles;
     
-    for (int i = 0; i < m_shared_particles->size(); i++)
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        if (m_shared_particles->at(i).type != 0)
+        if (m_particles.at(i).type != 0)
         {
             continue;
         }
         
-        auto cur_particle = (*m_shared_particles)[i];
+        auto cur_particle = (m_particles)[i];
         
         // Search for neighbor particles
         std::vector<int> close_particles = neighbor_search(cur_particle.pos, m_r);
@@ -390,7 +390,7 @@ void anisotropic_kernel::Taubin_smooth()
             double sum_omega = 0;
             for (auto pidx : close_particles)
             {
-                auto & pj = (*m_shared_particles)[pidx];
+                auto & pj = (m_particles)[pidx];
                 
                 double omega = weight_func(i, pidx, m_r);
                 sum_omega += omega;
@@ -403,7 +403,7 @@ void anisotropic_kernel::Taubin_smooth()
         }
     }
     
-    *m_shared_particles = smoothed_particles;
+    m_particles = smoothed_particles;
 }
 
 double anisotropic_kernel::weight_func(int i, vec3 posi, int j, double radius)
@@ -413,7 +413,7 @@ double anisotropic_kernel::weight_func(int i, vec3 posi, int j, double radius)
         return 0;
     }
     
-    auto const & pj = m_shared_particles->at(j);
+    auto const & pj = m_particles.at(j);
     double r = (posi - pj.pos).length() / radius;
     if (r > 1)
     {
@@ -430,8 +430,8 @@ double anisotropic_kernel::weight_func(int i, int j, double h)
         return 0;
     }
     
-    auto const & pi = m_shared_particles->at(i);
-    auto const & pj = m_shared_particles->at(j);
+    auto const & pi = m_particles.at(i);
+    auto const & pj = m_particles.at(j);
     double r = (pi.pos - pj.pos).length() / h;
     if (r > 1)
     {
