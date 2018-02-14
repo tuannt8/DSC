@@ -17,6 +17,40 @@
 
 using namespace std;
 
+vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double max_displace){
+    if (max_displace == 0)
+    {
+        max_displace = m_ra; // spacing distance
+    }
+    
+    // point 1
+    vec3 pos1 = pos;
+    bool bInside1 = is_inside(pos1);
+    
+    // point 2
+    vec3 pos2 = pos + norm * (max_displace * (bInside1? 1 : -1));
+    bool bInside2 = is_inside(pos2);
+    
+    if (bInside1 == bInside2)
+    {
+        return pos2 - pos1;
+    }
+    
+    for (int i = 0; i < 3; i++)
+    {
+        vec3 mid = (pos1 + pos2)*0.5;
+        bool bInside = is_inside(mid);
+            
+        if (bInside == bInside1)
+        {
+            pos1 = mid;
+        }else
+            pos2 = mid;
+    }
+    
+    return (pos1 + pos2)*0.5 - pos;
+}
+
 bool anisotropic_kernel::get_projection(vec3 pos, vec3 direction, bool &bInside, vec3& projected_point)
 {
     double max_displace = m_h;

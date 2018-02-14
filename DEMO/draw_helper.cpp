@@ -216,8 +216,6 @@ void draw_helper::dsc_draw_interface(dsc_class & dsc, std::vector<double> * colo
             {
                 auto nodes = dsc.get_nodes(f.key());
                 auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
-                
-                
 
                 for (int i = 0; i < 3; i++)
                 {

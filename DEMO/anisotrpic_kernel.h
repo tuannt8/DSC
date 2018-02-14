@@ -74,6 +74,7 @@ public:
     //  Inside is larger than 0
     double get_value(vec3 pos);
     bool get_projection(vec3 pos, vec3 direction, bool &bInside, vec3& projected_point);
+    vec3 get_displacement_projection(vec3 pos, vec3 norm, double max_displace = 0);
     bool is_inside(vec3 pos, std::vector<int> & neighbor);
     bool is_inside(vec3 pos);
     

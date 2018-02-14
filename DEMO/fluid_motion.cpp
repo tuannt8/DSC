@@ -213,25 +213,64 @@ void fluid_motion::deform()
     /////////////////////////////////////////////////////
     // Try pure projection
     /////////////////////////////////////////////////////
-    project_interface(); // require computation of isotropic field./
-    // work around DSC boundary
-    //  Displacement is capped, so vertices close to boundary will be snapped
-    snapp_boundary_vertices();
-    s_dsc->deform();
+    project_interface_itteratively();
     
     load_next_particle();
     idx++;
     
-    cout << "DSC statistic (nodes, edges, faces, tets): " << s_dsc->get_no_nodes() << s_dsc->get_no_edges() << s_dsc->get_no_faces() << s_dsc->get_no_tets() << endl;
+    cout << "DSC statistic (nodes, edges, faces, tets): " << s_dsc->get_no_nodes() << " " << s_dsc->get_no_edges() << " " << s_dsc->get_no_faces() << " " << s_dsc->get_no_tets() << endl;
+}
+
+void fluid_motion::project_interface_itteratively(){
+    double thres_hold = m_problem->m_deltap/3;
+    // It mean we perform binary search 3 times is enough
+    
+    while (1)
+    {
+        double max_displace = project_interface();
+        if (max_displace < thres_hold )
+        {
+            break;
+        }
+    }
+}
+
+bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
+{
+    double thres = m_problem->m_deltap; // Should be larger than max projection
+    
+    static vec3 dim = m_problem->domain_size();
+    static vec3 origin(0.0);
+    
+    auto pts = s_dsc->get_pos(s_dsc->get_nodes(fkey));
+    for (int idx = 0; idx < 3; idx++)
+    {
+        auto p = pts[idx];
+        for (int i = 0; i < 3; i++)
+        {
+            if (abs(p[i] - dim[i]) < thres)
+            {
+                return true;
+            }
+            if (abs(p[i] - origin[i]) < thres)
+            {
+                return true;
+            }
+        }// Snap to boundary
+    }
+    
+    return false;
 }
 
 void fluid_motion::snapp_boundary_vertices()
 {
+    double thres = m_problem->m_deltap; // Should be larger than max projection
+    
     double max_displace = 0;
     
     vec3 dim = m_problem->domain_size();
     vec3 origin(0.0);
-    double thres = m_problem->m_deltap*2; // Should be larger than max projection
+
     
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
@@ -260,11 +299,7 @@ void fluid_motion::snapp_boundary_vertices()
 
 #define get_barry_pos(b, pos) pos[0]*b[0] + pos[1]*b[1] + pos[2]*b[2]
 
-void fluid_motion::project_interface()
-{
-    // Project the DSC interface to particles field
-    static const double shrink_vel = s_dsc->get_avg_edge_length()*0.2;
-    
+double fluid_motion::project_interface(){
     vector<vec3> vertex_dis(s_dsc->get_no_nodes(), vec3(0.0));
     vector<double> contribution(s_dsc->get_no_nodes(), 0.0);
     
@@ -272,13 +307,18 @@ void fluid_motion::project_interface()
     {
         if (fit->is_interface())
         {
+            // Ignore the face on the work around boundary
+            if (is_boundary_work_around(fit.key()))
+            {
+                continue;
+            }
+            
             static const vector<vec3> sampling_point = {vec3(0.33, 0.33, 0.33)};
             auto node_pts = s_dsc->get_nodes(fit.key());
             auto node_pos = s_dsc->get_pos(node_pts);
             auto tet_keys = s_dsc->get_tets(fit.key());
             
             auto norm_global = s_dsc->get_normal(fit.key()); // From large label to smaller label
-            
             for (auto const &sp : sampling_point)
             {
                 // Find the point displacement
@@ -289,36 +329,17 @@ void fluid_motion::project_interface()
                 // Have to project on both particles
                 //  tuannt8: HARDCODE for 2 phases
                 if(s_dsc->get_label(tet_keys[0]) == 0
-                   || s_dsc->get_label(tet_keys[1]) == 0)
-                { // Single interface
+                   || s_dsc->get_label(tet_keys[1]) == 0
+                   ) { // Single interface
                     int label = s_dsc->get_label(tet_keys[0]) == 0? s_dsc->get_label(tet_keys[1]) : s_dsc->get_label(tet_keys[0]);
                     
-                    vec3 projected_p;
-                    bool bInside;
-                    
-                    
-                    if(m_particles[label-1]->m_aniso_kernel.get_projection(sample_pos, norm_global, bInside, projected_p))
-                    {
-                        vDisplace = projected_p - sample_pos;
-                    }
-                    else{
-                        vDisplace += norm_global*(shrink_vel)*(bInside? 1:-1);
-                    }
+                    vDisplace = m_particles[label - 1]->m_aniso_kernel.get_displacement_projection(sample_pos, norm_global);
                 }
-                else
-                { // Sharing interface
+                else{ // Sharing interface
                     for (int i = 0; i < m_particles.size(); i++)
                     {
                         auto norm = norm_global *( i==0? -1:1);
-                        vec3 projected_p;
-                        bool bInside;
-                        
-                        if(m_particles[i]->m_aniso_kernel.get_projection(sample_pos, norm, bInside, projected_p))
-                        {
-                            vDisplace += projected_p - sample_pos;
-                        }else{
-                            vDisplace += norm*(shrink_vel)*(bInside? 1:-1);
-                        }
+                        vDisplace += m_particles[i]->m_aniso_kernel.get_displacement_projection(sample_pos, norm);
                     }
 
                     vDisplace *= 0.5;
@@ -334,60 +355,34 @@ void fluid_motion::project_interface()
         } // For all triangles
     }
     
-    for (int i = 0; i < vertex_dis.size(); i++)
-    {
-        if (contribution[i] > 0)
-        {
+    // Normalize the displacement
+    for (int i = 0; i < vertex_dis.size(); i++){
+        if (contribution[i] > 0){
             vertex_dis[i] /= contribution[i];
         }
     }
     
+    // Set destination and deform the DSC
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
-        if (nit->is_interface() || nit->is_crossing())
+        if (contribution[nit.key()] > 0)
         {
             s_dsc->set_destination(nit.key(), nit->get_pos() + vertex_dis[nit.key()]);
         }
     }
     
-//    double shrink_vel = m_problem->m_deltap;
-//
-//    std::cout << "Project interface \n";
-//    double max_projection = 0;
-//    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
-//    {
-//        if (nit->is_interface() || nit->is_crossing())
-//        {
-//            auto norm_global = s_dsc->get_normal(nit.key()); // From large label to smaller label
-//
-//            vec3 vDisplace(0.0);
-//            int iCount = 0;
-//            bool inside = true;
-//
-//            auto tid = s_dsc->get_tets(<#const is_mesh::FaceKey &fid#>)
-//
-//            for (int i = 0; i < m_particles.size(); i++)
-//            {
-//                auto norm = norm_global;
-//
-//                double t = 0;
-//                bool bInside;
-//                if(m_particles[i]->get_projection(nit->get_pos(), norm, bInside, t))
-//                {
-//                    iCount++;
-//                    vDisplace += norm*t;
-//                }
-//                else{
-//                    vDisplace += norm*(shrink_vel)*(inside? 1:-1);
-//                }
-//            }
-//
-//            max_projection = max(max_projection, vDisplace.length());
-//
-//            s_dsc->set_destination(nit.key(), nit->get_pos() + vDisplace);
-//        }
-//    }
-//    std::cout << "Max projection: " << max_projection << std::endl;
+    snapp_boundary_vertices();
+    double max_displace = 0;
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++){
+        if (nit->is_interface()){
+            max_displace = max(max_displace,
+                               (nit->get_destination() -nit->get_pos()).length());
+        }
+    }
+    
+    s_dsc->deform();
+    
+    return max_displace;
 }
 
 void fluid_motion::log_dsc_surface(int idx)

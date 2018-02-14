@@ -28,6 +28,8 @@
 
 #define DT_NORM 0.2
 
+
+
 class fluid_motion
 {
 public:
@@ -53,10 +55,13 @@ public:
 //    dam_break m_file_load;
     
     void deform();
-    void project_interface();
+    void project_interface_itteratively();
+    double project_interface();
     void snapp_boundary_vertices();
     
     void log_dsc_surface(int idx);
+    
+    bool is_boundary_work_around(is_mesh::FaceKey fkey);
 };
 
 

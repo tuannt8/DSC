@@ -192,7 +192,7 @@ UI::UI()
 void UI::init_data()
 {
 #ifdef __APPLE__
-    double res_scale = 2;
+    double res_scale = 4;
 #else
     double res_scale = 2;
 #endif
