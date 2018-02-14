@@ -197,14 +197,15 @@ void UI::init_data()
     double res_scale = 2;
 #endif
     
-    m_fluid.init();// Load configuration
+    m_fluid.load_configuration();// Load configuration
     
     // init DSC
     _obj_dim = m_fluid.m_problem->domain_size();
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(res_scale));
-    m_fluid.s_dsc = &*dsc;
+    m_fluid.init(&*dsc);
     
+    // Load first particle
     m_fluid.load_next_particle();
     
     cout << "DSC statistic: " << dsc->get_no_nodes() << " nodes; "

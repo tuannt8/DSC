@@ -23,7 +23,13 @@ string find_name(string input)
     return input.substr(pos+1);
 }
 
-void fluid_motion::init()
+void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
+    s_dsc = dsc;
+    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.4;
+    m_max_displacement_projection = min(m_problem->m_deltap, m_max_dsc_displacement);
+    m_threshold_projection = m_max_displacement_projection*0.3;
+}
+void fluid_motion::load_configuration()
 {
     // Make sure the data path dont have '/' at last
     if(m_data_path.back() == '/')
@@ -44,9 +50,7 @@ void fluid_motion::init()
     // 2. Load problem parameters
     m_problem->init(m_data_path + "/summary.txt");
     
-    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.4;
-    m_max_displacement_projection = min(m_problem->m_deltap, m_max_dsc_displacement);
-    m_threshold_projection = m_max_displacement_projection*0.3;
+    
     
     // 3. Init particles for all phases
     for (int i = 0; i < m_problem->m_nb_phases; i++)

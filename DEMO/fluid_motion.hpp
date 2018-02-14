@@ -36,7 +36,8 @@ public:
     fluid_motion(); // dangerous to use with static variable. Use init() after the static variables are set
     ~fluid_motion(){};
     
-    void init();
+    void load_configuration();
+    void init(DSC::DeformableSimplicialComplex<> *dsc);
     
     void draw();
     
