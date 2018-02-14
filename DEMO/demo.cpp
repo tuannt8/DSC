@@ -25,6 +25,12 @@ using namespace std;
 
 string fluid_motion::m_data_path;
 
+#ifdef __APPLE__
+string data_path = "../Large_data";
+#else
+string data_path = "../../Large_data";
+#endif
+
 int main(int argc, char** argv)
 {
     
@@ -51,7 +57,7 @@ int main(int argc, char** argv)
     
     InputParser input(argc, argv);
     
-    fluid_motion::m_data_path = input.getCmdOption("-path", "../Large_data/two_phase_fluid");
+    fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-path", "two_phase_fluid");
     
     if (argc > 1)
     {
