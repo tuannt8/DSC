@@ -15,9 +15,9 @@
 #include "util.h"
 #include "is_mesh.h"
 
-// Always use cache
-#ifndef __APPLE__
-#define DSC_ORIGIN  // Not apple, use DSC origin
+// Uncommnet DSC_ORIGIN to use cache
+#ifdef __APPLE__
+#define DSC_ORIGIN  // Mac
 #else
 #define DSC_ORIGIN
 #endif

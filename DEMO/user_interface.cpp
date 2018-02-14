@@ -192,9 +192,9 @@ UI::UI()
 void UI::init_data()
 {
 #ifdef __APPLE__
-    double res = 5;
+    double res_scale = 2;
 #else
-    double res = 1;
+    double res_scale = 2;
 #endif
     
     m_fluid.init();// Load configuration
@@ -202,7 +202,7 @@ void UI::init_data()
     // init DSC
     _obj_dim = m_fluid.m_problem->domain_size();
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
-    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(res));
+    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(res_scale));
     m_fluid.s_dsc = &*dsc;
     
     m_fluid.load_next_particle();

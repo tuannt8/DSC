@@ -665,7 +665,8 @@ namespace DSC {
     public:
         virtual bool is_movable(const node_key& nid)
         {
-            return is_unsafe_editable(nid) && get(nid).is_interface() && !get(nid).is_crossing();
+//            return is_unsafe_editable(nid) && get(nid).is_interface() && !get(nid).is_crossing();
+            return is_unsafe_editable(nid) && get(nid).is_interface();
         }
         
     protected:
@@ -679,21 +680,6 @@ namespace DSC {
             {
                 get(nid).set_destination(p);
             }
-            
-            //            profile t("quality over head");
-            //#ifdef DSC_CACHE // Move node, mark dirty for quality
-            //            {
-            //            profile t("Over head");
-            //
-            //            auto & tets = *get_tets_cache(nid);
-            //
-            //            for (auto tkey : tets)
-            //            {
-            //                cache.mark_dirty_tet(tkey);
-            //            }
-            //
-            //            }
-            //#endif
         }
         
         
@@ -2273,8 +2259,8 @@ namespace DSC {
         {
             {
                 //                profile t("Fix: Smooth");
-//                smooth();
-                smooth_parallel(); // We fix this bug in segment. TUAN: Remember it
+                smooth();
+//                smooth_parallel(); // We fix this bug in segment. TUAN: Remember it
                 // Should not use cache if parallel
                 //                normal_coloring_vertices();
             }
