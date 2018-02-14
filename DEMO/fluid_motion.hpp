@@ -64,7 +64,8 @@ public:
     double project_interface(double );
     void snapp_boundary_vertices();
     
-    void log_dsc_surface(int idx);
+    void log_dsc_surface();
+    void extract_surface_phase(int phase, std::string path);
     
     bool is_boundary_work_around(is_mesh::FaceKey fkey);
 };

@@ -26,7 +26,7 @@ string find_name(string input)
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
     m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.4;
-    m_max_displacement_projection = min(m_problem->m_deltap, m_max_dsc_displacement);
+    m_max_displacement_projection = min(m_problem->m_deltap*0.5, m_max_dsc_displacement);
     m_threshold_projection = m_max_displacement_projection*0.3;
 }
 void fluid_motion::load_configuration()
@@ -209,7 +209,7 @@ void fluid_motion::deform()
     }
 
 
-    std::cout << "Max displacement from velocity projection: " << max_dis << std::endl;
+    std::cout << "Max displacement from velocity advection: " << max_dis << std::endl;
 
     snapp_boundary_vertices();
 
@@ -238,11 +238,14 @@ void fluid_motion::deform()
 
 void fluid_motion::project_interface_itteratively(){
     
+    cout << "Start projecting surface"<<endl;
+    
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
         m_particles[i]->build_anisotropic_kernel();
     }
     
+    int idx = 0;
     while (1)
     {
         double max_displace = project_interface(m_threshold_projection*0.8);
@@ -250,7 +253,11 @@ void fluid_motion::project_interface_itteratively(){
         {
             break;
         }
+        
+        cout << "Projected idx " << idx << " with max displacement: " << max_displace <<"/" << m_threshold_projection << endl;
     }
+    
+    
 }
 
 bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
@@ -412,21 +419,70 @@ double fluid_motion::project_interface(double min_displace){
     return max_displace;
 }
 
-void fluid_motion::log_dsc_surface(int idx)
+void fluid_motion::log_dsc_surface()
 {
+    static int idx = 0;
     try
     {
-        std::stringstream s;
-        s << "LOG/dsc_" << setfill('0') << setw(5) << idx << ".obj";
-        
-        std::vector<vec3> points;
-        std::vector<int> faces;
-        s_dsc->extract_surface_mesh(points, faces);
-        is_mesh::export_surface_mesh(s.str(), points, faces);
+        for (int i = 0; i < m_problem->m_nb_phases; i++)
+        {
+            std::stringstream s;
+            s << m_out_path[i] << setfill('0') << setw(5) << idx << ".obj";
+            extract_surface_phase(i, s.str());
+        }
+//
+//        std::stringstream s;
+//        s << "LOG/dsc_" << setfill('0') << setw(5) << idx << ".obj";
+//
+//        std::vector<vec3> points;
+//        std::vector<int> faces;
+//        s_dsc->extract_surface_mesh(points, faces);
+//        is_mesh::export_surface_mesh(s.str(), points, faces);
     }
     catch (std::exception e)
     {
         std::cout << "Error " << e.what();
     }
 
+    idx ++;
+}
+
+void fluid_motion::extract_surface_phase(int phase, std::string path)
+{
+    vector<int> indices_map(s_dsc->get_no_nodes(), -1);
+    int idx = 0;
+    
+    // Write face first
+    stringstream vertices_write, faces_write;
+    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
+    {
+        if (fit->is_interface())
+        {
+            auto tets = s_dsc->get_tets(fit.key());
+            if(s_dsc->get_label(tets[0]) == phase
+               || s_dsc->get_label(tets[1]) == phase)
+            {
+                auto nodes = s_dsc->get_nodes(fit.key());
+                faces_write << "f ";
+                for (auto n:nodes)
+                {
+                    if (indices_map[n] == 1)
+                    {
+                        indices_map[n] = idx;
+                        idx++;
+                        auto pos = s_dsc->get(n).get_pos();
+                        vertices_write << "v " << pos[0] << " " << pos[1] << " " << pos[2] << endl;
+                    }
+                    
+                    faces_write << indices_map[n] << " ";
+                }
+                faces_write << endl;
+            }
+        }
+    }
+    
+    ofstream of(path);
+    of << vertices_write.str();
+    of << faces_write.str();
+    of.close();
 }
