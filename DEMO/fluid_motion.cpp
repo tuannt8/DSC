@@ -118,16 +118,16 @@ void fluid_motion::load_next_particle()
 
 void fluid_motion::draw()
 {
-    if(glut_menu::get_state("Particles point", 0))
+    if(glut_menu::get_state("Particles point 0", 0))
     {
-        static vector<vec3> color = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
-        int i = 0;
-        for (auto pp : m_particles)
-        {
-            auto & c = color[i++];
-            glColor3f(c[0], c[1], c[2]);
-            pp->draw();
-        }
+        glColor3f(1, 0, 0);
+        m_particles[0]->draw();
+    }
+    
+    if(glut_menu::get_state("Particles point 1", 0))
+    {
+        glColor3f(0, 1, 0);
+        m_particles[1]->draw();
     }
     
     if(glut_menu::get_state("anisotropic", 0))

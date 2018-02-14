@@ -104,7 +104,7 @@ DSC::DeformableSimplicialComplex<> * problem::init_dsc_domain(double scale)
     cout << "Init DSC from point\n";
     
     auto dsc = new DSC::DeformableSimplicialComplex<>(points, tets, tet_labels);
-    dsc->set_avg_edge_length(delta);
+    dsc->set_avg_edge_length(edge_length);
     
     return dsc;
 }

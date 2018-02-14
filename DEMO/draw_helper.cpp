@@ -180,7 +180,7 @@ void draw_helper::dsc_draw_shared_interface(dsc_class & dsc)
             {
                 auto pts = dsc.get_pos(dsc.get_nodes(f.key()));
                 //auto norm = Util::normal_direction(pts[0], pts[1], pts[2]);
-                auto norm = dsc.get_normal(f.key());
+                auto norm = -dsc.get_normal(f.key());
                 
                 auto tets = dsc.get_tets(f.key());
                 if (! (dsc.get_label(tets[0]) != 0
