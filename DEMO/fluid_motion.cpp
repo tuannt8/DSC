@@ -217,6 +217,7 @@ void fluid_motion::deform()
     s_dsc->deform(20);
 
 #ifdef __APPLE__
+    log_dsc_surface();
 #else
     log_dsc_surface();
 #endif
@@ -433,7 +434,7 @@ void fluid_motion::log_dsc_surface()
         for (int i = 0; i < m_problem->m_nb_phases; i++)
         {
             std::stringstream s;
-            s << m_out_path[i] << setfill('0') << setw(5) << idx << ".obj";
+            s << m_out_path[i] << "/" << setfill('0') << setw(5) << idx << ".obj";
             extract_surface_phase(i, s.str());
         }
 //

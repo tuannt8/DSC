@@ -34,27 +34,6 @@ string data_path = "../../Large_data";
 int main(int argc, char** argv)
 {
     
-//    {
-//        mat3x3d Q1(vec3(0,0,1),
-//                   vec3(1,0,0),
-//                   vec3(0,1,0));
-//        cout << "Q1: " << Q1;
-//        mat3x3d sigma(vec3(9,0,0),
-//                      vec3(0,9,0),
-//                      vec3(0,0,22));
-//        mat3x3d Q2(vec3(0,0,1),
-//                   vec3(0,1,0),
-//                   vec3(1,0,0));
-//        cout << "Q2: " << Q2;
-//        auto G1 = Q1*sigma*CGLA::transpose(Q1);
-//        auto G2 = Q2*sigma*CGLA::transpose(Q2);
-//        cout << "G1: " << G1;
-//        cout << "G2: " << G2;
-//        
-//        cout << G1 - G2;
-//    }
-//    return 0;
-    
     InputParser input(argc, argv);
     
     fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-path", "two_phase_fluid");
