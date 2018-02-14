@@ -260,7 +260,7 @@ void fluid_motion::project_interface_itteratively(){
             break;
         }
         
-        cout << "Projected idx " << idx << " with max displacement: " << max_displace <<"/" << m_threshold_projection << endl;
+        cout << "Projected idx " << idx++ << " with max displacement: " << max_displace <<"/" << m_threshold_projection << endl;
     }
     
     
@@ -457,6 +457,9 @@ void fluid_motion::extract_surface_phase(int phase, std::string path)
 {
     vector<int> indices_map(s_dsc->get_no_nodes(), -1);
     int idx = 0;
+    
+    
+    cout << "Log surface " << idx << endl;
     
     // Write face first
     stringstream vertices_write, faces_write;
