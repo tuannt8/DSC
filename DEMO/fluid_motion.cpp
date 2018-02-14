@@ -74,6 +74,7 @@ int fluid_motion::subdivide_time_step()
         max_displace = std::max(max_displace, m_particles[i]->get_max_displacement());
     }
     
+    cout << "Max particle displace: " << max_displace << " and dsc " << max_dsc_displacement << endl;
     return ceil(max_displace / max_dsc_displacement);
 }
 

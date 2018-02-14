@@ -19,7 +19,7 @@
 #ifdef __APPLE__
 #define DSC_ORIGIN  // Mac
 #else
-#define DSC_ORIGIN
+//#define DSC_ORIGIN
 #endif
 
 #define DSC_CACHE
@@ -73,7 +73,7 @@ public:
     
     dsc_cache()
     {
-        std::cout <<"Init cache" << std::endl;
+        std::cout <<"---------- Init cache --------------------" << std::endl;
         // Node
         node_for_curvature_of_node = std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*>(MAX_ELEMENTS, nullptr);
         interface_edge_around_node = std::vector<is_mesh::SimplexSet<is_mesh::EdgeKey>*>(MAX_ELEMENTS, nullptr);
