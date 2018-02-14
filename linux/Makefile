@@ -2,7 +2,7 @@
 TARGET = DSC
 
 BIN_DIR=build
-LIBSRCS = $(wildcard ../src/*.cpp) $(wildcard ../CGLA/*.cpp) $(wildcard ../is_mesh/*.cpp) $(wildcard ../DEMO/*.cpp) 
+LIBSRCS = $(wildcard ../src/*.cpp) $(wildcard ../CGLA/*.cpp) $(wildcard ../is_mesh/*.cpp) $(wildcard ../DEMO/*.cpp)  $(wildcard ../DEMO/Helper*.cpp) 
 LIBC =  $(wildcard ../SOIL/*.c)
 LIBOBJS = $(LIBSRCS:.cpp=.o) $(LIBC:.c=.o) 
 DEPENDS = ${OBJECTS:.o=.d}
@@ -11,7 +11,7 @@ WARNING= -w
 
 
 CXX = g++
-CXXFLAGS = -Wall -O3 -std=c++11 -fpermissive $(WARNING) -I ../src -I../CGLA -I../SOIL -I../is_mesh -I../ -I/usr/include -I../CImg -I../SCGenerator -I../TetGen -MMD
+CXXFLAGS = -Wall -O3 -std=c++11 -fpermissive $(WARNING) -I ../src -I../CGLA -I../SOIL -I../is_mesh -I../ -I/usr/include -I../CImg -I../SCGenerator -I../TetGen -MMD -I../DEMO/Helper
 CFLAGS= $(CXXFLAGS)
 OPENGL= -lm -lGL -L/usr/X11R6/lib -lGLU -lglut -lGLEW -lXi -lXmu
 BOOST=  -L/usr/lib -lboost_filesystem -lboost_system

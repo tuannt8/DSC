@@ -203,6 +203,10 @@ void fluid_motion::deform()
     t->change("displace DSC");
     s_dsc->deform();
     
+#ifdef __APPLE__
+#else
+    log_dsc_surface(idx);
+#endif
     
     
     /////////////////////////////////////////////////////
