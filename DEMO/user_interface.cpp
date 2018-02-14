@@ -192,7 +192,7 @@ UI::UI()
 void UI::init_data()
 {
 #ifdef __APPLE__
-    double res_scale = 4;
+    double res_scale = 2;
 #else
     double res_scale = 2;
 #endif
@@ -206,6 +206,11 @@ void UI::init_data()
     m_fluid.s_dsc = &*dsc;
     
     m_fluid.load_next_particle();
+    
+    cout << "DSC statistic: " << dsc->get_no_nodes() << " nodes; "
+        <<dsc->get_no_edges() << " edges; "
+        << dsc->get_no_faces() << " faces; "
+        << dsc->get_no_tets() << " tets; " << endl;
 }
 
 UI::UI(int &argc, char** argv)
