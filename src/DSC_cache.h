@@ -2259,8 +2259,8 @@ namespace DSC {
         {
             {
                 //                profile t("Fix: Smooth");
-                smooth();
-//                smooth_parallel(); // We fix this bug in segment. TUAN: Remember it
+//                smooth();
+                smooth_parallel(); // We fix this bug in segment. TUAN: Remember it
                 // Should not use cache if parallel
                 //                normal_coloring_vertices();
             }
