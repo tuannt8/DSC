@@ -45,6 +45,10 @@ public:
 private:
     std::vector<std::string> m_out_path; // Write surfaces for different phases
     
+    double m_max_dsc_displacement;
+    
+    double m_max_displacement_projection;
+    double m_threshold_projection;
 public:
     DSC::DeformableSimplicialComplex<>* s_dsc; // shared DSC
     std::unique_ptr<problem> m_problem; // Will be casted to specific problem

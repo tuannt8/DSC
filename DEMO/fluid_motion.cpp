@@ -44,6 +44,10 @@ void fluid_motion::init()
     // 2. Load problem parameters
     m_problem->init(m_data_path + "/summary.txt");
     
+    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.4;
+    m_max_displacement_projection = min(m_problem->m_deltap, m_max_dsc_displacement);
+    m_threshold_projection = m_max_displacement_projection*0.3;
+    
     // 3. Init particles for all phases
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
@@ -66,16 +70,14 @@ void fluid_motion::init()
 
 int fluid_motion::subdivide_time_step()
 {
-    static double max_dsc_displacement = s_dsc->get_avg_edge_length()*0.3; // Beware of this parametter
-    
     double max_displace = -INFINITY;
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
         max_displace = std::max(max_displace, m_particles[i]->get_max_displacement());
     }
     
-    cout << "Max particle displace: " << max_displace << " and dsc " << max_dsc_displacement << endl;
-    return ceil(max_displace / max_dsc_displacement);
+    cout << "Max particle displace: " << max_displace << " and dsc " << m_max_dsc_displacement << endl;
+    return ceil(max_displace / m_max_dsc_displacement);
 }
 
 bool fluid_motion::load_next_particle()
@@ -237,13 +239,10 @@ void fluid_motion::project_interface_itteratively(){
         m_particles[i]->build_anisotropic_kernel();
     }
     
-    double thres_hold = m_problem->m_deltap/3;
-    // It mean we perform binary search 3 times is enough
-    
     while (1)
     {
-        double max_displace = project_interface(thres_hold*0.8);
-        if (max_displace < thres_hold )
+        double max_displace = project_interface(m_threshold_projection*0.8);
+        if (max_displace < m_threshold_projection )
         {
             break;
         }
@@ -351,17 +350,16 @@ double fluid_motion::project_interface(double min_displace){
                 // Have to project on both particles
                 //  tuannt8: HARDCODE for 2 phases
                 if(s_dsc->get_label(tet_keys[0]) == 0
-                   || s_dsc->get_label(tet_keys[1]) == 0
-                   ) { // Single interface
+                   || s_dsc->get_label(tet_keys[1]) == 0) { // Single interface
                     int label = s_dsc->get_label(tet_keys[0]) == 0? s_dsc->get_label(tet_keys[1]) : s_dsc->get_label(tet_keys[0]);
                     
-                    vDisplace = m_particles[label - 1]->m_aniso_kernel.get_displacement_projection(sample_pos, norm_global);
+                    vDisplace = m_particles[label - 1]->m_aniso_kernel.get_displacement_projection(sample_pos, norm_global, m_max_displacement_projection);
                 }
                 else{ // Sharing interface
                     for (int i = 0; i < m_particles.size(); i++)
                     {
                         auto norm = norm_global *( i==0? -1:1);
-                        vDisplace += m_particles[i]->m_aniso_kernel.get_displacement_projection(sample_pos, norm);
+                        vDisplace += m_particles[i]->m_aniso_kernel.get_displacement_projection(sample_pos, norm, m_max_displacement_projection);
                     }
 
                     vDisplace *= 0.5;
