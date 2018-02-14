@@ -66,9 +66,9 @@ void fluid_motion::init()
 
 int fluid_motion::subdivide_time_step()
 {
-    double max_dsc_displacement = s_dsc->get_avg_edge_length()/2; // Beware of this parametter
-    double max_displace = -INFINITY;
+    static double max_dsc_displacement = s_dsc->get_avg_edge_length()*0.3; // Beware of this parametter
     
+    double max_displace = -INFINITY;
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
         max_displace = std::max(max_displace, m_particles[i]->get_max_displacement());
@@ -153,74 +153,76 @@ void fluid_motion::deform()
     // Because of fluid convection and advection, internal particles contribute
     //  false velocities
     ///////////////////////////////////////////////////////////////////////////
-    double max_dis = -INFINITY;
-
-    profile *t = new profile("compute displacement");
-
-    static double dt = m_problem->m_deltap;
-    
-    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
-    {
-        if (nit->is_interface() || nit->is_crossing())
-        {
-            auto pos = nit->get_pos();
-            vec3 dis(0.0);
-            bool bFound = false;
-            // get displacement from multiple phase, then average
-            for (int i = 0; i < m_problem->m_nb_phases; i++)
-            {
-                vec3 phase_dis(0.0);
-                if (m_particles[i]->get_displacement(pos, phase_dis))
-                {// found
-                    if (dis.length() < phase_dis.length())
-                    {
-                        dis = phase_dis;
-                    }
-                    bFound = true;
-                }
-            }
-            
-            if (!bFound)
-            {
-                // Shrink
-                auto norm = s_dsc->get_normal(nit.key());
-                dis = norm*(-dt);
-            }
-
-            s_dsc->set_destination(nit.key(), pos + dis);
-
-            if (max_dis < dis.length())
-            {
-                max_dis = dis.length();
-            }
-        }
-    }
-
-
-    std::cout << "Max displacement from velocity projection: " << max_dis << std::endl;
-
-    snapp_boundary_vertices();
-
-    t->change("displace DSC");
-    s_dsc->deform();
-    
-#ifdef __APPLE__
-#else
-    log_dsc_surface(idx);
-#endif
+//    double max_dis = -INFINITY;
+//
+//    profile *t = new profile("compute displacement");
+//
+//    static double dt = m_problem->m_deltap;
+//
+//    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+//    {
+//        if (nit->is_interface())
+//        {
+//            auto pos = nit->get_pos();
+//            vec3 dis(0.0);
+//            bool bFound = false;
+//            // get displacement from multiple phase, then average
+//            for (int i = 0; i < m_problem->m_nb_phases; i++)
+//            {
+//                vec3 phase_dis(0.0);
+//                if (m_particles[i]->get_displacement(pos, phase_dis))
+//                {// found
+//                    if (dis.length() < phase_dis.length())
+//                    {
+//                        dis = phase_dis;
+//                    }
+//                    bFound = true;
+//                }
+//            }
+//
+//            if (!bFound)
+//            {
+//                // Shrink
+//                auto norm = s_dsc->get_normal(nit.key());
+//                dis = norm*(-dt);
+//            }
+//
+//            s_dsc->set_destination(nit.key(), pos + dis);
+//
+//            if (max_dis < dis.length())
+//            {
+//                max_dis = dis.length();
+//            }
+//        }
+//    }
+//
+//
+//    std::cout << "Max displacement from velocity projection: " << max_dis << std::endl;
+//
+//    snapp_boundary_vertices();
+//
+//    t->change("displace DSC");
+//    s_dsc->deform(20);
+//
+//#ifdef __APPLE__
+//#else
+//    log_dsc_surface(idx);
+//#endif
     
     
     /////////////////////////////////////////////////////
     // Try pure projection
     /////////////////////////////////////////////////////
-//    project_interface();
-//    // work around DSC boundary
-//    //  Displacement is capped, so vertices close to boundary will be snapped
-//    snapp_boundary_vertices();
-//    s_dsc->deform();
+    project_interface(); // require computation of isotropic field./
+    // work around DSC boundary
+    //  Displacement is capped, so vertices close to boundary will be snapped
+    snapp_boundary_vertices();
+    s_dsc->deform();
     
     load_next_particle();
     idx++;
+    
+    cout << "DSC statistic (nodes, edges, faces, tets): " << s_dsc->get_no_nodes() << s_dsc->get_no_edges() << s_dsc->get_no_faces() << s_dsc->get_no_tets() << endl;
 }
 
 void fluid_motion::snapp_boundary_vertices()
