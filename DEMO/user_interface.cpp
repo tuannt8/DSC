@@ -518,8 +518,8 @@ void UI::display()
 //                glPushMatrix();
 //                auto p = nit->get_pos();
 //                glTranslated(p[0], p[1], p[2]);
-//                glutWireSphere(0.052, 20, 20);
-//                break;
+//                glutSolidSphere(0.0012, 20, 20);
+//                glPopMatrix();
 //            }
 //        }
     }

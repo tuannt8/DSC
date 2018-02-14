@@ -29,6 +29,8 @@ public:
     virtual DSC::DeformableSimplicialComplex<> * init_dsc(double scale = 1)=0; // Pure virtual function
     virtual vec3 domain_size()=0;
     
+   
+    
     void init(std::string sumary_file_path);
 };
 
@@ -37,6 +39,8 @@ class two_phase_fluid:public problem
 public:
     two_phase_fluid(){};
     ~two_phase_fluid(){};
+    
+    bool is_one_bellow_z(DSC::DeformableSimplicialComplex<> * dsc, is_mesh::TetrahedronKey tkey, double z);
     
     virtual DSC::DeformableSimplicialComplex<> * init_dsc(double scale = 1);
     virtual vec3 domain_size(){return vec3(0.15, 0.15, 0.15);};

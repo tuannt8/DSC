@@ -108,10 +108,24 @@ DSC::DeformableSimplicialComplex<> * problem::init_dsc_domain(double scale)
     
     return dsc;
 }
-
+bool two_phase_fluid::is_one_bellow_z(DSC::DeformableSimplicialComplex<> * dsc, is_mesh::TetrahedronKey tkey, double z)
+{
+    auto node_poses = dsc->get_pos(dsc->get_nodes(tkey));
+    
+    for (auto n : node_poses)
+    {
+        if (n[2] <z)
+        {
+            return true;
+        }
+    }
+    return false;
+}
 DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
 {
     auto dsc = init_dsc_domain(scale);
+    
+    double z1 = 0.054, z2 = 0.125;
     
     // Init fluid
     auto fluid_size = domain_size();
@@ -126,23 +140,21 @@ DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
             continue;
         }
         
-        if (center[2] < 0.0625)
+        if (is_one_bellow_z(dsc, tit.key(), z1))
         {
             dsc->set_label(tit.key(), 1);
-        }else if(center[2] < 0.125)
+        }else if(is_one_bellow_z(dsc, tit.key(), z2))
         {
             dsc->set_label(tit.key(), 2);
         }
     }
     
-    double z1 = 0.0575, z2 = 0.125;
     auto avg_edge = dsc->get_avg_edge_length();
     for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
     {
-        if (nit->is_interface() || nit->is_crossing())
+        if (nit->is_interface())
         {
             auto pos = nit->get_pos();
-            // project to 0.0575 and 0.125
             if (std::abs(pos[2] - z1) < avg_edge)
             {
                 pos[2] = z1;
@@ -151,11 +163,11 @@ DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
             {
                 pos[2] = z2;
             }
-            
+
             dsc->set_destination(nit.key(), pos);
         }
     }
-    
+
     dsc->deform();
     
     return dsc;
