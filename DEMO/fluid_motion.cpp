@@ -218,7 +218,7 @@ void fluid_motion::deform()
 
 #ifdef __APPLE__
 #else
-    log_dsc_surface(idx);
+    log_dsc_surface();
 #endif
     
     
@@ -249,6 +249,12 @@ void fluid_motion::project_interface_itteratively(){
     while (1)
     {
         double max_displace = project_interface(m_threshold_projection*0.8);
+        
+#ifdef __APPLE__
+#else
+        log_dsc_surface();
+#endif
+        
         if (max_displace < m_threshold_projection )
         {
             break;
