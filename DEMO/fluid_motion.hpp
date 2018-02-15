@@ -67,6 +67,8 @@ public:
     void log_dsc_surface();
     void extract_surface_phase(int phase, std::string path);
     
+    std::vector<bool> is_vertices_boundary;
+    void update_vertex_boundary();
     bool is_boundary_work_around(is_mesh::FaceKey fkey);
 };
 

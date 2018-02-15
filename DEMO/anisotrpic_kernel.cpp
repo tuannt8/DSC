@@ -36,7 +36,7 @@ vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double
         return pos2 - pos1;
     }
     
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         vec3 mid = (pos1 + pos2)*0.5;
         bool bInside = is_inside(mid);

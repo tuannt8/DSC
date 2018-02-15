@@ -155,6 +155,7 @@ void fluid_motion::draw()
 
 void fluid_motion::deform()
 {
+    update_vertex_boundary();
     
     // 1. Interpolate the displacement
     static int idx = 0;
@@ -216,6 +217,7 @@ void fluid_motion::deform()
     t->change("displace DSC");
     s_dsc->deform(20);
 
+
 #ifdef __APPLE__
     log_dsc_surface();
 #else
@@ -247,9 +249,10 @@ void fluid_motion::project_interface_itteratively(){
     }
     
     int idx = 0;
-    while (1)
+    for (int idx = 0; idx < 20; idx++)
     {
-        double max_displace = project_interface(m_threshold_projection*0.8);
+        update_vertex_boundary();
+        double max_displace = project_interface(m_threshold_projection*0.5);
         
 #ifdef __APPLE__
 #else
@@ -269,30 +272,15 @@ void fluid_motion::project_interface_itteratively(){
 
 bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 {
-    double thres = m_problem->m_deltap; // Should be larger than max projection
+//    double thres = m_problem->m_deltap; // Should be larger than max projection
+//
+//    static vec3 dim = m_problem->domain_size();
+//    static vec3 origin(0.0);
     
-    static vec3 dim = m_problem->domain_size();
-    static vec3 origin(0.0);
-    
-    auto pts = s_dsc->get_pos(s_dsc->get_nodes(fkey));
+    auto nodes = s_dsc->get_nodes(fkey);
     for (int idx = 0; idx < 3; idx++)
     {
-        bool is_bound_vertex = false;
-        
-        auto p = pts[idx];
-        for (int i = 0; i < 3; i++)
-        {
-            if (abs(p[i] - dim[i]) < thres)
-            {
-                is_bound_vertex = true;
-            }
-            if (abs(p[i] - origin[i]) < thres)
-            {
-                is_bound_vertex = true;
-            }
-        }// Snap to boundary
-        
-        if (!is_bound_vertex)
+        if (!is_vertices_boundary[nodes[idx]])
         {
             return false;
         }
@@ -303,7 +291,7 @@ bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 
 void fluid_motion::snapp_boundary_vertices()
 {
-    double thres = m_problem->m_deltap; // Should be larger than max projection
+    double thres = m_max_dsc_displacement; // Should be larger than max projection
     
     double max_displace = 0;
     
@@ -313,7 +301,7 @@ void fluid_motion::snapp_boundary_vertices()
     
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
-        if (nit->is_interface() || nit->is_crossing())
+        if (is_vertices_boundary[nit.key()])
         {
             auto p = nit->get_destination();
             for (int i = 0; i < 3; i++)
@@ -333,7 +321,7 @@ void fluid_motion::snapp_boundary_vertices()
         } // If interface
     }// For all nodes
     
-    cout << "Max displacement: " << max_displace << endl;
+    cout << "Max displacement on work around boundary: " << max_displace << endl;
 }
 
 #define get_barry_pos(b, pos) pos[0]*b[0] + pos[1]*b[1] + pos[2]*b[2]
@@ -431,11 +419,12 @@ void fluid_motion::log_dsc_surface()
     static int idx = 0;
     try
     {
+        cout << "Log surface " << idx << endl;
         for (int i = 0; i < m_problem->m_nb_phases; i++)
         {
             std::stringstream s;
             s << m_out_path[i] << "/" << setfill('0') << setw(5) << idx << ".obj";
-            extract_surface_phase(i, s.str());
+            extract_surface_phase(i+1, s.str());
         }
 //
 //        std::stringstream s;
@@ -454,13 +443,29 @@ void fluid_motion::log_dsc_surface()
     idx ++;
 }
 
+void fluid_motion::update_vertex_boundary()
+{
+    is_vertices_boundary = vector<bool>(s_dsc->get_no_nodes(), false);
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if (nit->is_boundary())
+        {
+            auto neighbor = s_dsc->get_nodes(s_dsc->get_edges(nit.key()));
+            for (int i =0; i < neighbor.size(); i++)
+            {
+                if (s_dsc->get(neighbor[i]).is_interface())
+                {
+                    is_vertices_boundary[neighbor[i]] = true;
+                }
+            }
+        }
+    }
+}
+
 void fluid_motion::extract_surface_phase(int phase, std::string path)
 {
     vector<int> indices_map(s_dsc->get_no_nodes(), -1);
     int idx = 0;
-    
-    
-    cout << "Log surface " << idx << endl;
     
     // Write face first
     stringstream vertices_write, faces_write;
@@ -472,19 +477,22 @@ void fluid_motion::extract_surface_phase(int phase, std::string path)
             if(s_dsc->get_label(tets[0]) == phase
                || s_dsc->get_label(tets[1]) == phase)
             {
-                auto nodes = s_dsc->get_nodes(fit.key());
+                auto tid = s_dsc->get_label(tets[0]) == phase? tets[0]:tets[1];
+                
+                auto nodes = s_dsc->get_sorted_nodes(fit.key(), tid);
                 faces_write << "f ";
-                for (auto n:nodes)
+                for (int i = 0; i < 3; i++)
                 {
-                    if (indices_map[n] == 1)
+                    auto n = nodes[i];
+                    if (indices_map[n] == -1)
                     {
-                        indices_map[n] = idx;
-                        idx++;
+                        indices_map[n] = idx++;
+                    
                         auto pos = s_dsc->get(n).get_pos();
                         vertices_write << "v " << pos[0] << " " << pos[1] << " " << pos[2] << endl;
                     }
                     
-                    faces_write << indices_map[n] << " ";
+                    faces_write << indices_map[n] + 1 << " ";
                 }
                 faces_write << endl;
             }
