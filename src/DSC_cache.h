@@ -1640,9 +1640,9 @@ namespace DSC {
                     i++;
                 }
             }
-            //#ifdef DEBUG
+            #ifdef DEBUG
             std::cout << "Thickening interface splits: " << i << std::endl;
-            //#endif
+            #endif
         }
         
         void resize_interface()
@@ -1754,9 +1754,9 @@ namespace DSC {
                     j++;
                 }
             }
-            //#ifdef DEBUG
+            #ifdef DEBUG
             std::cout << "Thinning collapses: " << i << "/" << j << std::endl;
-            //#endif
+            #endif
         }
         
         /////////////////////////
@@ -2322,7 +2322,7 @@ namespace DSC {
             int missing;
             int step = 0;
             do {
-                std::cout << "\n\tMove vertices step " << step << std::endl;
+//                std::cout << "\n\tMove vertices step " << step << std::endl;
                 missing = 0;
                 int movable = 0;
                 {
@@ -2339,7 +2339,7 @@ namespace DSC {
                     }
                     
                 }
-                std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
+//                std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
                 
                 {
                     fix_complex();
@@ -2347,6 +2347,8 @@ namespace DSC {
                 
                 ++step;
             } while (missing > 0 && step < num_steps);
+            
+            std::cout << "Move DSC in " << step << " steps. " << "\tVertices missing to be moved: " << missing << std::endl;
             
             //#ifdef DEBUG
             //            validity_check();

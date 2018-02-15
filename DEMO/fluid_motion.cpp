@@ -126,6 +126,8 @@ bool fluid_motion::load_next_particle()
     }
     sub_step_idx++;
     
+//    sub_step_idx = sub_step_count; // testing
+    
     return load_new;
 }
 
@@ -160,7 +162,7 @@ void fluid_motion::deform()
     
     // 1. Interpolate the displacement
     static int idx = 0;
-    std::cout << "Iter: " << idx << std::endl;
+    std::cout << "Iter: " << idx << " ---------------- " << std::endl;
 
     ///////////////////////////////////////////////////////////////////////////
     // Advect velocity does not work
@@ -224,8 +226,8 @@ void fluid_motion::deform()
 #else
     log_dsc_surface();
 #endif
-    
-    
+
+
 
     
     if(load_next_particle())
@@ -237,19 +239,19 @@ void fluid_motion::deform()
     }
     idx++;
     
-    cout << "DSC statistic (nodes, edges, faces, tets): " << s_dsc->get_no_nodes() << " " << s_dsc->get_no_edges() << " " << s_dsc->get_no_faces() << " " << s_dsc->get_no_tets() << endl;
+    s_dsc->print_mesh_info();
+//    cout << "DSC statistic (nodes, edges, faces, tets): " << s_dsc->get_no_nodes() << " " << s_dsc->get_no_edges() << " " << s_dsc->get_no_faces() << " " << s_dsc->get_no_tets() << endl;
 }
 
 void fluid_motion::project_interface_itteratively(){
     
-    cout << "Start projecting surface"<<endl;
+    cout << "Start projecting surface --------------"<<endl;
     
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
         m_particles[i]->build_anisotropic_kernel();
     }
     
-    int idx = 0;
     for (int idx = 0; idx < 20; idx++)
     {
         update_vertex_boundary();
@@ -265,7 +267,7 @@ void fluid_motion::project_interface_itteratively(){
             break;
         }
         
-        cout << "Projected idx " << idx++ << " with max displacement: " << max_displace <<"/" << m_threshold_projection << endl;
+        cout << "Projected idx " << idx << " with max displacement: " << max_displace <<"/" << m_threshold_projection << endl;
     }
     
     
@@ -328,8 +330,8 @@ void fluid_motion::snapp_boundary_vertices()
 #define get_barry_pos(b, pos) pos[0]*b[0] + pos[1]*b[1] + pos[2]*b[2]
 
 double fluid_motion::project_interface(double min_displace){
-    vector<vec3> vertex_dis(s_dsc->get_no_nodes(), vec3(0.0));
-    vector<double> contribution(s_dsc->get_no_nodes(), 0.0);
+    vector<vec3> vertex_dis(s_dsc->get_no_nodes_buffer(), vec3(0.0));
+    vector<double> contribution(s_dsc->get_no_nodes_buffer(), 0.0);
     
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
@@ -355,7 +357,6 @@ double fluid_motion::project_interface(double min_displace){
                 vec3 vDisplace(0.0);
 
                 // Have to project on both particles
-                //  tuannt8: HARDCODE for 2 phases
                 if(s_dsc->get_label(tet_keys[0]) == 0
                    || s_dsc->get_label(tet_keys[1]) == 0) { // Single interface
                     int label = s_dsc->get_label(tet_keys[0]) == 0? s_dsc->get_label(tet_keys[1]) : s_dsc->get_label(tet_keys[0]);
@@ -365,6 +366,7 @@ double fluid_motion::project_interface(double min_displace){
                 else{ // Sharing interface
                     for (int i = 0; i < m_particles.size(); i++)
                     {
+                        //  tuannt8: HARDCODE for 2 phases
                         auto norm = norm_global *( i==0? -1:1);
                         vDisplace += m_particles[i]->m_aniso_kernel.get_displacement_projection(sample_pos, norm, m_max_displacement_projection);
                     }
@@ -411,6 +413,8 @@ double fluid_motion::project_interface(double min_displace){
     
     s_dsc->deform(20);
     
+    log_dsc_surface();
+    
     cout << "Max displace during projeciton: " << max_displace << endl;
     return max_displace;
 }
@@ -446,7 +450,7 @@ void fluid_motion::log_dsc_surface()
 
 void fluid_motion::update_vertex_boundary()
 {
-    is_vertices_boundary = vector<bool>(s_dsc->get_no_nodes(), false);
+    is_vertices_boundary = vector<bool>(s_dsc->get_no_nodes_buffer(), false);
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
         if (nit->is_boundary())
@@ -465,7 +469,7 @@ void fluid_motion::update_vertex_boundary()
 
 void fluid_motion::extract_surface_phase(int phase, std::string path)
 {
-    vector<int> indices_map(s_dsc->get_no_nodes(), -1);
+    vector<int> indices_map(s_dsc->get_no_nodes_buffer(), -1);
     int idx = 0;
     
     // Write face first

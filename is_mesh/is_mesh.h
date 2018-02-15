@@ -149,6 +149,11 @@ namespace is_mesh {
             return static_cast<unsigned int>(m_node_kernel->size());
         }
         
+        unsigned int get_no_nodes_buffer() const
+        {
+            return static_cast<unsigned int>(m_node_kernel->size_buffer());
+        }
+        
         unsigned int get_no_edges() const
         {
             return static_cast<unsigned int>(m_edge_kernel->size());

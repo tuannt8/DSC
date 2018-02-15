@@ -561,9 +561,10 @@ void particle_manager::interpolate(int sub_idx, int sub_count)
         m_sub_step_particles[i].pos = pre_pos + (next_pos - pre_pos)*(sub_idx/(double)sub_count);
     }
     
-    double max_vel = 0;
+    
     if(sub_idx == 0)//velocity is unchanged hence only need one computation
     {
+        double max_vel = 0;
         m_sub_step_vel.resize(m_current_particles.size());
         for (int i = 0; i<m_current_particles.size(); i++)
         {
@@ -572,14 +573,12 @@ void particle_manager::interpolate(int sub_idx, int sub_count)
             
             m_sub_step_vel[i] = (next_pos - pre_pos)/(double)sub_count;
             
-            if (max_vel < m_sub_step_vel[i].length())
-            {
-                max_vel = m_sub_step_vel[i].length();
-            }
+            max_vel = max(max_vel, m_sub_step_vel[i].length());
         }
+        cout << "Max sub vel: " << max_vel <<endl;
     }
     
-    cout << "Max sub vel: " << max_vel << endl;
+
     
     build_kd_tree(); // may not need to be build every time step
     rebuild_density(); // Because the density output is different, and I dont know why.

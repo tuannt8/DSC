@@ -93,8 +93,8 @@ namespace DSC {
             pars = {0.1, 0.5, // edge
                 0.0005, 0.015, // faces
                 0.02, 0.3, // tet
-                0.3, 2., // edge, resize
-                0.2, 5., // face, resize
+                0.3, 1.5, // edge, resize interface
+                0.2, 5., // face, resize. No use
                 0.2, INFINITY // tet, resize
             };
             set_avg_edge_length();
