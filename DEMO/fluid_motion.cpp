@@ -25,7 +25,7 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.4;
+    m_max_dsc_displacement = s_dsc->get_avg_edge_length();
     
     m_max_displacement_projection = m_problem->m_deltap*0.5;
     m_threshold_projection = m_max_displacement_projection*0.3;
@@ -115,9 +115,6 @@ bool fluid_motion::load_next_particle()
         
         sub_step_count = subdivide_time_step();
         
-        std::cout << "=====================================" << endl
-        << "Load particle " << cur_global_idx
-        << " and subdivide to " << sub_step_count << " sub steps." << endl;
     }
     
     for (int i = 0; i < m_problem->m_nb_phases; i++)
@@ -126,7 +123,7 @@ bool fluid_motion::load_next_particle()
     }
     sub_step_idx++;
     
-//    sub_step_idx = sub_step_count; // testing
+    cout << "===========================\nparticle + sub/sum: " << cur_global_idx << " + " << sub_step_idx << "/" << sub_step_count << endl;
     
     return load_new;
 }
@@ -158,12 +155,11 @@ void fluid_motion::draw()
 
 void fluid_motion::deform()
 {
+
+    // 1. Interpolate the displacement
     update_vertex_boundary();
     
-    // 1. Interpolate the displacement
-    static int idx = 0;
-    std::cout << "Iter: " << idx << " ---------------- " << std::endl;
-
+    
     ///////////////////////////////////////////////////////////////////////////
     // Advect velocity does not work
     // Because of fluid convection and advection, internal particles contribute
@@ -196,13 +192,15 @@ void fluid_motion::deform()
                 }
             }
 
+            auto norm = s_dsc->get_normal(nit.key());
             if (!bFound)
             {
                 // Shrink
-                auto norm = s_dsc->get_normal(nit.key());
                 dis = norm*(-dt);
             }
 
+            // Only move on normal direction to avoid turbulent
+            dis = norm*(Util::dot(norm, dis));
             s_dsc->set_destination(nit.key(), pos + dis);
 
             if (max_dis < dis.length())
@@ -213,7 +211,7 @@ void fluid_motion::deform()
     }
 
 
-    std::cout << "Max displacement from velocity advection: " << max_dis << std::endl;
+    std::cout << "Max displacement: " << max_dis << std::endl;
 
     snapp_boundary_vertices();
 
@@ -236,16 +234,19 @@ void fluid_motion::deform()
         // Try pure projection
         /////////////////////////////////////////////////////
         project_interface_itteratively();
+        
+        s_dsc->print_mesh_info();
     }
-    idx++;
     
-    s_dsc->print_mesh_info();
+    
+    
+    
 //    cout << "DSC statistic (nodes, edges, faces, tets): " << s_dsc->get_no_nodes() << " " << s_dsc->get_no_edges() << " " << s_dsc->get_no_faces() << " " << s_dsc->get_no_tets() << endl;
 }
 
 void fluid_motion::project_interface_itteratively(){
     
-    cout << "Start projecting surface --------------"<<endl;
+    cout << "\n--------------------------------\n Start projecting surface "<<endl;
     
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
@@ -267,7 +268,7 @@ void fluid_motion::project_interface_itteratively(){
             break;
         }
         
-        cout << "Projected idx " << idx << " with max displacement: " << max_displace <<"/" << m_threshold_projection << endl;
+        cout << "idx " << idx << " max displacement: " << max_displace <<"/" << m_threshold_projection << endl << endl;
     }
     
     

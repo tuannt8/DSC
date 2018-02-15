@@ -698,7 +698,7 @@ bool particle_manager::get_projection(vec3 pos, vec3 direction, bool &bInside, d
 
 void particle_manager::build_anisotropic_kernel()
 {
-    m_aniso_kernel.m_particles = m_current_particles;
+    m_aniso_kernel.m_particles = m_sub_step_particles;
     m_aniso_kernel.m_h = m_slength;
     m_aniso_kernel.m_ra = m_deltap;
     
