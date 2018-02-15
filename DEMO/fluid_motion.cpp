@@ -26,7 +26,8 @@ string find_name(string input)
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
     m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.4;
-    m_max_displacement_projection = min(m_problem->m_deltap*0.5, m_max_dsc_displacement);
+    
+    m_max_displacement_projection = m_problem->m_deltap*0.5;
     m_threshold_projection = m_max_displacement_projection*0.3;
 }
 void fluid_motion::load_configuration()
@@ -408,7 +409,7 @@ double fluid_motion::project_interface(double min_displace){
         }
     }
     
-    s_dsc->deform();
+    s_dsc->deform(20);
     
     cout << "Max displace during projeciton: " << max_displace << endl;
     return max_displace;
