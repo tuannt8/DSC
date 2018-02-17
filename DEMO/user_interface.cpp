@@ -194,7 +194,7 @@ void UI::init_data()
 #ifdef __APPLE__
     double res_scale = 5;
 #else
-    double res_scale = 1.3;
+    double res_scale = 2;
 #endif
     
     m_fluid.load_configuration();// Load configuration

@@ -128,18 +128,18 @@ public:
     
     virtual void personal_draw()
     {
-        static std::vector<vec3> _color = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
-        
-        
-        glDisable(GL_LIGHTING);
-        glPointSize(2.5);
-        glBegin(GL_POINTS);
-        for (auto &p : m_current_particles)
-        {
-            glColor3dv(_color[p.type].get());
-            glVertex3dv(p.pos.get());
-        }
-        glEnd();
+//        static std::vector<vec3> _color = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
+//        
+//        
+//        glDisable(GL_LIGHTING);
+//        glPointSize(2.5);
+//        glBegin(GL_POINTS);
+//        for (auto &p : m_current_particles)
+//        {
+//            glColor3dv(_color[p.type].get());
+//            glVertex3dv(p.pos.get());
+//        }
+//        glEnd();
     }
 };
 

@@ -155,10 +155,7 @@ void anisotropic_kernel::compute_kd_tree()
     for (int idx = 0; idx < m_particles.size(); idx++)
     {
         auto & p = m_particles.at(idx);
-        if (p.type == 0)
-        {
-            m_vtree.insert(p.pos, idx);
-        }
+        m_vtree.insert(p.pos, idx);
     }
 
     m_vtree.build();
@@ -183,10 +180,6 @@ void anisotropic_kernel::build_connected_component()
     int num_fluid_particles = 0;
     for (int i = 0; i < m_particles.size(); i++)
     {
-        if (m_particles.at(i).type != 0)
-        {
-            continue;
-        }
         num_fluid_particles++;
         
         if (m_connected_component_label[i] == -1)
@@ -270,9 +263,6 @@ const mat3x3d & anisotropic_kernel::get_transform_mat(int idx)
 void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
 {
     auto & pi = m_particles.at(i);
-    
-    if(pi.type != 0)
-        return;
     
     std::vector<int> close_particles = neighbor_search(pi.pos, m_r);
     
@@ -374,11 +364,6 @@ void anisotropic_kernel::Taubin_smooth()
     
     for (int i = 0; i < m_particles.size(); i++)
     {
-        if (m_particles.at(i).type != 0)
-        {
-            continue;
-        }
-        
         auto cur_particle = (m_particles)[i];
         
         // Search for neighbor particles

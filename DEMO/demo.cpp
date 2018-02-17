@@ -31,12 +31,15 @@ string data_path = "../Large_data";
 string data_path = "../../Large_data";
 #endif
 
+string problem = "two_phase_fluid";
+//string problem = "DamBreak3D";
+
 int main(int argc, char** argv)
 {
     
     InputParser input(argc, argv);
     
-    fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-path", "two_phase_fluid");
+    fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-path", problem);
     
     if (argc > 1)
     {

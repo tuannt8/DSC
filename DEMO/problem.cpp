@@ -174,3 +174,10 @@ DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
     
     
 }
+
+DSC::DeformableSimplicialComplex<> * dam_break_fluid::init_dsc(double scale)
+{
+    auto dsc = init_dsc_domain(scale);
+    
+    return dsc;
+}

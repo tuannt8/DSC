@@ -27,8 +27,18 @@ void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
     m_max_dsc_displacement = s_dsc->get_avg_edge_length();
     
-    m_max_displacement_projection = m_problem->m_deltap*0.5;
-    m_threshold_projection = m_max_displacement_projection*0.3;
+    m_max_displacement_projection = m_problem->m_deltap;
+    m_threshold_projection = m_problem->m_deltap*0.5;
+    
+    cout << "\n\n+++++++++++++++++++++++++++++++++++++++"
+    << "\n spacing distance: " << m_problem->m_deltap
+    << "\n smoothing length: " << m_problem->m_slength
+    << "\n average lenght: " << s_dsc->get_avg_edge_length()
+    << "Initialize paratmeters"
+    << "\n Max DSC displacement: " << m_max_dsc_displacement
+    << "\n Projection search: " << m_max_displacement_projection
+    << "\n thres hold for projection: " << m_threshold_projection
+    << "\n++++++++++++++++++++++++++++++++++++++++++\n\n";
 }
 void fluid_motion::load_configuration()
 {
@@ -42,6 +52,9 @@ void fluid_motion::load_configuration()
     if (problem_name.compare("two_phase_fluid")==0)
     {
         m_problem = std::unique_ptr<problem>(new two_phase_fluid);
+    }
+    else if(problem_name.compare("DamBreak3D")==0){
+        m_problem = std::unique_ptr<problem>(new dam_break_fluid);
     }
     else
     {
@@ -153,9 +166,8 @@ void fluid_motion::draw()
     }
 }
 
-void fluid_motion::deform()
+void fluid_motion:: advect_velocity()
 {
-
     // 1. Interpolate the displacement
     update_vertex_boundary();
     
@@ -166,11 +178,11 @@ void fluid_motion::deform()
     //  false velocities
     ///////////////////////////////////////////////////////////////////////////
     double max_dis = -INFINITY;
-
+    
     profile *t = new profile("compute displacement");
-
+    
     static double dt = m_problem->m_deltap;
-
+    
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
         if (nit->is_interface())
@@ -191,57 +203,54 @@ void fluid_motion::deform()
                     bFound = true;
                 }
             }
-
+            
             auto norm = s_dsc->get_normal(nit.key());
             if (!bFound)
             {
                 // Shrink
                 dis = norm*(-dt);
             }
-
+            
             // Only move on normal direction to avoid turbulent
-            dis = norm*(Util::dot(norm, dis));
+            //            dis = norm*(Util::dot(norm, dis));
+            
             s_dsc->set_destination(nit.key(), pos + dis);
-
+            
             if (max_dis < dis.length())
             {
                 max_dis = dis.length();
             }
         }
     }
-
-
+    
     std::cout << "Max displacement: " << max_dis << std::endl;
-
+    
     snapp_boundary_vertices();
-
+    
     t->change("displace DSC");
     s_dsc->deform(20);
-
-
+    
+    
 #ifdef __APPLE__
     log_dsc_surface();
 #else
     log_dsc_surface();
 #endif
 
+}
+void fluid_motion::deform()
+{
 
-
+//    advect_velocity();
     
     if(load_next_particle())
     {
-        /////////////////////////////////////////////////////
-        // Try pure projection
-        /////////////////////////////////////////////////////
-        project_interface_itteratively();
+//        project_interface_itteratively();
         
         s_dsc->print_mesh_info();
     }
     
-    
-    
-    
-//    cout << "DSC statistic (nodes, edges, faces, tets): " << s_dsc->get_no_nodes() << " " << s_dsc->get_no_edges() << " " << s_dsc->get_no_faces() << " " << s_dsc->get_no_tets() << endl;
+    project_interface_itteratively();
 }
 
 void fluid_motion::project_interface_itteratively(){

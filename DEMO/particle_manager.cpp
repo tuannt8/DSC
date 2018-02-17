@@ -23,15 +23,10 @@ using namespace std;
 inline std::istream& operator>> (std::istream&is, particle& p)
 {
     is >> p.pos[0] >> p.pos[1] >> p.pos[2]
-    >> p.pressure
+//    >> p.pressure
     >> p.density
-    >> p.mass
-    >> p.type
-    >> p.flag
-    >> p.object
-    >> p.volume
-    >> p.sigma
-    >> p.vel[0] >> p.vel[1] >> p.vel[2];
+    >> p.mass;
+//    >> p.vel[0] >> p.vel[1] >> p.vel[2];
     
     return is;
 }
@@ -39,7 +34,7 @@ inline std::istream& operator>> (std::istream&is, particle& p)
 inline std::ostream& operator<<(std::ostream&os, particle& p)
 {
     os << p.pos[0] << " " << p.pos[1] << " " << p.pos[2] << " "
-    << p.pressure << " "
+    << p.mass << " "
     << p.density << " " << endl;
     
     return os;
@@ -511,11 +506,6 @@ void particle_manager::draw()
     {
         auto &p = m_sub_step_particles[idx];
         
-        if (p.type != 0)
-        {
-            continue;
-        }
-        
 //        static vector<vec3> _color = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
 //        auto c = _color[p.type];
 //        glColor3f(c[0], c[1], c[2]);
@@ -734,10 +724,7 @@ void particle_manager::build_kd_tree()
     int idx = 0;
     for (auto &p : m_sub_step_particles)
     {
-        if (p.type == 0)
-        {
-            m_vtree.insert(p.pos, idx);
-        }
+       m_vtree.insert(p.pos, idx);
         idx++;
     }
     
@@ -763,10 +750,8 @@ void particle_manager::load(int idx, std::vector<particle> & par)
         {
             particle p;
             f >> p;
-            if (p.type == 0)
-            {
-                par.push_back(p);
-            }
+
+            par.push_back(p);
         }
     }
     else{
