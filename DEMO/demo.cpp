@@ -43,9 +43,10 @@ int main(int argc, char** argv)
     
     fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-path", problem);
     g_out_path = input.getCmdOption("-out_path", "surface");
-
     
-    if (argc > 1)
+    bool display = input.getCmdOption("-no_display", "true").compare("true") == 0;
+    
+    if (!display)
     {
         // No display
         UI ui;

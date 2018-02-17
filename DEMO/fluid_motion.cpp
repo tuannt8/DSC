@@ -31,7 +31,7 @@ void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     m_max_dsc_displacement = s_dsc->get_avg_edge_length();
     
     m_max_displacement_projection = m_problem->m_deltap;
-    m_threshold_projection = m_problem->m_deltap*0.5;
+    m_threshold_projection = m_problem->m_deltap*0.3;
     
     cout << "\n\n+++++++++++++++++++++++++++++++++++++++"
     << "\n spacing distance: " << m_problem->m_deltap
