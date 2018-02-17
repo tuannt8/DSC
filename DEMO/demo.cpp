@@ -20,6 +20,7 @@
 #include "fluid_motion.hpp"
 #include "debugger.h"
 #include "define.h"
+#include "eigen_wrapper.hpp"
 
 using namespace std;
 
@@ -34,12 +35,15 @@ string data_path = "../../Large_data";
 string problem = "two_phase_fluid";
 //string problem = "DamBreak3D";
 
+string g_out_path;
+
 int main(int argc, char** argv)
 {
-    
     InputParser input(argc, argv);
     
     fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-path", problem);
+    g_out_path = input.getCmdOption("-out_path", "surface");
+
     
     if (argc > 1)
     {

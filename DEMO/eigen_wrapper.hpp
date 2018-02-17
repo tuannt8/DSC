@@ -17,4 +17,6 @@ void svd_solve(double * C, double *Q, double *L);
 
 void invert4x4(double * A, double *A_i);
 
+int create_directory(const char * path);
+
 #endif /* eigen_wrapper_hpp */

@@ -8,8 +8,11 @@
 
 #include "fluid_motion.hpp"
 #include <iomanip>
+#include "eigen_wrapper.hpp"
 
 using namespace std;
+
+extern string g_out_path;
 
 fluid_motion::fluid_motion()
 {
@@ -82,7 +85,9 @@ void fluid_motion::load_configuration()
     // 4. Set up output
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
-        m_out_path.push_back(m_data_path + "/surface_" + std::to_string(i));
+        m_out_path.push_back(m_data_path + "/" + g_out_path + "_" + std::to_string(i));
+        create_directory(m_out_path[i].c_str());
+        cout << "Output files: " << m_out_path[i] << endl;
     }
 }
 

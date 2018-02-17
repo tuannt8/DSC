@@ -11,6 +11,15 @@
 #include "Eigen/SVD"
 #include "Eigen/Dense"
 
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+int create_directory(const char * path)
+{
+    return mkdir(path, S_IRWXU);
+}
+
 using namespace Eigen;
 void svd_solve(double * C, double *Q, double *L)
 {
