@@ -578,15 +578,19 @@ void particle_manager::interpolate(int sub_idx, int sub_count)
 double particle_manager::get_max_displacement()
 {
     double max_displacement = -INFINITY;
+    double avg_displace = 0;
     for (int i = 0; i<m_current_particles.size(); i++)
     {
         auto pre_pos = m_current_particles[i].pos;
         auto next_pos = m_next_particles[i].pos;
         
         max_displacement = std::max(max_displacement, (next_pos - pre_pos).length());
+        avg_displace += (next_pos - pre_pos).length();
     }
+    avg_displace /= m_current_particles.size();
     
-    return max_displacement;
+    return avg_displace;
+    return avg_displace;
 }
 
 void particle_manager::load_time_step()

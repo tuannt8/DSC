@@ -18,10 +18,6 @@
 using namespace std;
 
 vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double max_displace){
-    if (max_displace == 0)
-    {
-        max_displace = m_ra; // spacing distance
-    }
     
     // point 1
     vec3 pos1 = pos;
@@ -48,7 +44,15 @@ vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double
             pos2 = mid;
     }
     
-    return (pos1 + pos2)*0.5 - pos;
+    auto dis = (pos1 + pos2)*0.5 - pos;
+    if (dis.length() > 1.001*max_displace)
+    {
+        cout << pos;
+        cout << dis;
+        cout << max_displace;
+        assert(0);
+    }
+    return dis;
 }
 
 bool anisotropic_kernel::get_projection(vec3 pos, vec3 direction, bool &bInside, vec3& projected_point)

@@ -48,6 +48,13 @@ public:
     virtual vec3 domain_size(){return vec3(0.15, 0.15, 0.15);};
 };
 
+class bubble_fluid:public problem
+{
+public:
+    virtual DSC::DeformableSimplicialComplex<> * init_dsc(double scale = 1);
+    virtual vec3 domain_size(){return vec3(0.17, 0.17, 0.27);};
+};
+
 class dam_break_fluid:public problem
 {
 public:

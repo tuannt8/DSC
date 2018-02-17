@@ -175,6 +175,49 @@ DSC::DeformableSimplicialComplex<> * two_phase_fluid::init_dsc(double scale)
     
 }
 
+DSC::DeformableSimplicialComplex<> * bubble_fluid ::init_dsc(double scale)
+{
+    auto dsc = init_dsc_domain(scale);
+    
+    // Label the bubble
+    vec3 center(0.0848462, 0.0848462, 0.05);
+    double R = 0.025;
+    for (auto tit = dsc->tetrahedra_begin(); tit != dsc->tetrahedra_end(); tit++)
+    {
+        bool bInside = true;
+        for (auto p : dsc->get_pos(dsc->get_nodes(tit.key())))
+        {
+            if ((p - center).length() > R)
+            {
+                bInside = false;
+                break;
+            }
+        }
+        if (bInside)
+        {
+            dsc->set_label(tit.key(), 1);
+        }
+    }
+    // Project the surface
+    for(auto nit = dsc->nodes_begin(); nit!= dsc->nodes_end(); nit++)
+    {
+        if(nit->is_interface())
+        {
+            auto pos = nit->get_pos();
+            auto r_pos = pos - center;
+
+            r_pos.normalize();
+            vec3 new_pos = center + r_pos*R;
+
+            dsc->set_destination(nit.key(), new_pos);
+        }
+    }
+
+    dsc->deform();
+
+    return dsc;
+}
+
 DSC::DeformableSimplicialComplex<> * dam_break_fluid::init_dsc(double scale)
 {
     auto dsc = init_dsc_domain(scale);

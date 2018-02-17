@@ -28,7 +28,7 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = s_dsc->get_avg_edge_length();
+    m_max_dsc_displacement = max(s_dsc->get_avg_edge_length(), m_problem->m_deltap);
     
     m_max_displacement_projection = m_problem->m_deltap;
     m_threshold_projection = m_problem->m_deltap*0.3;
@@ -97,6 +97,7 @@ int fluid_motion::subdivide_time_step()
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
         max_displace = std::max(max_displace, m_particles[i]->get_max_displacement());
+        
     }
     
     cout << "Max particle displace: " << max_displace << " and dsc " << m_max_dsc_displacement << endl;
@@ -228,24 +229,17 @@ void fluid_motion:: advect_velocity()
         }
     }
     
-    std::cout << "Max displacement: " << max_dis << std::endl;
+    std::cout << "Max advect displacement: " << max_dis << std::endl;
     
     snapp_boundary_vertices();
     
     t->change("displace DSC");
     s_dsc->deform(20);
     
-    
-#ifdef __APPLE__
-    log_dsc_surface();
-#else
-    log_dsc_surface();
-#endif
 
 }
 void fluid_motion::deform()
 {
-
 //    advect_velocity();
     
     if(load_next_particle())
@@ -256,6 +250,7 @@ void fluid_motion::deform()
     }
     
     project_interface_itteratively();
+    log_dsc_surface();
 }
 
 void fluid_motion::project_interface_itteratively(){
@@ -267,15 +262,12 @@ void fluid_motion::project_interface_itteratively(){
         m_particles[i]->build_anisotropic_kernel();
     }
     
-    for (int idx = 0; idx < 20; idx++)
+    // Becasue we already restrict the particle displacement
+    // DSC should not move so many iterations
+    for (int idx = 0; idx < 10; idx++)
     {
         update_vertex_boundary();
         double max_displace = project_interface(m_threshold_projection*0.5);
-        
-#ifdef __APPLE__
-#else
-        log_dsc_surface();
-#endif
         
         if (max_displace < m_threshold_projection )
         {
@@ -284,12 +276,12 @@ void fluid_motion::project_interface_itteratively(){
         
         cout << "idx " << idx << " max displacement: " << max_displace <<"/" << m_threshold_projection << endl << endl;
     }
-    
-    
 }
 
 bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 {
+    return false; // Move all
+    
 //    double thres = m_problem->m_deltap; // Should be larger than max projection
 //
 //    static vec3 dim = m_problem->domain_size();
@@ -309,6 +301,8 @@ bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 
 void fluid_motion::snapp_boundary_vertices()
 {
+    return;
+    
     double thres = m_max_dsc_displacement; // Should be larger than max projection
     
     double max_displace = 0;
@@ -338,8 +332,6 @@ void fluid_motion::snapp_boundary_vertices()
             max_displace = std::max(max_displace, (p - nit->get_pos()).length() );
         } // If interface
     }// For all nodes
-    
-    cout << "Max displacement on work around boundary: " << max_displace << endl;
 }
 
 #define get_barry_pos(b, pos) pos[0]*b[0] + pos[1]*b[1] + pos[2]*b[2]
@@ -377,6 +369,9 @@ double fluid_motion::project_interface(double min_displace){
                     int label = s_dsc->get_label(tet_keys[0]) == 0? s_dsc->get_label(tet_keys[1]) : s_dsc->get_label(tet_keys[0]);
                     
                     vDisplace = m_particles[label - 1]->m_aniso_kernel.get_displacement_projection(sample_pos, norm_global, m_max_displacement_projection);
+                    
+                    assert(vDisplace.length() < 1.001* m_max_displacement_projection);
+                    
                 }
                 else{ // Sharing interface
                     for (int i = 0; i < m_particles.size(); i++)
@@ -387,8 +382,12 @@ double fluid_motion::project_interface(double min_displace){
                     }
 
                     vDisplace *= 0.5;
+                    
+                    assert(vDisplace.length() < 1.001* m_max_displacement_projection);
+                    
                 }
                 
+
                 // Distribute
                 for (int i =0; i < 3; i++)
                 {
@@ -400,10 +399,20 @@ double fluid_motion::project_interface(double min_displace){
     }
     
     // Normalize the displacement
+    int nb_move = 0;
     for (int i = 0; i < vertex_dis.size(); i++){
         if (contribution[i] > 0){
             vertex_dis[i] /= contribution[i];
+            if (vertex_dis[i].length() > min_displace)
+            {
+                nb_move++;
+            }
         }
+    }
+    if (nb_move < 10)
+    {
+        return 0;// Ignore if there is only few node displacement
+        // There particles may be the turbulence of the fluid
     }
     
     // Set destination and deform the DSC
@@ -426,11 +435,8 @@ double fluid_motion::project_interface(double min_displace){
         }
     }
     
-    s_dsc->deform(20);
-    
-    log_dsc_surface();
-    
-    cout << "Max displace during projeciton: " << max_displace << endl;
+    s_dsc->deform(10);
+
     return max_displace;
 }
 

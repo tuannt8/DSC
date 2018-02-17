@@ -31,6 +31,8 @@
 
 #include "debugger.h"
 
+extern double g_res;
+
 using namespace DSC;
 using namespace std;
 
@@ -191,18 +193,12 @@ UI::UI()
 
 void UI::init_data()
 {
-#ifdef __APPLE__
-    double res_scale = 2;
-#else
-    double res_scale = 2;
-#endif
-    
     m_fluid.load_configuration();// Load configuration
     
     // init DSC
     _obj_dim = m_fluid.m_problem->domain_size();
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
-    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(res_scale));
+    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
     m_fluid.init(&*dsc);
     
     // Load first particle

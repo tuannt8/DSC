@@ -20,7 +20,9 @@ public:
             this->tokens.push_back(std::string(argv[i]));
     }
     /// @author iain
-    const std::string& getCmdOption(const std::string &option) const{
+    const std::string& getCmdOption(const std::string &option){
+        this->argument_used.push_back(option + " []");
+        
         std::vector<std::string>::const_iterator itr;
         itr =  std::find(this->tokens.begin(), this->tokens.end(), option);
         if (itr != this->tokens.end() && ++itr != this->tokens.end()){
@@ -31,6 +33,9 @@ public:
     }
     
     std::string getCmdOption(const std::string &option, const std::string &default_){
+        
+        argument_used.push_back(option + " []");
+        
         std::vector<std::string>::const_iterator itr;
         itr =  std::find(this->tokens.begin(), this->tokens.end(), option);
         if (itr != this->tokens.end() && ++itr != this->tokens.end()){
@@ -40,12 +45,27 @@ public:
         return default_;
     }
     /// @author iain
-    bool cmdOptionExists(const std::string &option) const{
+    bool cmdOptionExists(const std::string &option){
+        argument_used.push_back(option);
+        
         return std::find(this->tokens.begin(), this->tokens.end(), option)
         != this->tokens.end();
     }
+    
+    void print(){
+        std::sort(argument_used.begin(), argument_used.end());
+        argument_used.erase(std::unique(argument_used.begin(), argument_used.end()), argument_used.end());
+        
+        std::cout << "----------------Command lines available--------------\n" ;
+        for(auto v : argument_used)
+        {
+            std::cout << v << "  ;  ";
+        }
+        std::cout << "\n--------------------------------------------\n";
+    }
 private:
     std::vector <std::string> tokens;
+    std::vector <std::string> argument_used;
 };
 
 #endif /* InputParser_h */

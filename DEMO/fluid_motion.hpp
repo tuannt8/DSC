@@ -48,7 +48,7 @@ private:
     
     double m_max_dsc_displacement;
     
-    double m_max_displacement_projection;
+    double m_max_displacement_projection; // for binary search
     double m_threshold_projection;
 public:
     DSC::DeformableSimplicialComplex<>* s_dsc; // shared DSC
