@@ -235,7 +235,7 @@ void fluid_motion:: advect_velocity()
 void fluid_motion::deform()
 {
     advect_velocity();
-    project_interface_one_iter();
+//    project_interface_one_iter();
 
     load_next_particle(); 
     
