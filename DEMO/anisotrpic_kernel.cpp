@@ -17,7 +17,31 @@
 
 using namespace std;
 
+vec3 anisotropic_kernel::estimate_norm(vec3 pos)
+{
+    auto neighbor = neighbor_search(pos, m_r);
+    if (neighbor.size() == 0)
+    {
+        return vec3(0);
+    }
+    
+    vec3 norm(0);
+    for(auto n : neighbor){
+        norm += (pos - m_particles[n].pos);
+    }
+    norm.normalize();
+    return norm;
+}
+
+vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double max_displace){
+    
+    bool last;
+    return get_displacement_projection(pos, norm, max_displace, last);
+}
+
 vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double max_displace, bool & bLast){
+    
+    norm = estimate_norm(pos);
     
     // point 1
     vec3 pos1 = pos;

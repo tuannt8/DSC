@@ -27,4 +27,7 @@ typedef CGLA::Vec4d vec4;
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
 
+//#define for_nodes(dsc) for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+//#define for_faces(dsc) for (auto nit = dsc->faces_begin(); nit != dsc->faces_end(); nit++)
+
 #endif /* define_h */

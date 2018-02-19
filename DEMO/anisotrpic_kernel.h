@@ -59,6 +59,8 @@ public:
     double get_value(vec3 pos);
     bool get_projection(vec3 pos, vec3 direction, bool &bInside, vec3& projected_point);
     vec3 get_displacement_projection(vec3 pos, vec3 norm, double max_displace, bool & bLast);
+    
+    vec3 get_displacement_projection(vec3 pos, vec3 norm, double max_displace);
     bool is_inside(vec3 pos, std::vector<int> & neighbor);
     bool is_inside(vec3 pos);
     
@@ -69,6 +71,7 @@ public:
     
     std::vector<int> neighbor_search(vec3 pos, double radius);
     
+    vec3 estimate_norm(vec3 pos);
 public:
     // Debugging
     std::vector<mat3x3d> m_U;

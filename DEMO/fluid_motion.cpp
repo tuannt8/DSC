@@ -246,10 +246,66 @@ void fluid_motion::deform()
     }
     
 //    project_interface_itteratively();
+    project_interface_one_iter();
     
     advect_velocity();
     
     log_dsc_surface();
+}
+
+void fluid_motion::project_interface_one_iter()
+{
+    cout << "\n------ Project interface ----------- \n";
+    
+    update_vertex_boundary();
+    
+    // Build anisotropic kernel
+    for (int i = 0; i < m_problem->m_nb_phases; i++)
+    {
+        m_particles[i]->build_anisotropic_kernel();
+    }
+    
+    
+    // Mark shared nodes
+    //  Will be project to smaller index fluid
+    vector<int> correspond_fluid(s_dsc->get_no_nodes_buffer(), -1);
+    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
+    {
+        if(fit->is_interface())
+        {
+            auto tets = s_dsc->get_tets(fit.key());
+            auto l0 = s_dsc->get_label(tets[0]);
+            auto l1 = s_dsc->get_label(tets[0]);
+            auto higher_label = l0>l1? l0 : l1;
+            
+            for(auto n : s_dsc->get_nodes(fit.key())){
+                correspond_fluid[n] = higher_label - 1;
+            }
+        }
+    }
+
+    double max_projection = 0;
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface()
+            && correspond_fluid[nit.key()] != -1
+            )
+        {
+            auto pos = nit->get_pos();
+            auto norm = s_dsc->get_normal(nit.key()); // from high to low,
+            auto dis = m_particles[correspond_fluid[nit.key()]]->m_aniso_kernel.get_displacement_projection(pos, norm, m_max_displacement_projection);
+            
+            s_dsc->set_destination(nit.key(), pos + dis);
+            
+            max_projection = max(max_projection, dis.length());
+        }
+    }
+    
+    cout << "Max projection: " << max_projection << endl;
+    
+    snapp_boundary_vertices();
+    
+    s_dsc->deform(20);
 }
 
 void fluid_motion::reset_projected_flag()
@@ -258,6 +314,8 @@ void fluid_motion::reset_projected_flag()
     {
         fit->set_projected(false);
     }
+    
+    project_interface(m_threshold_projection);
 }
 
 void fluid_motion::project_interface_itteratively(){
