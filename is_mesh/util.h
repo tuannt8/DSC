@@ -241,10 +241,10 @@ namespace Util
         vec3 n0 = normal_direction(a, b, c);
         vec3 n1 = normal_direction(b, a, d);
         real angle = dot(n0, n1);
-#ifdef DEBUG
+//#ifdef DEBUG
         assert(angle < 1. + EPSILON);
         assert(angle > -1. - EPSILON);
-#endif
+//#endif
         return angle;
     }
     
@@ -290,9 +290,9 @@ namespace Util
         real d20 = dot(v2, v0);
         real d21 = dot(v2, v1);
         real denom = d00 * d11 - d01 * d01;
-#ifdef DEBUG
+//#ifdef DEBUG
         assert(std::abs(denom) > EPSILON);
-#endif
+//#endif
         std::vector<real> coords(3);
         coords[1] = (d11 * d20 - d01 * d21) / denom;
         coords[2] = (d00 * d21 - d01 * d20) / denom;
@@ -327,9 +327,9 @@ namespace Util
         vec3 ab = b - a;
         vec3 ac = c - a;
         vec3 n = cross(ab, ac);
-#ifdef DEBUG
+//#ifdef DEBUG
         assert(!isnan(n[0]) && !isnan(n[1]) && !isnan(n[2]));
-#endif
+//#endif
         return normalize(n);
     }
     
@@ -461,9 +461,9 @@ namespace Util
         real lrms = rms_length<real>(a, b, c, d);
         
         real q = 8.48528 * v / (lrms * lrms * lrms);
-#ifdef DEBUG
+//#ifdef DEBUG
         assert(!isnan(q));
-#endif
+//#endif
         return q;
     }
     

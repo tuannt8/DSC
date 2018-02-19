@@ -532,9 +532,9 @@ namespace DSC {
         bool topological_edge_removal(const edge_key& eid)
         {
             std::vector<is_mesh::SimplexSet<node_key>> polygon = get_polygons(eid);
-#ifdef DEBUG
+//#ifdef DEBUG
             assert(polygon.size() == 1 && polygon.front().size() > 2);
-#endif
+//#endif
             
             std::vector<std::vector<int>> K;
             real q_new = build_table(eid, polygon.front(), K);
@@ -561,9 +561,9 @@ namespace DSC {
                 // Find the faces to flip about.
                 face_key f1 = get_face(nids[0], nids[1], polygon1.front());
                 face_key f2 = get_face(nids[0], nids[1], polygon1.back());
-#ifdef DEBUG
+//#ifdef DEBUG
                 assert(get(f1).is_boundary() && get(f2).is_boundary());
-#endif
+//#endif
                 
                 if(precond_flip_edge(get_edge(f1, f2), f1, f2))
                 {
@@ -1539,9 +1539,9 @@ namespace DSC {
                     min_t = Util::min(t, min_t);
                 }
             }
-#ifdef DEBUG
+//#ifdef DEBUG
             assert(min_t < INFINITY);
-#endif
+//#endif
             return min_t;
         }
         
@@ -1595,9 +1595,9 @@ namespace DSC {
             
             is_mesh::SimplexSet<node_key> e_nids = get_nodes(eid);
             is_mesh::SimplexSet<node_key> new_e_nids = (get_nodes(fids[0]) + get_nodes(fids[1])) - e_nids;
-#ifdef DEBUG
+//#ifdef DEBUG
             assert(new_e_nids.size() == 2);
-#endif
+//#endif
             
             // Check that there does not already exist an edge.
             if(get_edge(new_e_nids[0], new_e_nids[1]).is_valid())
@@ -1622,10 +1622,10 @@ namespace DSC {
             is_mesh::SimplexSet<node_key> e_nids = get_nodes(eid);
             is_mesh::SimplexSet<node_key> new_e_nids = (get_nodes(f1) + get_nodes(f2)) - e_nids;
             is_mesh::SimplexSet<node_key> apices = (get_nodes(get_faces(eid)) - e_nids) - new_e_nids;
-#ifdef DEBUG
+//#ifdef DEBUG
             assert(e_nids.size() == 2);
             assert(new_e_nids.size() == 2);
-#endif
+//#endif
             
             // Check that there does not already exist an edge.
             if(get_edge(new_e_nids[0], new_e_nids[1]).is_valid())
@@ -1850,9 +1850,9 @@ namespace DSC {
             if (Util::length(result) < EPSILON) {
                 return vec3(0.);
             }
-#ifdef DEBUG
+//#ifdef DEBUG
             assert(!Util::isnan(result[0]) && !Util::isnan(result[1]) && !Util::isnan(result[2]));
-#endif
+//#endif
             return Util::normalize(result);
         }
         
@@ -1872,9 +1872,9 @@ namespace DSC {
                     i++;
                 }
             }
-#ifdef DEBUG
+//#ifdef DEBUG
             assert(i != 0);
-#endif
+//#endif
             return avg_pos / static_cast<real>(i);
         }
         
@@ -2246,9 +2246,9 @@ namespace DSC {
                 real q = quality(tit.key());
                 min_quality = Util::min(min_quality, q);
                 int index = static_cast<int>(floor(q*100.));
-#ifdef DEBUG
+//#ifdef DEBUG
                 assert(index < 100 && index >= 0);
-#endif
+//#endif
                 histogram[index] += 1;
             }
         }

@@ -355,16 +355,19 @@ void particle_manager::draw_intermediate_vel()
 }
 
 
-void particle_manager::draw_anisotropic_kernel()
+void particle_manager::draw_anisotropic_kernel(double yunder, double yupper)
 {
-    int frequencey = 20;
-//    for (int i = 0; i < m_sub_step_particles.size(); i++)
+    for (int i = 0; i < m_sub_step_particles.size(); i++)
     {
-//        if (i%frequencey == 0)
-        {
-            int i = debugger<>::get_int("particle idx", 0);
+//        {
+//            int i = debugger<>::get_int("particle idx", 0);
             auto &p = m_sub_step_particles[i];
             auto pos = p.pos;
+            
+            if (pos[1] < yunder || pos[1] > yupper)
+            {
+                continue;
+            }
             
             // Draw kernel
             if(glut_menu::get_state("isotropic sphere", 1))
@@ -421,7 +424,7 @@ void particle_manager::draw_anisotropic_kernel()
                 }
                 glEnd();
             }
-        }
+//        }
     }
 }
 
@@ -480,7 +483,7 @@ void particle_manager::draw_anisotropic_kernel(vec3 domain_size, vec3 c)
     
 }
 
-void particle_manager::draw()
+void particle_manager::draw(double y_under, double y_limit)
 {
     glDisable(GL_LIGHTING);
     glPointSize(6);
@@ -490,11 +493,12 @@ void particle_manager::draw()
     for(int idx = 0; idx < m_sub_step_particles.size(); idx++)
     {
         auto &p = m_sub_step_particles[idx];
-        
-//        static vector<vec3> _color = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
-//        auto c = _color[p.type];
-//        glColor3f(c[0], c[1], c[2]);
-        glVertex3dv(p.pos.get());
+        if (p.pos[1] < y_limit
+            && p.pos[1] > y_under)
+        {
+            
+            glVertex3dv(p.pos.get());
+        }
     }
     glEnd();
 }
@@ -513,17 +517,15 @@ bool particle_manager::get_displacement(vec3 pos, vec3 & dis)
     //    return get_displacement_cubic_kernel(pos);
 }
 
+void particle_manager::load_first_time(int idx){
+    load(idx, m_current_particles);
+    load(idx+1, m_next_particles);
+}
+
 void particle_manager::load_time_step(int idx)
 {
-    if (idx == -1)
-    {
-        load(0, m_next_particles);
-    }
-    else
-    {
-        m_current_particles = m_next_particles;
-        load(idx+1, m_next_particles);
-    }
+    m_current_particles = m_next_particles;
+    load(idx+1, m_next_particles);
 }
 void particle_manager::interpolate(int sub_idx, int sub_count)
 {
@@ -685,6 +687,7 @@ void particle_manager::build_anisotropic_kernel()
     
     m_aniso_kernel.build();
     
+    // Because the sub particle is smooth
 //    m_sub_step_particles = m_aniso_kernel.m_particles;
 }
 

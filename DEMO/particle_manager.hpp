@@ -72,6 +72,7 @@ public:
     bool get_projection(vec3 pos, vec3 direction, bool &bInside, double &t);//Using anisotropic kernel
     
     // Load next time step
+    void load_first_time(int idx);
     void load_time_step(int idx);
     void interpolate(int sub_idx, int sub_count);
     void load_time_step();
@@ -96,14 +97,14 @@ public:
     // Get max displacement between two time steps
     double get_max_displacement();
     
-    void draw();
+    void draw(double yunder = -INFINITY, double ylimit = INFINITY);
     void draw_intermediate_vel();
     
     std::vector<vec3> pos;
     std::vector<double> phi;
     void draw_anisotropic_kernel(vec3 domain_size, vec3 c);
     void draw_orientation_anisotropic();
-    void draw_anisotropic_kernel();
+    void draw_anisotropic_kernel(double yunder, double yupper);
 };
 
 #endif /* particle_hpp */

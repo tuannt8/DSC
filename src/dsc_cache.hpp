@@ -19,12 +19,12 @@
 #ifdef __APPLE__
 //#define DSC_ORIGIN  // Mac
 #else
-#define DSC_ORIGIN
+//#define DSC_ORIGIN
 #endif
 
 #define DSC_CACHE
 
-#define MAX_ELEMENTS 10000000
+#define MAX_ELEMENTS 1000000
 
 #define CLEAN_GARBAGE(a, b) if(a[b]){delete a[b]; a[b] = nullptr;}
 #define RELEASE_CACHE(a) \

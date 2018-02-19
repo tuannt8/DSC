@@ -266,9 +266,9 @@ void anisotropic_kernel::build(){
     // 1. Connected component
     compute_kd_tree();
     build_connected_component();
-    // 2. First smooth the particle
-    Taubin_smooth();
-    compute_kd_tree();
+//    // 2. First smooth the particle
+//    Taubin_smooth();
+//    compute_kd_tree();
 
     // 3. Build transformation matrix
     m_G.resize(m_particles.size());
@@ -301,11 +301,6 @@ void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
     auto & pi = m_particles.at(i);
     
     std::vector<int> close_particles = neighbor_search(pi.pos, m_r);
-    
-    if(close_particles.size() == 1)
-    {
-        assert(0);
-    }
     
     // Weighted mean position
     vec3 x_w(0.0);

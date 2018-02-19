@@ -202,12 +202,9 @@ void UI::init_data()
     m_fluid.init(&*dsc);
     
     // Load first particle
-    m_fluid.load_next_particle();
+    m_fluid.load_first_particle();
     
-    cout << "DSC statistic: " << dsc->get_no_nodes() << " nodes; "
-        <<dsc->get_no_edges() << " edges; "
-        << dsc->get_no_faces() << " faces; "
-        << dsc->get_no_tets() << " tets; " << endl;
+    dsc->print_mesh_info();
 }
 
 UI::UI(int &argc, char** argv)
