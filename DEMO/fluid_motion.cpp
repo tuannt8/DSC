@@ -249,7 +249,9 @@ void fluid_motion::deform()
     
     load_next_particle();
     
-//    log_dsc_surface();
+    log_dsc_surface();
+    
+    assert(s_dsc->get_no_faces_buffer() < 10000000);// assert cache
 }
 
 void fluid_motion::project_interface_one_iter()
@@ -264,48 +266,53 @@ void fluid_motion::project_interface_one_iter()
         m_particles[i]->build_anisotropic_kernel();
     }
     
+    project_interface();
     
-    // Mark shared nodes
-    //  Will be project to smaller index fluid
-    vector<int> correspond_fluid(s_dsc->get_no_nodes_buffer(), -1);
-    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
-    {
-        if(fit->is_interface())
-        {
-            auto tets = s_dsc->get_tets(fit.key());
-            auto l0 = s_dsc->get_label(tets[0]);
-            auto l1 = s_dsc->get_label(tets[0]);
-            auto higher_label = l0>l1? l0 : l1;
-            
-            for(auto n : s_dsc->get_nodes(fit.key())){
-                correspond_fluid[n] = higher_label - 1;
-            }
-        }
-    }
-
-    double max_projection = 0;
-    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
-    {
-        if (nit->is_interface()
-            && !is_vertices_boundary[nit.key()]
-            && correspond_fluid[nit.key()] != -1
-            )
-        {
-            auto pos = nit->get_pos();
-            auto norm = s_dsc->get_normal(nit.key()); // from high to low,
-            auto dis = m_particles[correspond_fluid[nit.key()]]->m_aniso_kernel.get_displacement_projection(pos, norm, m_max_displacement_projection);
-            
-            s_dsc->set_destination(nit.key(), pos + dis);
-            
-            max_projection = max(max_projection, dis.length());
-        }
-    }
-    
-    cout << "Max projection: " << max_projection << endl;
-    
-    snapp_boundary_vertices();
-    
-    s_dsc->deform(20);
+//    // Mark shared nodes
+//    //  Will be project to smaller index fluid
+//    vector<int> correspond_fluid(s_dsc->get_no_nodes_buffer(), -1);
+//    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
+//    {
+//        if(fit->is_interface())
+//        {
+//            auto tets = s_dsc->get_tets(fit.key());
+//            auto l0 = s_dsc->get_label(tets[0]);
+//            auto l1 = s_dsc->get_label(tets[0]);
+//            auto higher_label = l0>l1? l0 : l1;
+//
+//            for(auto n : s_dsc->get_nodes(fit.key())){
+//                correspond_fluid[n] = higher_label - 1;
+//            }
+//        }
+//    }
+//
+//    double max_projection = 0;
+//    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+//    {
+//        if (nit->is_interface()
+//            && correspond_fluid[nit.key()] != -1
+//            )
+//        {
+//            if (is_vertices_boundary[nit.key()] && !nit->is_crossing())
+//            {
+//                continue;
+//            }
+//
+//            auto pos = nit->get_pos();
+//            auto norm = s_dsc->get_normal(nit.key()); // from high to low,
+//            auto dis = m_particles[correspond_fluid[nit.key()]]->m_aniso_kernel.get_displacement_projection(pos, norm, m_max_displacement_projection);
+//
+//            s_dsc->set_destination(nit.key(), pos + dis);
+//
+//            max_projection = max(max_projection, dis.length());
+//        }
+//    }
+//
+//    cout << "Max projection: " << max_projection << endl;
+//
+//    snapp_boundary_vertices();
+//
+//    s_dsc->deform(20);
 }
 
 void fluid_motion::reset_projected_flag()
@@ -398,7 +405,7 @@ void fluid_motion::snapp_boundary_vertices()
 
 #define get_barry_pos(b, pos) pos[0]*b[0] + pos[1]*b[1] + pos[2]*b[2]
 
-double fluid_motion::project_interface(double min_displace)
+double fluid_motion::project_interface()
 {
     vector<vec3> vertex_dis(s_dsc->get_no_nodes_buffer(), vec3(0.0));
     vector<double> contribution(s_dsc->get_no_nodes_buffer(), 0.0);
@@ -432,9 +439,6 @@ double fluid_motion::project_interface(double min_displace)
                     vDisplace = m_particles[label - 1]->m_aniso_kernel.get_displacement_projection(sample_pos, norm_global, m_max_displacement_projection, bLast);
                     
                     fit->set_projected(bLast);
-                    
-                    assert(vDisplace.length() < 1.001* m_max_displacement_projection);
-                    
                 }
                 else{ // Sharing interface
 //                    for (int i = 0; i < m_particles.size(); i++)
@@ -452,8 +456,6 @@ double fluid_motion::project_interface(double min_displace)
                     vDisplace += m_particles[i]->m_aniso_kernel.get_displacement_projection(sample_pos, norm, m_max_displacement_projection, bLast);
                     fit->set_projected(bLast);
 //                    vDisplace *= 0.5;
-                    
-                    assert(vDisplace.length() < 1.001* m_max_displacement_projection);
                     
                 }
                 

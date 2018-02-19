@@ -41,7 +41,7 @@ vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double
 
 vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double max_displace, bool & bLast){
     
-    norm = estimate_norm(pos);
+//    norm = estimate_norm(pos);
     
     // point 1
     vec3 pos1 = pos;
