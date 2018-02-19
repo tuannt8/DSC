@@ -29,9 +29,9 @@ string find_name(string input)
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
     m_max_dsc_displacement = //m_problem->m_deltap;
-                                 max(s_dsc->get_avg_edge_length(), m_problem->m_deltap);
+                                 max(s_dsc->get_avg_edge_length()*0.5, m_problem->m_deltap);
     
-    m_max_displacement_projection = m_problem->m_deltap;
+    m_max_displacement_projection = m_problem->m_deltap*0.5;
     m_threshold_projection = m_problem->m_deltap*0.5;
     
     cout << "\n\n+++++++++++++++++++++++++++++++++++++++"
@@ -234,24 +234,13 @@ void fluid_motion:: advect_velocity()
 }
 void fluid_motion::deform()
 {
-//    if(load_next_particle())
-    {
-//        project_interface_itteratively();
-        
-//        s_dsc->print_mesh_info();
-    }
-    
     advect_velocity();
     project_interface_one_iter();
+
+    load_next_particle(); 
     
-//    project_interface_itteratively();
-    
-    
-    load_next_particle();
-    
-    log_dsc_surface();
-    
-    assert(s_dsc->get_no_faces_buffer() < 10000000);// assert cache
+//    log_dsc_surface();
+    log_dsc();
 }
 
 void fluid_motion::project_interface_one_iter()
@@ -455,7 +444,7 @@ double fluid_motion::project_interface()
                     bool bLast = false;
                     vDisplace += m_particles[i]->m_aniso_kernel.get_displacement_projection(sample_pos, norm, m_max_displacement_projection, bLast);
                     fit->set_projected(bLast);
-//                    vDisplace *= 0.5;
+//                    vDisplace *= 0
                     
                 }
                 
@@ -522,6 +511,19 @@ double fluid_motion::project_interface()
     s_dsc->deform(10);
 
     return max_displace;
+}
+
+void fluid_motion::log_dsc(){
+    std::stringstream s;
+    s << m_out_path[0] << "/iter_" << m_cur_global_idx << "_" << m_sub_step_idx << ".dsc";
+    
+    std::vector<vec3> points;
+    std::vector<int> tets;
+    std::vector<int> tet_labels;
+    s_dsc->extract_tet_mesh(points, tets, tet_labels);
+    is_mesh::export_tet_mesh(s.str(), points, tets, tet_labels);
+    
+    cout << "Write to: " << s.str() << endl;
 }
 
 void fluid_motion::log_dsc_surface()
@@ -592,6 +594,25 @@ void fluid_motion::update_vertex_boundary()
     
     static vec3 origin(0);
     static vec3 domain_size = m_problem->domain_size();
+    
+    double epsilon = s_dsc->get_avg_edge_length()*0.3;
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface())
+        {
+            auto pos = nit->get_pos();
+            for (int i = 0; i < 3; i++)
+            {
+                if (abs(pos[i] - origin[i]) < epsilon
+                    || abs(pos[i] - domain_size[i]) < epsilon)
+                {
+                    is_vertices_boundary[nit.key()] = true;
+                    break;
+                }
+            }
+        }
+    }
+
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
         if (fit->is_interface())

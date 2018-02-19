@@ -24,7 +24,7 @@
 
 #define DSC_CACHE
 
-#define MAX_ELEMENTS 1000000
+//#define MAX_ELEMENTS 1000000
 
 #define CLEAN_GARBAGE(a, b) if(a[b]){delete a[b]; a[b] = nullptr;}
 #define RELEASE_CACHE(a) \
@@ -70,8 +70,11 @@ public:
     std::vector<int *> node_color;
     std::vector<int *> edge_color;
 public:
+    dsc_cache(){
+        
+    };
     
-    dsc_cache()
+    void init(int MAX_ELEMENTS)
     {
         std::cout <<"---------- Init cache --------------------" << std::endl;
         // Node

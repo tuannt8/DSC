@@ -441,20 +441,30 @@ namespace DSC {
         DeformableSimplicialComplex(std::vector<vec3> & points, std::vector<int> & tets, const std::vector<int>& tet_labels):
         is_mesh::ISMesh<node_att, edge_att, face_att, tet_att>(points, tets, tet_labels)
         {
-            pars = {0.1,
-                0.5,
-                0.0005,
-                0.015,
-                0.02,
-                0.3,
-                0.,
-                1.3, // max length
-                0.2, // min area
-                5., // max area
-                0.2,    // min vol
-                INFINITY}; //max vol
-            set_avg_edge_length();
+//            pars = {0.1,
+//                0.5,
+//                0.0005,
+//                0.015,
+//                0.02,
+//                0.3,
+//                0.,
+//                1.3, // max length
+//                0.2, // min area
+//                5., // max area
+//                0.2,    // min vol
+//                INFINITY}; //max vol
             
+            pars = {0.1, 0.5, // edge
+                0.0005, 0.015, // faces
+                0.02, 0.3, // tet
+                0.3, 1.3, // edge, resize interface
+                0.2, 5., // face, resize. No use
+                0.2, INFINITY // tet, resize
+            };
+            
+            set_avg_edge_length();
+
+            cache.init(this->get_no_faces_buffer()*5);
         }
         
         ~DeformableSimplicialComplex()
@@ -2349,6 +2359,7 @@ namespace DSC {
             } while (missing > 0 && step < num_steps);
             
             std::cout << "Move DSC in " << step << " steps. " << "\tVertices missing to be moved: " << missing << std::endl;
+            std::cout << "# faces buffer: " << this->get_no_faces_buffer() << std::endl;
             
             //#ifdef DEBUG
             //            validity_check();
