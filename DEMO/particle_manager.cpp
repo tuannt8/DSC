@@ -18,6 +18,12 @@
 
 #include "debugger.h"
 
+double wendland(double q, double h)
+{
+    static double alpha = 21./(16*3.14159);
+    return alpha/(h*h*h) * std::pow(1 - q/2, 4) * (1 + 2*q);
+}
+
 using namespace std;
 
 inline std::istream& operator>> (std::istream&is, particle& p)
@@ -243,15 +249,14 @@ bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
     
     vector<int> list;
     vector<vec3> pos_in_sphere;
-    m_vtree.in_sphere(pos, h, pos_in_sphere, list);
+    m_vtree.in_sphere(pos, 2*h, pos_in_sphere, list);
     
     if (list.size() == 0) // found nothing. Cannot project
     {
+        dis = vec3(0.0);
         return false;
     }
-    
-    static double sigma = 314./64./3.14159;
-    static double h3 = h*h*h;
+
     dis = vec3(0);
     for (auto p : list)
     {
@@ -262,22 +267,14 @@ bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
         
         dis += vel * (
                       part.mass / part.density
-                      * sigma / h3
-                      * std::pow(1 - r_h*r_h, 3)
+                      * wendland(r_h, h)
                       );
+        
+        
     }
     
-//    //// Test
-//    double vol_total = 0;
-//    double vol_total2 = 0;
-//    for (auto p : list)
-//    {
-//        auto part = m_sub_step_particles[p];
-//        vol_total += part.mass / part.density;
-//        vol_total2 += part.volume;
-//    }
-//    cout << "Compare: " << vol_total << " ---- " << vol_total2 << " --- "  << h3 << endl;
-//
+    
+    
     return  true;
 }
 
@@ -433,47 +430,34 @@ void particle_manager::draw_orientation_anisotropic()
     
 }
 
-void particle_manager::draw_anisotropic_kernel(vec3 domain_size, bool refresh)
+void particle_manager::draw_anisotropic_kernel(vec3 domain_size, vec3 c)
 {
-    static vector<vec3> pos;
-    static vector<double> phi;
+
     
     // Build
-//    if (pos.size() == 0
-//        || refresh)
+    if (pos.size() == 0)
     {
+        build_anisotropic_kernel();
+        
         int N = 300;
+        int gap = N/20;
         vec3 delta = domain_size / N;
         pos.clear(); phi.clear();
         
-        for (int i=0; i < N; i++)
+        for (int i=-gap; i < N+gap; i++)
         {
             //                for (int j = 0; j < N; j++)
             int j = 100;
             {
-                for (int k = 0; k < N; k++)
+                for (int k = -gap; k < N+gap; k++)
                     //                    int k = 1;
                 {
                     vec3 cur_p(i*delta[0], j*delta[1], k*delta[2]);
                     pos.push_back(cur_p);
-                    phi.push_back(m_aniso_kernel.get_value(cur_p));
+                    phi.push_back(m_aniso_kernel.is_inside(cur_p));
                 }
             }
         }
-        
-        // Normalize
-        double max = *std::max_element(phi.begin(), phi.end());
-        double min = *std::min_element(phi.begin(), phi.end());
-        cout << "\nMax field: " << max << "; min: " << min << endl;
-//        for (auto & pp : phi)
-//        {
-//            if (pp < 0)
-//            {
-//                pp /= abs(min);
-//            }else{
-//                pp /= abs(max);
-//            }
-//        }
     }
     
     
@@ -485,11 +469,12 @@ void particle_manager::draw_anisotropic_kernel(vec3 domain_size, bool refresh)
     vec3 BLUE(0,0,1);
     for (int i = 0; i < pos.size(); i++)
     {
-        double dis_red = abs(phi[i] + 1)/2;
-        double dis_blue = abs(1 - phi[i])/2;
-        vec3 c = RED*dis_red + BLUE*dis_blue;
-        glColor3f(c[0], c[1], c[2]);
-        glVertex3dv(pos[i].get());
+        if (phi[i] > 0)
+        {
+            glColor3f(c[0], c[1], c[2]);
+            glVertex3dv(pos[i].get());
+        }
+
     }
     glEnd();
     
@@ -516,16 +501,18 @@ void particle_manager::draw()
 
 bool particle_manager::get_displacement(vec3 pos, vec3 & dis)
 {
+//    vec3 pos_avg(0.0);
+//    get_displacement_avg(pos, pos_avg);
+//    get_displacement_sph_kernel(pos, dis);
+//
+//    cout << pos << pos_avg  << dis << endl;
+    
     return get_displacement_sph_kernel(pos, dis);
 //        return get_displacement_weighted_avg(pos, dis);
 //    return get_displacement_MLS_kernel(pos, dis);
     //    return get_displacement_cubic_kernel(pos);
 }
-double wendland(double q, double h)
-{
-    static double alpha = 21./(16*3.14159);
-    return alpha/(h*h*h) * std::pow(1 - q/2, 4) * (1 + 2*q);
-}
+
 void particle_manager::load_time_step(int idx)
 {
     if (idx == -1)
@@ -589,7 +576,7 @@ double particle_manager::get_max_displacement()
     }
     avg_displace /= m_current_particles.size();
     
-    return avg_displace;
+    return max_displacement;
     return avg_displace;
 }
 
@@ -697,6 +684,8 @@ void particle_manager::build_anisotropic_kernel()
     m_aniso_kernel.m_ra = m_deltap;
     
     m_aniso_kernel.build();
+    
+//    m_sub_step_particles = m_aniso_kernel.m_particles;
 }
 
 void particle_manager::rebuild_density()
@@ -711,6 +700,9 @@ void particle_manager::rebuild_density()
         
         m_vtree.in_sphere(part.pos, r, neighbor_pos, neighbor_idx);
 
+        
+        assert(neighbor_idx.size() > 0);
+        
         double rho = 0;
         for (auto & p : neighbor_idx)
         {

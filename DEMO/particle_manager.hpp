@@ -98,7 +98,10 @@ public:
     
     void draw();
     void draw_intermediate_vel();
-    void draw_anisotropic_kernel(vec3 domain_size, bool refresh = false);
+    
+    std::vector<vec3> pos;
+    std::vector<double> phi;
+    void draw_anisotropic_kernel(vec3 domain_size, vec3 c);
     void draw_orientation_anisotropic();
     void draw_anisotropic_kernel();
 };

@@ -28,6 +28,7 @@ namespace is_mesh {
         vec3 p;
         vec3 p_new;
         std::bitset<3> flags;
+        std::vector<bool> tuan_flag;
         
         int color;
     public:
@@ -35,19 +36,21 @@ namespace is_mesh {
         NodeAttributes()
         {
             color = NO_COLOR; // Not assigned
+            tuan_flag = std::vector<bool>(10, false);
         }
 
         NodeAttributes(vec3 _p) : p(_p), p_new(_p)
         {
             color = NO_COLOR; // Not assigned
+            tuan_flag = std::vector<bool>(10, false);
         }
 
         NodeAttributes(const NodeAttributes& other)
-        :p{other.p}, p_new{other.p_new}, flags{other.flags}, color{other.color}
+        :p{other.p}, p_new{other.p_new}, flags{other.flags}, color{other.color}, tuan_flag{other.tuan_flag}
         {}
 
         NodeAttributes(NodeAttributes&& other)
-        :p{other.p}, p_new{other.p_new}, flags{other.flags}, color{other.color}
+        :p{other.p}, p_new{other.p_new}, flags{other.flags}, color{other.color}, tuan_flag{other.tuan_flag}
         {}
 
         NodeAttributes& operator=(NodeAttributes&& other){
@@ -56,8 +59,19 @@ namespace is_mesh {
                 std::swap(p_new, other.p_new);
                 std::swap(flags, other.flags);
                 std::swap(color, other.color);
+                std::swap(tuan_flag, other.tuan_flag);
             }
             return *this;
+        }
+        
+        void set_t_flag(int idx, bool value)
+        {
+            tuan_flag[idx] = value;
+        }
+        
+        const bool get_t_flag(int idx)
+        {
+            return tuan_flag[idx];
         }
         
         /**
@@ -194,10 +208,12 @@ namespace is_mesh {
     
     class FaceAttributes
     {
-        std::bitset<2> flags;
+        std::bitset<3> flags;
         int color = NO_COLOR;
     public:
-        FaceAttributes() {}
+        FaceAttributes() {
+//            t_flags.set();
+        }
 
         FaceAttributes(const FaceAttributes& other)
                 :flags(other.flags), color(other.color)
@@ -240,6 +256,19 @@ namespace is_mesh {
             flags[0] = b;
         }
         
+        /////////////////////////////////
+        // Tuan
+        bool is_projected() // Used for surface projection
+        {
+            return flags[3];
+        }
+        void set_projected(bool b)
+        {
+            flags[3] = b;
+        }
+        
+        // Tuan - end
+        //////////////////////////////////
         int get_color()
         {
             return color;

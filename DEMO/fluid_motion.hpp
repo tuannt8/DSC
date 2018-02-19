@@ -71,6 +71,8 @@ public:
     std::vector<bool> is_vertices_boundary;
     void update_vertex_boundary();
     bool is_boundary_work_around(is_mesh::FaceKey fkey);
+    
+    void reset_projected_flag();
 };
 
 

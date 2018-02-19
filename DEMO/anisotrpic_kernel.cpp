@@ -17,7 +17,7 @@
 
 using namespace std;
 
-vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double max_displace){
+vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double max_displace, bool & bLast){
     
     // point 1
     vec3 pos1 = pos;
@@ -27,32 +27,35 @@ vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double
     vec3 pos2 = pos + norm * (max_displace * (bInside1? 1 : -1));
     bool bInside2 = is_inside(pos2);
     
-    if (bInside1 == bInside2)
-    {
+    if (bInside1 == bInside2){
+        bLast = false;
         return pos2 - pos1;
     }
-    
-    for (int i = 0; i < 4; i++)
-    {
-        vec3 mid = (pos1 + pos2)*0.5;
-        bool bInside = is_inside(mid);
-            
-        if (bInside == bInside1)
+    else{
+        for (int i = 0; i < 4; i++)
         {
-            pos1 = mid;
-        }else
-            pos2 = mid;
+            vec3 mid = (pos1 + pos2)*0.5;
+            bool bInside = is_inside(mid);
+            
+            if (bInside == bInside1)
+            {
+                pos1 = mid;
+            }else
+                pos2 = mid;
+        }
+        
+        auto dis = (pos1 + pos2)*0.5 - pos;
+        if (dis.length() > 1.001*max_displace)
+        {
+            cout << pos;
+            cout << dis;
+            cout << max_displace;
+            assert(0);
+        }
+        
+        bLast = true; // Binary search means this is the last projection
+        return dis;
     }
-    
-    auto dis = (pos1 + pos2)*0.5 - pos;
-    if (dis.length() > 1.001*max_displace)
-    {
-        cout << pos;
-        cout << dis;
-        cout << max_displace;
-        assert(0);
-    }
-    return dis;
 }
 
 bool anisotropic_kernel::get_projection(vec3 pos, vec3 direction, bool &bInside, vec3& projected_point)
@@ -127,6 +130,11 @@ double anisotropic_kernel::get_value(vec3 pos){
 
 bool anisotropic_kernel::is_inside(vec3 pos)
 {
+    if (m_b_kernel_computed.size()==0)
+    {
+        return false;
+    }
+    
     auto neighbor = neighbor_search(pos, m_r);
     return is_inside(pos, neighbor);
 }

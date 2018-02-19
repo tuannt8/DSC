@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 {
     InputParser input(argc, argv);
     
-    fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-path", problem);
+    fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-name", problem);
     g_out_path = input.getCmdOption("-out_path", "surface");
     
     bool nodisplay = input.cmdOptionExists("-no_display");
