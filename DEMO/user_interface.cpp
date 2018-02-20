@@ -198,8 +198,10 @@ void UI::init_data()
     // init DSC
     _obj_dim = m_fluid.m_problem->domain_size();
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
+    
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
-//    load_model("../Large_data/two_phase_fluid/surface_0/iter_2_1.dsc");
+//    load_model("/Users/tuannt8/Desktop/iter_40_13.dsc");
+    
     m_fluid.init(&*dsc);
     
     // Load first particle

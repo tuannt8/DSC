@@ -133,7 +133,9 @@ namespace is_mesh {
             
             create(points, tets);
             init_flags(tet_labels);
+#ifdef DEBUG
             validity_check();
+#endif
         }
         
         ~ISMesh()
