@@ -42,14 +42,18 @@ double g_res; // Affect DSC resolution
 
 void extract_surface_phase(int phase, std::string path, DSC::DeformableSimplicialComplex<> * s_dsc)
 {
-
-    if (phase == 2)
+    bool shift = false;
+    // If not shift, then the shared interface will be removed
+    
+    if (shift && phase == 2)
     {
-        double shrink = 0.01*s_dsc->get_avg_edge_length();
+        // Shrink the share interface
+
+        double shrink = 0.001*s_dsc->get_avg_edge_length();
         vector<vec3> vertex_shrink(s_dsc->get_no_nodes(), vec3(0.0));
         vector<double> contribute(s_dsc->get_no_nodes(), (0.0));
-        
-        // Shrink the share interface
+
+
         for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
         {
             auto tets = s_dsc->get_tets(fit.key());
@@ -90,12 +94,13 @@ void extract_surface_phase(int phase, std::string path, DSC::DeformableSimplicia
             if(s_dsc->get_label(tets[0]) == phase
                || s_dsc->get_label(tets[1]) == phase)
             {
-//                if (phase == 2
-//                    && s_dsc->get_label(tets[0]) != 0
-//                    && s_dsc->get_label(tets[1]) != 0)
-//                {
-//                    continue;
-//                }
+                if (!shift
+                    && phase == 2
+                    && s_dsc->get_label(tets[0]) != 0
+                    && s_dsc->get_label(tets[1]) != 0)
+                {
+                    continue;
+                }
                 
                 auto tid = (s_dsc->get_label(tets[0]) == phase? tets[0]:tets[1]);
                 
