@@ -42,6 +42,40 @@ double g_res; // Affect DSC resolution
 
 void extract_surface_phase(int phase, std::string path, DSC::DeformableSimplicialComplex<> * s_dsc)
 {
+
+    if (phase == 2)
+    {
+        double shrink = 0.01*s_dsc->get_avg_edge_length();
+        vector<vec3> vertex_shrink(s_dsc->get_no_nodes(), vec3(0.0));
+        vector<double> contribute(s_dsc->get_no_nodes(), (0.0));
+        
+        // Shrink the share interface
+        for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
+        {
+            auto tets = s_dsc->get_tets(fit.key());
+            if (s_dsc->get_label(tets[0]) != 0
+                && s_dsc->get_label(tets[1]) != 0)
+            {
+                auto norm = s_dsc->get_normal(fit.key());
+                for(auto n : s_dsc->get_nodes(fit.key()))
+                {
+                    vertex_shrink[n] += -norm*shrink;
+                    contribute[n] += 1;
+                }
+            }
+        }
+        for (int i = 0; i < vertex_shrink.size(); i++)
+        {
+            if (contribute[i] > 0)
+            {
+                vec3 dis = vertex_shrink[i]/contribute[i];
+                is_mesh::NodeKey nkey(i);
+                vec3 pos = s_dsc->get_pos(nkey) + dis;
+                s_dsc->set_pos(nkey, pos);
+            }
+        }
+    }
+    
     vector<int> indices_map(s_dsc->get_no_nodes_buffer(), -1);
     int idx = 0;
     
@@ -56,6 +90,13 @@ void extract_surface_phase(int phase, std::string path, DSC::DeformableSimplicia
             if(s_dsc->get_label(tets[0]) == phase
                || s_dsc->get_label(tets[1]) == phase)
             {
+//                if (phase == 2
+//                    && s_dsc->get_label(tets[0]) != 0
+//                    && s_dsc->get_label(tets[1]) != 0)
+//                {
+//                    continue;
+//                }
+                
                 auto tid = (s_dsc->get_label(tets[0]) == phase? tets[0]:tets[1]);
                 
                 auto nodes = s_dsc->get_sorted_nodes(fit.key(), tid);
