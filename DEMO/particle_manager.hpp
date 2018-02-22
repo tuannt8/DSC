@@ -53,13 +53,19 @@ public:
     double m_slength; // Smoothing radius
     
     // Particles
-    int m_cur_idx = 0;
     std::vector<particle> m_current_particles; // Current file
     std::vector<particle> m_next_particles; // Next file
     
-    int m_cur_sub_step, m_max_step; // estimated by max displacement
-    std::vector<particle> m_sub_step_particles; // When subdivide to sub time steps
-    std::vector<vec3> m_sub_step_vel; // Linear approximation
+    void init_first(int idx);
+    void load_next(int idx, double t);
+    
+    int m_cache_idx;
+    std::vector<particle> m_cache_particles; // Current file
+    std::vector<particle> m_cache_particles_next; // Next file
+    
+//    int m_cur_sub_step, m_max_step; // estimated by max displacement
+//    std::vector<particle> m_sub_step_particles; // When subdivide to sub time steps
+//    std::vector<vec3> m_sub_step_vel; // Linear approximation
     
     // accelerating finding neighbor
     Geometry::KDTree<vec3, int> m_vtree;

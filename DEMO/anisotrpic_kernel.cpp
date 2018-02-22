@@ -251,7 +251,7 @@ void anisotropic_kernel::build_connected_component()
     }
     
     m_nb_component = cc_count;
-    cout << cc_count << " connected components of " << num_fluid_particles << " particles" << endl;
+//    cout << cc_count << " connected components of " << num_fluid_particles << " particles" << endl;
 }
 
 void draw_connected_component()
@@ -267,6 +267,7 @@ void anisotropic_kernel::build(){
     compute_kd_tree();
     build_connected_component();
 //    // 2. First smooth the particle
+//    //  Smooth makes better fit, but in case of two phase, there is gap between phases
 //    Taubin_smooth();
 //    compute_kd_tree();
 

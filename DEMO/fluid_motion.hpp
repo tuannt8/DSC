@@ -55,12 +55,12 @@ public:
     std::vector<std::shared_ptr<particle_manager>> m_particles;
     
     int m_cur_global_idx = 0;
-    int m_sub_step_idx = 0;
-    int m_sub_step_count = 0;
+    double t = 0, dt = 1;
+    
     void load_first_particle();
     void load_next_particle(); // return true if loading new file
-    int subdivide_time_step();
-//    dam_break m_file_load;
+    
+    void compute_advection(std::vector<vec3> & vertex_dis);
     
     void deform();
     void project_interface_itteratively();

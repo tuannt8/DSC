@@ -49,17 +49,17 @@ inline std::ostream& operator<<(std::ostream&os, particle& p)
 
 vec3 particle_manager::get_displacement_closet_point(vec3 pos)
 {
-    double r = m_influence_radius;
-    int idx;
-    vec3 pp;
-    if(m_vtree.closest_point(pos, r, pp, idx))
-    {
-        return m_sub_step_vel[idx];
-    }
-    else
-    {
-        return vec3(0.0);
-    }
+//    double r = m_influence_radius;
+//    int idx;
+//    vec3 pp;
+//    if(m_vtree.closest_point(pos, r, pp, idx))
+//    {
+//        return m_sub_step_vel[idx];
+//    }
+//    else
+//    {
+//        return vec3(0.0);
+//    }
 }
 
 double particle_manager::weight_function(double r,  int type)
@@ -74,58 +74,58 @@ double particle_manager::weight_function(double r,  int type)
 }
 bool particle_manager::get_displacement_MLS_kernel(vec3 pos, vec3 & dis)
 {
-    double support_radius = m_deltap*3;
-    
-    vector<int> pt_in_sphere;
-    vector<vec3> pos_in_sphere;
-    m_vtree.in_sphere(pos, support_radius, pos_in_sphere, pt_in_sphere);
-    
-    if(pt_in_sphere.size() <= 3) //ignore if have only few neighbors
-        return false;
-    
-    // 1. Compute moment matrix
-    mat4x4d A(0);
-    for (auto j : pt_in_sphere)
-    {
-        auto p_n = m_current_particles[j].pos;
-        vec4 poly_n(1, p_n[0], p_n[1], p_n[2]); // Polynominal function
-
-        mat4x4d pxpt;
-        CGLA::outer_product(poly_n, poly_n, pxpt);
-
-        double r = (pos - p_n).length() / support_radius;
-            // As we search for points in sphere then r < 1
-        A += pxpt * weight_function(r);
-    }
-
-    // 1.1. Invert of A
-    mat4x4d A_i;
-    invert4x4(A.get(), A_i.get());
-    
-    // 2. Compute shape functions
-    vector<double> phi(pt_in_sphere.size(), 0);
-    
-    dis = vec3(0);
-    
-    double sum = 0;
-    for (int j = 0; j < pt_in_sphere.size(); j++)
-    {
-        int par_idx = pt_in_sphere[j];
-        auto p_n = m_current_particles[par_idx].pos;
-        auto v_n = m_sub_step_vel[par_idx];
-        vec4 poly(1, p_n[0], p_n[1], p_n[2]);
-        double r = (pos - p_n).length() / support_radius;
-        
-        auto mat_o = (A_i*poly);
-        phi[j] = CGLA::dot(poly, mat_o) *weight_function(r);
-
-        sum += phi[j];
-        dis += v_n*phi[j];
-        
-        
-//        assert(v_n.length() < support_radius);
-    }
-    
+//    double support_radius = m_deltap*3;
+//    
+//    vector<int> pt_in_sphere;
+//    vector<vec3> pos_in_sphere;
+//    m_vtree.in_sphere(pos, support_radius, pos_in_sphere, pt_in_sphere);
+//    
+//    if(pt_in_sphere.size() <= 3) //ignore if have only few neighbors
+//        return false;
+//    
+//    // 1. Compute moment matrix
+//    mat4x4d A(0);
+//    for (auto j : pt_in_sphere)
+//    {
+//        auto p_n = m_current_particles[j].pos;
+//        vec4 poly_n(1, p_n[0], p_n[1], p_n[2]); // Polynominal function
+//
+//        mat4x4d pxpt;
+//        CGLA::outer_product(poly_n, poly_n, pxpt);
+//
+//        double r = (pos - p_n).length() / support_radius;
+//            // As we search for points in sphere then r < 1
+//        A += pxpt * weight_function(r);
+//    }
+//
+//    // 1.1. Invert of A
+//    mat4x4d A_i;
+//    invert4x4(A.get(), A_i.get());
+//    
+//    // 2. Compute shape functions
+//    vector<double> phi(pt_in_sphere.size(), 0);
+//    
+//    dis = vec3(0);
+//    
+//    double sum = 0;
+//    for (int j = 0; j < pt_in_sphere.size(); j++)
+//    {
+//        int par_idx = pt_in_sphere[j];
+//        auto p_n = m_current_particles[par_idx].pos;
+//        auto v_n = m_sub_step_vel[par_idx];
+//        vec4 poly(1, p_n[0], p_n[1], p_n[2]);
+//        double r = (pos - p_n).length() / support_radius;
+//        
+//        auto mat_o = (A_i*poly);
+//        phi[j] = CGLA::dot(poly, mat_o) *weight_function(r);
+//
+//        sum += phi[j];
+//        dis += v_n*phi[j];
+//        
+//        
+////        assert(v_n.length() < support_radius);
+//    }
+//    
 //    assert(dis.length() < support_radius);
     
 //    cout << sum << " ; ";
@@ -185,62 +185,62 @@ bool particle_manager::get_displacement_MLS_kernel(vec3 pos, vec3 & dis)
 
 bool particle_manager::get_displacement_WENLAND_kernel(vec3 pos, vec3 &dis)
 {
-    double h = m_slength;
-    double r = 2*h;
-    vector<int> pt_in_sphere;
-    vector<vec3> pos_in_sphere;
-    m_vtree.in_sphere(pos, r, pos_in_sphere, pt_in_sphere);
-    
-    if(pt_in_sphere.size()==0)
-        return false;
-    
-    vec3 sum_vec(0);
-    for (auto key : pt_in_sphere)
-    {
-        vec3 pos_key = m_sub_step_particles[key].pos;
-        vec3 vel = m_sub_step_vel[key];
-        auto cur_dis = (pos_key - pos).length();
-        
-        double q = cur_dis/h;
-        double contribute = 21.0/16.0/3.14159/pow(h,3)*pow(1-q/2.0,4)*(1 +2*q);
-        
-        sum_vec += vel*(contribute * m_current_particles[key].mass/m_current_particles[key].density);
-    }
-    
-    dis = sum_vec;
-    return true;
+//    double h = m_slength;
+//    double r = 2*h;
+//    vector<int> pt_in_sphere;
+//    vector<vec3> pos_in_sphere;
+//    m_vtree.in_sphere(pos, r, pos_in_sphere, pt_in_sphere);
+//
+//    if(pt_in_sphere.size()==0)
+//        return false;
+//
+//    vec3 sum_vec(0);
+//    for (auto key : pt_in_sphere)
+//    {
+//        vec3 pos_key = m_sub_step_particles[key].pos;
+//        vec3 vel = m_sub_step_vel[key];
+//        auto cur_dis = (pos_key - pos).length();
+//
+//        double q = cur_dis/h;
+//        double contribute = 21.0/16.0/3.14159/pow(h,3)*pow(1-q/2.0,4)*(1 +2*q);
+//
+//        sum_vec += vel*(contribute * m_current_particles[key].mass/m_current_particles[key].density);
+//    }
+//
+//    dis = sum_vec;
+//    return true;
     
 }
 
 vec3 particle_manager::get_displacement_cubic_kernel(vec3 pos)
 {
-    double h = m_influence_radius;
-    double r = h*2;
-    vector<int> pt_in_sphere;
-    vector<vec3> pos_in_sphere;
-    m_vtree.in_sphere(pos, r, pos_in_sphere, pt_in_sphere);
-    
-    vec3 sum_vec(0);
-    for (auto key : pt_in_sphere)
-    {
-        vec3 pos_key = m_sub_step_particles[key].pos;
-        vec3 vel = m_sub_step_vel[key];
-        auto cur_dis = (pos_key - pos).length();
-        
-        double q = cur_dis/h;
-        double contribute;
-        if (cur_dis < 1)
-        {
-            contribute = 1 - 1.5*q*q + 0.75*q*q*q;
-        }
-        else
-        {
-            contribute = 0.25*pow(2-q, 3);
-        }
-        sum_vec += vel*(contribute/3.1415/(h*h*h) * m_current_particles[key].mass/m_current_particles[key].density);
-    }
-    
-    return sum_vec;
+//    double h = m_influence_radius;
+//    double r = h*2;
+//    vector<int> pt_in_sphere;
+//    vector<vec3> pos_in_sphere;
+//    m_vtree.in_sphere(pos, r, pos_in_sphere, pt_in_sphere);
+//
+//    vec3 sum_vec(0);
+//    for (auto key : pt_in_sphere)
+//    {
+//        vec3 pos_key = m_sub_step_particles[key].pos;
+//        vec3 vel = m_sub_step_vel[key];
+//        auto cur_dis = (pos_key - pos).length();
+//
+//        double q = cur_dis/h;
+//        double contribute;
+//        if (cur_dis < 1)
+//        {
+//            contribute = 1 - 1.5*q*q + 0.75*q*q*q;
+//        }
+//        else
+//        {
+//            contribute = 0.25*pow(2-q, 3);
+//        }
+//        sum_vec += vel*(contribute/3.1415/(h*h*h) * m_current_particles[key].mass/m_current_particles[key].density);
+//    }
+//
+//    return sum_vec;
 }
 
 bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
@@ -260,8 +260,8 @@ bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
     dis = vec3(0);
     for (auto p : list)
     {
-        auto part = m_sub_step_particles[p];
-        auto vel = m_sub_step_vel[p];
+        auto part = m_current_particles[p];
+        auto vel = m_next_particles[p].pos - m_current_particles[p].pos;
         
         double r_h = (part.pos - pos).length()/h;
         
@@ -277,88 +277,88 @@ bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
 
 bool particle_manager::get_displacement_weighted_avg(vec3 pos, vec3 & dis)
 {
-    double r = m_slength;
-    vector<int> list;
-    vector<vec3> pos_in_sphere;
-    m_vtree.in_sphere(pos, r, pos_in_sphere, list);
-    
-    if (list.size() == 0) // found nothing
-    {
-        return false;
-    }
-    
-    vec3 sum_vec(0.0);
-    double sum_dis = 0;
-    for (auto p : list)
-    {
-        vec3 pos_key = m_sub_step_particles[p].pos;
-        vec3 vel = m_sub_step_vel[p];
-        auto cur_dis = (pos_key - pos).length();
-        
-        
-        auto weight = weight_function(cur_dis/r);
-        
-        sum_vec += vel*weight;
-        sum_dis += weight;
-    }
-    
-    sum_vec /= sum_dis;
-    
-    dis = sum_vec;
-    return true;
+//    double r = m_slength;
+//    vector<int> list;
+//    vector<vec3> pos_in_sphere;
+//    m_vtree.in_sphere(pos, r, pos_in_sphere, list);
+//
+//    if (list.size() == 0) // found nothing
+//    {
+//        return false;
+//    }
+//
+//    vec3 sum_vec(0.0);
+//    double sum_dis = 0;
+//    for (auto p : list)
+//    {
+//        vec3 pos_key = m_sub_step_particles[p].pos;
+//        vec3 vel = m_sub_step_vel[p];
+//        auto cur_dis = (pos_key - pos).length();
+//
+//
+//        auto weight = weight_function(cur_dis/r);
+//
+//        sum_vec += vel*weight;
+//        sum_dis += weight;
+//    }
+//
+//    sum_vec /= sum_dis;
+//
+//    dis = sum_vec;
+//    return true;
 }
 
 bool particle_manager::get_displacement_avg(vec3 pos, vec3 & dis)
 {
-    double r = m_deltap*3;
-    vector<int> list;
-    vector<vec3> pos_in_sphere;
-    m_vtree.in_sphere(pos, r, pos_in_sphere, list);
-    
-    if (list.size() == 0) // found nothing
-    {
-        return false;
-    }
-    
-    vec3 sum_vec(0.0);
-    double sum_dis = 0;
-    for (auto p : list)
-    {
-        vec3 pos_key = m_sub_step_particles[p].pos;
-        vec3 vel = m_sub_step_vel[p];
-        auto cur_dis = (pos_key - pos).length();
-        
-        sum_vec += vel*cur_dis;
-        sum_dis += cur_dis;
-    }
-    
-    sum_vec /= sum_dis;
-    
-    dis = sum_vec;
-    return true;
+//    double r = m_deltap*3;
+//    vector<int> list;
+//    vector<vec3> pos_in_sphere;
+//    m_vtree.in_sphere(pos, r, pos_in_sphere, list);
+//
+//    if (list.size() == 0) // found nothing
+//    {
+//        return false;
+//    }
+//
+//    vec3 sum_vec(0.0);
+//    double sum_dis = 0;
+//    for (auto p : list)
+//    {
+//        vec3 pos_key = m_sub_step_particles[p].pos;
+//        vec3 vel = m_sub_step_vel[p];
+//        auto cur_dis = (pos_key - pos).length();
+//
+//        sum_vec += vel*cur_dis;
+//        sum_dis += cur_dis;
+//    }
+//
+//    sum_vec /= sum_dis;
+//
+//    dis = sum_vec;
+//    return true;
 }
 
 void particle_manager::draw_intermediate_vel()
 {
-    glDisable(GL_LIGHTING);
-    glBegin(GL_LINES);
-    for (int i = 0; i < m_sub_step_vel.size(); i++)
-    {
-        auto p = m_sub_step_particles[i].pos;
-        glVertex3dv(p.get());
-        glVertex3dv((p + m_sub_step_vel[i]).get());
-    }
-    glEnd();
+//    glDisable(GL_LIGHTING);
+//    glBegin(GL_LINES);
+//    for (int i = 0; i < m_sub_step_vel.size(); i++)
+//    {
+//        auto p = m_sub_step_particles[i].pos;
+//        glVertex3dv(p.get());
+//        glVertex3dv((p + m_sub_step_vel[i]).get());
+//    }
+//    glEnd();
 }
 
 
 void particle_manager::draw_anisotropic_kernel(double yunder, double yupper)
 {
-    for (int i = 0; i < m_sub_step_particles.size(); i++)
+    for (int i = 0; i < m_current_particles.size(); i++)
     {
 //        {
 //            int i = debugger<>::get_int("particle idx", 0);
-            auto &p = m_sub_step_particles[i];
+            auto &p = m_current_particles[i];
             auto pos = p.pos;
             
             if (pos[1] < yunder || pos[1] > yupper)
@@ -400,7 +400,7 @@ void particle_manager::draw_anisotropic_kernel(double yunder, double yupper)
                 glBegin(GL_POINTS);
                 for (auto p : neighbor)
                 {
-                    glVertex3dv(m_sub_step_particles[p].pos.get());
+                    glVertex3dv(m_current_particles[p].pos.get());
                 }
                 glEnd();
             }
@@ -487,9 +487,9 @@ void particle_manager::draw(double y_under, double y_limit)
     glBegin(GL_POINTS);
     //            int idx = 0;
     //            for (int idx : idx_list)
-    for(int idx = 0; idx < m_sub_step_particles.size(); idx++)
+    for(int idx = 0; idx < m_current_particles.size(); idx++)
     {
-        auto &p = m_sub_step_particles[idx];
+        auto &p = m_current_particles[idx];
         if (p.pos[1] < y_limit
             && p.pos[1] > y_under)
         {
@@ -526,34 +526,34 @@ void particle_manager::load_time_step(int idx)
 }
 void particle_manager::interpolate(int sub_idx, int sub_count)
 {
-    // Load sub step by linear interpolation
-    m_sub_step_particles = m_current_particles;
-
-    for (int i = 0; i<m_current_particles.size(); i++)
-    {
-        auto pre_pos = m_current_particles[i].pos;
-        auto next_pos = m_next_particles[i].pos;
-        
-        m_sub_step_particles[i].pos = pre_pos + (next_pos - pre_pos)*(sub_idx/(double)sub_count);
-    }
-    
-    
-    if(sub_idx == 0)//velocity is unchanged hence only need one computation
-    {
-        double max_vel = 0;
-        m_sub_step_vel.resize(m_current_particles.size());
-        for (int i = 0; i<m_current_particles.size(); i++)
-        {
-            auto pre_pos = m_current_particles[i].pos;
-            auto next_pos = m_next_particles[i].pos;
-            
-            m_sub_step_vel[i] = (next_pos - pre_pos)/(double)sub_count;
-            
-            max_vel = max(max_vel, m_sub_step_vel[i].length());
-        }
-//        cout << "Max sub vel: " << max_vel <<endl;
-    }
-    
+//    // Load sub step by linear interpolation
+//    m_sub_step_particles = m_current_particles;
+//
+//    for (int i = 0; i<m_current_particles.size(); i++)
+//    {
+//        auto pre_pos = m_current_particles[i].pos;
+//        auto next_pos = m_next_particles[i].pos;
+//
+//        m_sub_step_particles[i].pos = pre_pos + (next_pos - pre_pos)*(sub_idx/(double)sub_count);
+//    }
+//
+//
+//    if(sub_idx == 0)//velocity is unchanged hence only need one computation
+//    {
+//        double max_vel = 0;
+//        m_sub_step_vel.resize(m_current_particles.size());
+//        for (int i = 0; i<m_current_particles.size(); i++)
+//        {
+//            auto pre_pos = m_current_particles[i].pos;
+//            auto next_pos = m_next_particles[i].pos;
+//
+//            m_sub_step_vel[i] = (next_pos - pre_pos)/(double)sub_count;
+//
+//            max_vel = max(max_vel, m_sub_step_vel[i].length());
+//        }
+////        cout << "Max sub vel: " << max_vel <<endl;
+//    }
+//
 
     
     build_kd_tree(); // may not need to be build every time step
@@ -581,39 +581,40 @@ double particle_manager::get_max_displacement()
 
 void particle_manager::load_time_step()
 {
-//    static bool first_load = true;
-//    if (first_load)
-//    {
-//        first_load = false;
-//        m_cur_idx = 0;
-//        m_cur_sub_step = 0;
-//        load(0, m_current_particles);
-//        load(++m_cur_idx, m_next_particles);
-//    }
-//    else
-//    {
-//        if(m_cur_sub_step == m_max_step)
-//        {
-//            m_current_particles = m_next_particles;
-//            load(++m_cur_idx, m_next_particles);
-//            m_cur_sub_step = 0;
-//        }
-//    }
-//
-//    m_sub_step_particles = m_current_particles;
-//    m_sub_step_vel.resize(m_current_particles.size());
-//    for (int i = 0; i<m_current_particles.size(); i++)
-//    {
-//        auto pre_pos = m_current_particles[i].pos;
-//        auto next_pos = m_next_particles[i].pos;
-//
-//        m_sub_step_vel[i] = (next_pos - pre_pos)/m_max_step;
-//        m_sub_step_particles[i].pos = pre_pos + (next_pos - pre_pos)*(m_cur_sub_step/(double)m_max_step);
-//    }
-//
-//    m_cur_sub_step++;
-//
-//    build_kd_tree(); // should not do it every iteration
+
+}
+
+void particle_manager::init_first(int idx)
+{
+    load(idx, m_cache_particles);
+    load(idx+1, m_cache_particles_next);
+    m_cache_idx = idx;
+    
+    m_next_particles = m_cache_particles;
+    m_current_particles = m_cache_particles;
+}
+
+void particle_manager::load_next(int idx, double t)
+{
+    assert(t >= 0 && t < 1);
+    
+    m_current_particles = m_next_particles;
+    
+    // Interpolate
+    if(idx == m_cache_idx+1)
+    {
+        m_cache_idx = idx;
+        m_cache_particles = m_cache_particles_next;
+        load(m_cache_idx, m_cache_particles_next);
+    }
+    
+    for (int i = 0; i < m_next_particles.size(); i++)
+    {
+        m_next_particles[i].pos = m_cache_particles[i].pos * (1-t) + m_cache_particles_next[i].pos * t;
+    }
+    
+    build_kd_tree(); // may not need to be build every time step
+    rebuild_density(); // Because the density output is different, and I dont know why.
 }
 
 bool particle_manager::get_projection(vec3 pos, vec3 direction, bool &bInside, double &t)
@@ -678,7 +679,7 @@ bool particle_manager::get_projection(vec3 pos, vec3 direction, bool &bInside, d
 
 void particle_manager::build_anisotropic_kernel()
 {
-    m_aniso_kernel.m_particles = m_sub_step_particles;
+    m_aniso_kernel.m_particles = m_current_particles;
     m_aniso_kernel.m_h = m_slength;
     m_aniso_kernel.m_ra = m_deltap;
     
@@ -687,7 +688,7 @@ void particle_manager::build_anisotropic_kernel()
 
 void particle_manager::rebuild_density()
 {
-    for (auto & part : m_sub_step_particles)
+    for (auto & part : m_current_particles)
     {
         vector<vec3> neighbor_pos;
         vector<int> neighbor_idx;
@@ -703,8 +704,8 @@ void particle_manager::rebuild_density()
         double rho = 0;
         for (auto & p : neighbor_idx)
         {
-            double q = (m_sub_step_particles[p].pos - part.pos).length() / h;
-            rho += m_sub_step_particles[p].mass * wendland(q, h);
+            double q = (m_current_particles[p].pos - part.pos).length() / h;
+            rho += m_current_particles[p].mass * wendland(q, h);
         }
         part.density = rho;
     }
@@ -715,7 +716,7 @@ void particle_manager::build_kd_tree()
     m_vtree = Geometry::KDTree<vec3, int>();
     
     int idx = 0;
-    for (auto &p : m_sub_step_particles)
+    for (auto &p : m_current_particles)
     {
        m_vtree.insert(p.pos, idx);
         idx++;

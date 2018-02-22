@@ -92,57 +92,41 @@ void fluid_motion::load_configuration()
     }
 }
 
-int fluid_motion::subdivide_time_step()
-{
-    double max_displace = -INFINITY;
-    for (int i = 0; i < m_problem->m_nb_phases; i++)
-    {
-        max_displace = std::max(max_displace, m_particles[i]->get_max_displacement());
-        
-    }
-    
-    cout << "Max particle displace: " << max_displace << " and dsc " << m_max_dsc_displacement << endl;
-    return ceil(max_displace / m_max_dsc_displacement);
-}
+//int fluid_motion::subdivide_time_step()
+//{
+////    double max_displace = -INFINITY;
+////    for (int i = 0; i < m_problem->m_nb_phases; i++)
+////    {
+////        max_displace = std::max(max_displace, m_particles[i]->get_max_displacement());
+////
+////    }
+////
+////    cout << "Max particle displace: " << max_displace << " and dsc " << m_max_dsc_displacement << endl;
+////    return ceil(max_displace / m_max_dsc_displacement);
+//}
 
 void fluid_motion::load_first_particle()
 {
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
-        m_particles[i]->load_first_time(m_cur_global_idx);
+        m_particles[i]->init_first(m_cur_global_idx);
     }
     
-    m_sub_step_count = subdivide_time_step();
-    for (int i = 0; i < m_problem->m_nb_phases; i++)
-    {
-        m_particles[i]->interpolate(m_sub_step_idx, m_sub_step_count);
-    }
+    load_next_particle();
 }
 
 void fluid_motion::load_next_particle()
 {
-    if(m_sub_step_idx == m_sub_step_count - 1)
+    t += dt;
+    if (t >= 1)
     {
+        t -= 1;
         m_cur_global_idx++;
-        m_sub_step_idx = 0;
-        
-        for (int i = 0; i < m_problem->m_nb_phases; i++)
-        {
-            m_particles[i]->load_time_step(m_cur_global_idx);
-        }
-        
-        m_sub_step_count = subdivide_time_step();
-        
-        for (int i = 0; i < m_problem->m_nb_phases; i++)
-        {
-            m_particles[i]->interpolate(0, m_sub_step_count);
-        }
-    }else{
-        m_sub_step_idx++;
-        for (int i = 0; i < m_problem->m_nb_phases; i++)
-        {
-            m_particles[i]->interpolate(0, m_sub_step_count);
-        }
+    }
+    
+    for (int i = 0; i < m_problem->m_nb_phases; i++)
+    {
+        m_particles[i]->load_next(m_cur_global_idx, t);
     }
 }
 
@@ -174,94 +158,87 @@ void fluid_motion::draw()
 
 void fluid_motion:: advect_velocity()
 {
-    // 1. Interpolate the displacement
-    update_vertex_boundary();
-    
-    
-    ///////////////////////////////////////////////////////////////////////////
-    // Advect velocity does not work
-    // Because of fluid convection and advection, internal particles contribute
-    //  false velocities
-    ///////////////////////////////////////////////////////////////////////////
-
-    
-//    vector<vec3> vertex_dis(s_dsc->get_no_nodes_buffer(), vec3(0.0));
-//    vector<double> contribution(s_dsc->get_no_nodes_buffer(), 0.0);
+//    // 1. Interpolate the displacement
+//    update_vertex_boundary();
 //
+//    vector<bool> should_fix(s_dsc->get_no_nodes_buffer(), true);
 //    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
 //    {
 //        if (fit->is_interface()
 //            && !is_boundary_work_around(fit.key())
 //            )
 //        {
-//            static const vector<vec3> sampling_point = {vec3(0.33, 0.33, 0.33)};
-//            auto node_pts = s_dsc->get_nodes(fit.key());
-//            auto node_pos = s_dsc->get_pos(node_pts);
-//            auto tet_keys = s_dsc->get_tets(fit.key());
-//            int label[2] = {s_dsc->get_label(tet_keys[0]), s_dsc->get_label(tet_keys[1])};
+//            for(auto n : s_dsc->get_nodes(fit.key()))
+//                should_fix[n] = false;
 //
-//            auto norm_global = s_dsc->get_normal(fit.key()); // From large label to smaller label
-//
-//            for (auto const &sp : sampling_point)
-//            {
-//                vec3 sample_pos = get_barry_pos(sp, node_pos);
-//                vec3 vDisplace(0.0);
-//
-//                // Prior fluid 0 (label 1)
-//                int correspond_label = 1;
-//
-//                if (label[0] == 0 || label[1] == 0) // free interface
-//                {
-//                    correspond_label = (label[0] == 0)? label[1] : label[0];
-//                    if(!m_particles[correspond_label-1]->get_displacement(sample_pos, vDisplace))
-//                    {   // cannot project, move on inverse normal direction
-//                        vDisplace = -norm_global*m_max_displacement_projection;
-//                    }
-//                }
-//                else//share interface
-//                {
-//                    // average
-//                    vec3 dv0(0.0), dv1(0.0);
-//                    if(!m_particles[0]->get_displacement(sample_pos, dv0))
-//                        dv0 = norm_global*m_max_displacement_projection;
-//                    if(!m_particles[1]->get_displacement(sample_pos, dv1))
-//                        dv1 =norm_global*m_max_displacement_projection;
-//
-//                    vDisplace = (dv0 + dv1)*0.5;
-//                }
-//
-//                // distribute
-//                for (int i = 0; i < 3; i++)
-//                {
-//                    vertex_dis[node_pts[i]] += vDisplace*sp[i];
-//                    contribution[node_pts[i]] += sp[i];
-//                }
-//            }
-//        }
-//    }
-//    double max_displace = 0;
-//    for (int i = 0; i < vertex_dis.size(); i++)
-//    {
-//        if (contribution[i] > 0)
-//        {
-//            vertex_dis[i] /= contribution[i];
-//            max_displace = max(max_displace, vertex_dis[i].length());
 //        }
 //    }
 //
-//    cout << "Max advection: " << max_displace << endl;
-//
+//    double max_dis = -INFINITY;
 //    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
 //    {
-//        if (nit->is_interface())
+//        if (nit->is_interface()
+//            && !should_fix[nit.key()])
 //        {
-//            s_dsc->set_destination(nit.key(), nit->get_pos() + vertex_dis[nit.key()]);
+//            auto pos = nit->get_pos();
+//            vec3 dis(0.0);
+//            bool bFound = false;
+//            // get max displacement
+//            for (int i = 0; i < m_problem->m_nb_phases; i++)
+//            {
+//                vec3 phase_dis(0.0);
+//                if (m_particles[i]->get_displacement(pos, phase_dis))
+//                {// found
+//                    if (dis.length() < phase_dis.length())
+//                    {
+//                        dis = phase_dis;
+//                    }
+//                    bFound = true;
+//                }
+//            }
+//
+//
+//            if (!bFound)
+//            {
+//                // Shrink
+//                // Assume this is a air-liquid vertex
+//                auto norm = s_dsc->get_normal(nit.key());
+//                dis = norm*(-m_max_dsc_displacement);
+//            }
+//
+//            s_dsc->set_destination(nit.key(), pos + dis);
+//
+//            max_dis = max(max_dis, dis.length());
 //        }
 //    }
 //
-//    snapp_boundary_vertices();
-//
-//    s_dsc->deform(20);
+    vector<vec3> vertex_dis;
+    compute_advection(vertex_dis);
+    double max_dis = 0;
+    
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        auto const & dis = vertex_dis[nit.key()];
+        if (nit->is_interface() && dis.length() > 0)
+        {
+            s_dsc->set_destination(nit.key(), nit->get_pos() + dis);
+            max_dis = max(max_dis, dis.length());
+        }
+    }
+    
+    dt = min(m_max_dsc_displacement / max_dis, 1.0);;
+    
+    cout << "Max advection: " << max_dis << endl;
+
+    snapp_boundary_vertices();
+
+    s_dsc->deform(20);
+}
+
+void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
+{
+    // 1. Interpolate the displacement
+    update_vertex_boundary();
     
     vector<bool> should_fix(s_dsc->get_no_nodes_buffer(), true);
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
@@ -275,8 +252,9 @@ void fluid_motion:: advect_velocity()
             
         }
     }
-
-    double max_dis = -INFINITY;
+    
+    vertex_dis = vector<vec3>(s_dsc->get_no_nodes_buffer(), vec3(0));
+//    double max_dis = -INFINITY;
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
         if (nit->is_interface()
@@ -298,8 +276,8 @@ void fluid_motion:: advect_velocity()
                     bFound = true;
                 }
             }
-
-
+            
+            
             if (!bFound)
             {
                 // Shrink
@@ -307,41 +285,43 @@ void fluid_motion:: advect_velocity()
                 auto norm = s_dsc->get_normal(nit.key());
                 dis = norm*(-m_max_dsc_displacement);
             }
-
-            s_dsc->set_destination(nit.key(), pos + dis);
-
-            max_dis = max(max_dis, dis.length());
+            
+//            s_dsc->set_destination(nit.key(), pos + dis);
+            
+            vertex_dis[nit.key()] = dis;
+            
+//            max_dis = max(max_dis, dis.length());
         }
     }
-    
-    cout << "Max advection: " << max_dis << endl;
-
-    snapp_boundary_vertices();
-
-    s_dsc->deform(20);
-    
-
 }
 void fluid_motion::deform()
 {
     static int iter = 0;
-    cout << "============iter " << iter << " ===============\nparticle + sub/sum: " << m_cur_global_idx << " + " << m_sub_step_idx << "/" << m_sub_step_count << endl;
+ 
+    cout << "+++++++++++++++++ " << iter << " +++++++++++++++\n"
+    << "Particle " << m_cur_global_idx + t << "; dt = " << dt << endl;
     
     advect_velocity();
     
     load_next_particle();
     
-    if (m_sub_step_idx == 0
-        || (m_sub_step_idx % (m_sub_step_count/2)) == 0
-        || (m_sub_step_idx % (m_sub_step_count/3)) == 0)
+    double current_time = m_cur_global_idx + t;
+    static double mile_stone = 0;
+    if (current_time > mile_stone)
     {
         project_interface_one_iter();
+        while (mile_stone < current_time)
+        {
+            mile_stone += 0.5; // Project two times at most in every particle
+        }
     }
     
-    if (m_sub_step_idx == 0
-        || m_sub_step_idx == m_sub_step_count/2)
+    static double mile_stone_log = 0;
+    if(current_time > mile_stone_log)
     {
         log_dsc();
+        while(mile_stone_log < current_time)
+            mile_stone_log += 0.5; // Log 2 times in every step
     }
 
     iter++;
@@ -351,12 +331,19 @@ void fluid_motion::project_interface_one_iter()
 {
     update_vertex_boundary();
     
-    // Build anisotropic kernel
-    for (int i = 0; i < m_problem->m_nb_phases; i++)
+    static bool built = false;
+    if (!built)
     {
-        m_particles[i]->build_anisotropic_kernel();
+//        built = true;
+        
+        // Build anisotropic kernel
+        for (int i = 0; i < m_problem->m_nb_phases; i++)
+        {
+            m_particles[i]->build_anisotropic_kernel();
+        }
+        
     }
-    
+
     project_interface();
 }
 
@@ -399,11 +386,6 @@ void fluid_motion::project_interface_itteratively(){
 
 bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 {
-//    double thres = m_problem->m_deltap; // Should be larger than max projection
-//
-//    static vec3 dim = m_problem->domain_size();
-//    static vec3 origin(0.0);
-    
     auto nodes = s_dsc->get_nodes(fkey);
     for (int idx = 0; idx < 3; idx++)
     {
@@ -485,11 +467,11 @@ double fluid_motion::project_interface()
                 }
                 else{
                     // prior smaller label
-                    int i = label_tets[0] < label_tets[1]? label_tets[0] : label_tets[1];
+                    int label = label_tets[0] < label_tets[1]? label_tets[0] : label_tets[1];
                     
                     auto norm = -norm_global;// *( i==0? -1:1);
                     bool bLast = false;
-                    vDisplace += m_particles[i]->m_aniso_kernel.get_displacement_projection(sample_pos, norm, m_max_displacement_projection, bLast);
+                    vDisplace += m_particles[label-1]->m_aniso_kernel.get_displacement_projection(sample_pos, norm, m_max_displacement_projection, bLast);
                     fit->set_projected(bLast);
 //                    vDisplace *= 0
                     
@@ -554,7 +536,7 @@ double fluid_motion::project_interface()
 
 void fluid_motion::log_dsc(){
     std::stringstream s;
-    s << m_out_path[0] << "/iter_" << m_cur_global_idx << "_" << m_sub_step_idx << ".dsc";
+    s << m_out_path[0] << "/iter_" << setprecision(3) <<m_cur_global_idx+t << ".dsc";
     
     std::vector<vec3> points;
     std::vector<int> tets;

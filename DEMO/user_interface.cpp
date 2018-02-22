@@ -200,7 +200,8 @@ void UI::init_data()
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
-//    load_model("/Users/tuannt8/Desktop/iter_40_13.dsc");
+//    load_model("/Users/tuannt8/Desktop/iter.dsc");
+
     
     m_fluid.init(&*dsc);
     
