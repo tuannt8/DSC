@@ -272,9 +272,6 @@ bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
         
         
     }
-    
-    
-    
     return  true;
 }
 
@@ -450,7 +447,7 @@ void particle_manager::draw_anisotropic_kernel(vec3 domain_size, vec3 c)
         for (int i=-gap; i < N+gap; i++)
         {
             //                for (int j = 0; j < N; j++)
-            int j = 100;
+            int j = 10;
             {
                 for (int k = -gap; k < N+gap; k++)
                     //                    int k = 1;
@@ -554,7 +551,7 @@ void particle_manager::interpolate(int sub_idx, int sub_count)
             
             max_vel = max(max_vel, m_sub_step_vel[i].length());
         }
-        cout << "Max sub vel: " << max_vel <<endl;
+//        cout << "Max sub vel: " << max_vel <<endl;
     }
     
 
@@ -686,9 +683,6 @@ void particle_manager::build_anisotropic_kernel()
     m_aniso_kernel.m_ra = m_deltap;
     
     m_aniso_kernel.build();
-    
-    // Because the sub particle is smooth
-//    m_sub_step_particles = m_aniso_kernel.m_particles;
 }
 
 void particle_manager::rebuild_density()

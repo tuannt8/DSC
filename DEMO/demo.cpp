@@ -156,12 +156,12 @@ void extract_2_phase_surface(string path)
 
 int main(int argc, char** argv)
 {
-    ///////////////////////////////////////////////
-    // Extract surface
-    string path(argv[1]);
-    extract_2_phase_surface(path);
-    return 0;
-    ///////////////////////////////////////////////
+//    ///////////////////////////////////////////////
+//    // Extract surface
+//    string path(argv[1]);
+//    extract_2_phase_surface(path);
+//    return 0;
+//    ///////////////////////////////////////////////
     
     InputParser input(argc, argv);
     

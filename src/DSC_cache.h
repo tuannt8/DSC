@@ -458,8 +458,8 @@ namespace DSC {
                 0.0005, 0.015, // faces
                 0.02, 0.3, // tet
                 0.3, 1.3, // edge, resize interface
-                0.2, 5., // face, resize. No use
-                0.2, INFINITY // tet, resize
+                0.3, 5., // face, resize. No use
+                0.2, 10 // tet, resize
             };
             
             set_avg_edge_length();

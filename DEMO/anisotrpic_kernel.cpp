@@ -278,11 +278,6 @@ void anisotropic_kernel::build(){
     m_U.resize(m_particles.size());
     m_S.resize(m_particles.size());
     m_C.resize(m_particles.size());
-    
-//    for (int i = 0; i < m_particles.size(); i++)
-//    {
-//        compute_tranformation_mat_for_particle(i);
-//    }
 };
 
 const mat3x3d & anisotropic_kernel::get_transform_mat(int idx)
