@@ -310,12 +310,11 @@ void fluid_motion:: advect_velocity()
 
             s_dsc->set_destination(nit.key(), pos + dis);
 
-            if (max_dis < dis.length())
-            {
-                max_dis = dis.length();
-            }
+            max_dis = max(max_dis, dis.length());
         }
     }
+    
+    cout << "Max advection: " << max_dis << endl;
 
     snapp_boundary_vertices();
 
@@ -332,9 +331,15 @@ void fluid_motion::deform()
     
     load_next_particle();
     
-    project_interface_one_iter();
+    if (m_sub_step_idx == 0
+        || (m_sub_step_idx % (m_sub_step_count/2)) == 0
+        || (m_sub_step_idx % (m_sub_step_count/3)) == 0)
+    {
+        project_interface_one_iter();
+    }
     
-    if (iter % 3 == 0)
+    if (m_sub_step_idx == 0
+        || m_sub_step_idx == m_sub_step_count/2)
     {
         log_dsc();
     }
