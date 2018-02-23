@@ -170,7 +170,9 @@ void fluid_motion:: advect_velocity()
     }
     
     // Update adaptive time step
-    dt = min(m_max_dsc_displacement / max_dis, 1.0);;
+    dt = dt*m_max_dsc_displacement / max_dis;
+    dt = max(dt,1.0);
+    dt = min(dt, 0.05);
     
     cout << "Max advection: " << max_dis << endl;
 
@@ -258,7 +260,7 @@ void fluid_motion::deform()
         }
     }
     
-    static double mile_stone_log = 0;
+    static double mile_stone_log = -0.1;
     if(current_time > mile_stone_log)
     {
         profile_temp t("Log");
