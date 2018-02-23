@@ -2319,7 +2319,7 @@ namespace DSC {
         /**
          * Moves all the vertices to their destination which can be set by the set_destination() function.
          */
-        void deform(int num_steps = 10)
+        int deform(int num_steps = 10)
         {
             //            static profile_progress time_prog("deform");
             //            time_prog.add();
@@ -2375,7 +2375,7 @@ namespace DSC {
                 nit->set_destination(nit->get_pos());
             }
             
-            
+            return step;
             //#ifdef DEBUG
             //            validity_check();
             //#endif

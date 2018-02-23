@@ -31,7 +31,7 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.4;
+    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.3;
     
     m_max_displacement_projection = m_problem->m_deltap*0.3; // This is just a compliment
     
@@ -156,18 +156,22 @@ void fluid_motion:: advect_velocity()
         }
     }
     
-    // Update adaptive time step
-    if (m_max_dsc_displacement > max_dis)
-    {
-        dt = dt*m_max_dsc_displacement / max_dis;
-        // time step only reduce
-    }
-    
+//    // Update adaptive time step
+//    if (m_max_dsc_displacement < max_dis)
+//    {
+//        dt = dt*m_max_dsc_displacement / max_dis;
+//        // time step only reduce
+//    }
+//
     cout << "Max advection: " << max_dis << endl;
 
     snapp_boundary_vertices();
 
-    s_dsc->deform(20);
+    int step = s_dsc->deform(20);
+    if (step > 6)
+    {
+        dt = dt * 6.0 / step;
+    }
 }
 
 void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
@@ -239,20 +243,19 @@ void fluid_motion::deform()
     
     double current_time = m_cur_global_idx + t;
     static double mile_stone = 0;
-    if (current_time > mile_stone)
+//    if (current_time > mile_stone)
     {
         profile_temp t("Projection");
         project_interface_one_iter();
-        while (mile_stone < current_time)
-        {
-            mile_stone += 0.33; // Project three times at most in every particle load
-        }
+//        while (mile_stone < current_time)
+//        {
+//            mile_stone += 0.33; // Project three times at most in every particle load
+//        }
     }
     
     static double mile_stone_log = 0;
     if(current_time > mile_stone_log)
     {
-        profile_temp t("Log");
         log_dsc();
         while(mile_stone_log < current_time)
             mile_stone_log += 0.5; // Log 2 times in every step
@@ -442,7 +445,11 @@ double fluid_motion::project_interface()
     }
     cout << "Max projection: " << max_displace << endl;
     
-    s_dsc->deform(20);
+    int step = s_dsc->deform(20);
+    if (step > 6)
+    {
+        m_max_displacement_projection = m_max_displacement_projection * 6.0 / step;
+    }
 
     return max_displace;
 }
