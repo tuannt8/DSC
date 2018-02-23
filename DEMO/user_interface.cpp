@@ -200,8 +200,10 @@ void UI::init_data()
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
+    
 //    load_model("/Users/tuannt8/Desktop/iter.dsc");
-
+//    dsc->validity_check();
+//    return;
     
     m_fluid.init(&*dsc);
     
@@ -502,6 +504,13 @@ void UI::display()
             draw_helper::dsc_draw_interface(*dsc);
         }
         
+        if(glut_menu::get_state("inverted tets", 0))
+        {
+            glEnable(GL_LIGHTING);
+            glColor3f(0.0, 0.9, 1.0);
+            draw_helper::dsc_draw_inverted_tets(*dsc);
+        }
+        
         if(glut_menu::get_state("DSC shared interface", 0))
         {
             glEnable(GL_LIGHTING);
@@ -712,16 +721,12 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case '+':
         {
-            real velocity = std::min(vel_fun->get_velocity() + 1., 100.);
-            vel_fun->set_velocity(velocity);
-            update_title();
+            gl_dis_max *= 1.05;
         }
             break;
         case '-':
         {
-            real velocity = std::max(vel_fun->get_velocity() - 1., 0.);
-            vel_fun->set_velocity(velocity);
-            update_title();
+            gl_dis_max /= 1.05;
         }
             break;
         case '.':

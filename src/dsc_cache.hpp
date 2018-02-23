@@ -76,7 +76,7 @@ public:
     
     void init(int MAX_ELEMENTS)
     {
-        std::cout <<"---------- Init cache --------------------" << std::endl;
+        std::cout <<"---------- Init cache -------------------- " << MAX_ELEMENTS << std::endl;
         // Node
         node_for_curvature_of_node = std::vector<is_mesh::SimplexSet<is_mesh::NodeKey>*>(MAX_ELEMENTS, nullptr);
         interface_edge_around_node = std::vector<is_mesh::SimplexSet<is_mesh::EdgeKey>*>(MAX_ELEMENTS, nullptr);

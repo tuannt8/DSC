@@ -17,6 +17,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <iostream>
 
 #define P_TIME_NOW (std::chrono::system_clock::now())
 typedef std::chrono::duration<double> p_duration_t;
@@ -27,6 +28,21 @@ struct profile_att
     int count = 0;
     double total_time = 0;
     p_time_point m_start;
+};
+
+class profile_temp
+{
+    std::string m_message;
+    p_time_point m_start;
+public:
+    profile_temp(std::string m = ""){
+        m_message = m;
+        m_start = P_TIME_NOW;
+    }
+    ~profile_temp(){
+        p_duration_t t = P_TIME_NOW - m_start;
+        std::cout << "Time " << m_message << ": " << t.count() << std::endl;
+    }
 };
 
 class profile

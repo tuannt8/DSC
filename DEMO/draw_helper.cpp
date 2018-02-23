@@ -13,7 +13,7 @@
 #include <SOIL/SOIL.h>
 #include <fstream>
 
-
+using namespace std;
 
 void draw_helper::dsc_draw_edge(dsc_class &dsc)
 {
@@ -198,6 +198,71 @@ void draw_helper::dsc_draw_shared_interface(dsc_class & dsc)
                 glEnd();
                 
             }
+        }
+    }
+}
+
+void draw_helper::dsc_draw_inverted_tets(dsc_class & dsc){
+    using namespace is_mesh;
+    static std::vector<bool> is_inverted;
+    if (is_inverted.size() == 0)
+    {
+        int count = 0;
+        is_inverted = std::vector<bool>(dsc.get_no_tets(), false);
+        for (auto fit = dsc.faces_begin(); fit != dsc.faces_end(); fit++)
+        {
+            auto f = fit.key();
+
+            
+            const SimplexSet<TetrahedronKey>& tids = dsc.get_tets(f);
+            bool is_invert = false;
+            if(tids.size() == 2) // Check that f is not a boundary face.
+            {
+                SimplexSet<NodeKey> nids = dsc.get_nodes(f);
+                SimplexSet<NodeKey> apices = dsc.get_nodes(tids) - nids;
+                auto normal = cross(dsc.get_pos(nids[0]) - dsc.get_pos(nids[2]), dsc.get_pos(nids[1]) - dsc.get_pos(nids[2]));
+                auto d1 = dot(dsc.get_pos(apices[0]) - dsc.get_pos(nids[2]), normal);
+                auto d2 = dot(dsc.get_pos(apices[1]) - dsc.get_pos(nids[2]), normal);
+            
+                if ((long)f == 169421)
+                {
+                    std::cout << "Pos: " << dsc.get_pos(nids[0]) << dsc.get_pos(nids[1]) <<dsc.get_pos(nids[2]) << std::endl;
+                    std::cout << "Norm: " << normal << std::endl;
+                    std::cout << f << "---- " << d1 << " " << d2 << std::endl;
+                }
+                
+                if((d1 < 0. && d2 < 0) || (d1 > 0. && d2 > 0.))
+                {
+                    is_invert = true;
+                }
+            }
+            
+            if(is_invert)
+            {
+                count ++;
+                for (auto t : tids)
+                {
+                    is_inverted[t] = true;
+                }
+            }
+        }
+        
+        cout << count << " inverted faces" << endl;
+    }
+    
+    for (auto tit = dsc.tetrahedra_begin(); tit != dsc.tetrahedra_end(); tit++)
+    {
+        if (is_inverted[tit.key()])
+        {
+            glColor3f(1, 0, 0);
+            glBegin(GL_LINES);
+            for (auto e : dsc.get_edges(tit.key()))
+            {
+                auto nodes = dsc.get_pos(dsc.get_nodes(e));
+                glVertex3dv(nodes[0].get());
+                glVertex3dv(nodes[1].get());
+            }
+            glEnd();
         }
     }
 }

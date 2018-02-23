@@ -31,9 +31,9 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.3;
+    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.15;
     
-    m_max_displacement_projection = m_problem->m_deltap*0.5;
+    m_max_displacement_projection = m_problem->m_deltap*0.3;
     
     cout << "\n\n+++++++++++++++++++++++++++++++++++++++"
     << "\n spacing distance: " << m_problem->m_deltap
@@ -49,7 +49,6 @@ void fluid_motion::load_configuration()
     // Make sure the data path dont have '/' at last
     if(m_data_path.back() == '/')
         m_data_path.pop_back();
-    
     
     // 1. Init problem name
     string problem_name = find_name(m_data_path);
@@ -67,8 +66,6 @@ void fluid_motion::load_configuration()
     
     // 2. Load problem parameters
     m_problem->init(m_data_path + "/summary.txt");
-    
-    
     
     // 3. Init particles for all phases
     for (int i = 0; i < m_problem->m_nb_phases; i++)
@@ -158,60 +155,6 @@ void fluid_motion::draw()
 
 void fluid_motion:: advect_velocity()
 {
-//    // 1. Interpolate the displacement
-//    update_vertex_boundary();
-//
-//    vector<bool> should_fix(s_dsc->get_no_nodes_buffer(), true);
-//    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
-//    {
-//        if (fit->is_interface()
-//            && !is_boundary_work_around(fit.key())
-//            )
-//        {
-//            for(auto n : s_dsc->get_nodes(fit.key()))
-//                should_fix[n] = false;
-//
-//        }
-//    }
-//
-//    double max_dis = -INFINITY;
-//    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
-//    {
-//        if (nit->is_interface()
-//            && !should_fix[nit.key()])
-//        {
-//            auto pos = nit->get_pos();
-//            vec3 dis(0.0);
-//            bool bFound = false;
-//            // get max displacement
-//            for (int i = 0; i < m_problem->m_nb_phases; i++)
-//            {
-//                vec3 phase_dis(0.0);
-//                if (m_particles[i]->get_displacement(pos, phase_dis))
-//                {// found
-//                    if (dis.length() < phase_dis.length())
-//                    {
-//                        dis = phase_dis;
-//                    }
-//                    bFound = true;
-//                }
-//            }
-//
-//
-//            if (!bFound)
-//            {
-//                // Shrink
-//                // Assume this is a air-liquid vertex
-//                auto norm = s_dsc->get_normal(nit.key());
-//                dis = norm*(-m_max_dsc_displacement);
-//            }
-//
-//            s_dsc->set_destination(nit.key(), pos + dis);
-//
-//            max_dis = max(max_dis, dis.length());
-//        }
-//    }
-//
     vector<vec3> vertex_dis;
     compute_advection(vertex_dis);
     double max_dis = 0;
@@ -226,6 +169,7 @@ void fluid_motion:: advect_velocity()
         }
     }
     
+    // Update adaptive time step
     dt = min(m_max_dsc_displacement / max_dis, 1.0);;
     
     cout << "Max advection: " << max_dis << endl;
@@ -254,7 +198,6 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
     }
     
     vertex_dis = vector<vec3>(s_dsc->get_no_nodes_buffer(), vec3(0));
-//    double max_dis = -INFINITY;
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
         if (nit->is_interface()
@@ -277,31 +220,29 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
                 }
             }
             
-            
             if (!bFound)
             {
                 // Shrink
-                // Assume this is a air-liquid vertex
+                // Assume this is an air interface vertex
                 auto norm = s_dsc->get_normal(nit.key());
                 dis = norm*(-m_max_dsc_displacement);
             }
-            
-//            s_dsc->set_destination(nit.key(), pos + dis);
-            
+
             vertex_dis[nit.key()] = dis;
-            
-//            max_dis = max(max_dis, dis.length());
         }
     }
 }
+
 void fluid_motion::deform()
 {
     static int iter = 0;
  
     cout << "+++++++++++++++++ " << iter << " +++++++++++++++\n"
     << "Particle " << m_cur_global_idx + t << "; dt = " << dt << endl;
-    
-    advect_velocity();
+    {
+        profile_temp t("Advection");
+        advect_velocity();
+    }
     
     load_next_particle();
     
@@ -309,16 +250,18 @@ void fluid_motion::deform()
     static double mile_stone = 0;
     if (current_time > mile_stone)
     {
+        profile_temp t("Projection");
         project_interface_one_iter();
         while (mile_stone < current_time)
         {
-            mile_stone += 0.5; // Project two times at most in every particle
+            mile_stone += 0.33; // Project two times at most in every particle
         }
     }
     
     static double mile_stone_log = 0;
     if(current_time > mile_stone_log)
     {
+        profile_temp t("Log");
         log_dsc();
         while(mile_stone_log < current_time)
             mile_stone_log += 0.5; // Log 2 times in every step
@@ -334,8 +277,6 @@ void fluid_motion::project_interface_one_iter()
     static bool built = false;
     if (!built)
     {
-//        built = true;
-        
         // Build anisotropic kernel
         for (int i = 0; i < m_problem->m_nb_phases; i++)
         {
@@ -356,32 +297,7 @@ void fluid_motion::reset_projected_flag()
 }
 
 void fluid_motion::project_interface_itteratively(){
-    
-    reset_projected_flag();
-    
-    cout << "\n--------------------------------\n Start projecting surface "<<endl;
-    
-//    for (int i = 0; i < m_problem->m_nb_phases; i++)
-//    {
-//        m_particles[i]->build_anisotropic_kernel();
-//    }
-    
-    // Becasue we already restrict the particle displacement
-    // DSC should not move so many iterations
-    for (int idx = 0; idx < 2; idx++)
-    {
-//        update_vertex_boundary();
-//        double max_displace = project_interface(m_threshold_projection*0.5);
-//
-//        if (max_displace < m_threshold_projection )
-//        {
-//            break;
-//        }
-        
-        project_interface_one_iter();
-        
-//        cout << "idx " << idx << " max displacement: " << max_displace <<"/" << m_threshold_projection << endl << endl;
-    }
+
 }
 
 bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
@@ -400,32 +316,47 @@ bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 
 void fluid_motion::snapp_boundary_vertices()
 {
-    double thres = m_max_dsc_displacement; // Should be larger than max projection
-    
-    double max_displace = 0;
+    double thres = s_dsc->pars.MIN_LENGTH*s_dsc->get_avg_edge_length();
     
     vec3 dim = m_problem->domain_size();
     vec3 origin(0.0);
     
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
-        if (is_vertices_boundary[nit.key()])
+        // Not going out
+        if (nit->is_interface())
         {
             auto p = nit->get_destination();
             for (int i = 0; i < 3; i++)
             {
-                if (abs(p[i] - dim[i]) < thres)
+                if (p[i] < origin[i])
+                {
+                    p[i] = origin[i];
+                }
+                if (p[i] > dim[i])
                 {
                     p[i] = dim[i];
                 }
-                if (abs(p[i] - origin[i]) < thres)
+            }
+            s_dsc->set_destination(nit.key(), p);
+        }
+        // Snap
+        if (is_vertices_boundary[nit.key()])
+        {
+            auto p = nit->get_destination();
+            auto pos = nit->get_pos();
+            for (int i = 0; i < 3; i++)
+            {
+                if (abs(pos[i] - dim[i]) < thres)
+                {
+                    p[i] = dim[i];
+                }
+                if (abs(pos[i] - origin[i]) < thres)
                 {
                     p[i] = origin[i];
                 }
             }// Snap to boundary
             s_dsc->set_destination(nit.key(), p);
-            
-            max_displace = std::max(max_displace, (p - nit->get_pos()).length() );
         } // If interface
     }// For all nodes
 }
@@ -500,15 +431,6 @@ double fluid_motion::project_interface()
         }
     }
     
-//    int nb_projected = 0;
-//    for(auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
-//    {
-//        if (fit->is_projected())
-//        {
-//            nb_projected++;
-//        }
-//    }
-    
     // Set destination and deform the DSC
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
@@ -527,7 +449,7 @@ double fluid_motion::project_interface()
                                (nit->get_destination() -nit->get_pos()).length());
         }
     }
-    cout << "Max projectino: " << max_displace << endl;
+    cout << "Max projection: " << max_displace << endl;
     
     s_dsc->deform(20);
 
@@ -597,30 +519,44 @@ inline bool is_bound_point(vec3 & p, vec3 & origin, vec3 & domain_size)
 
 void fluid_motion::update_vertex_boundary()
 {
+    // 1. Make sure there is a layer gap
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface()
+            && nit->is_boundary())
+        {
+            for (auto t : s_dsc->get_tets(nit.key()))
+                s_dsc->set_label(t, 0);
+        }
+    }
+    
+    // Mark the interface vertices of the air
+    vector<bool> air_vertices(s_dsc->get_no_nodes_buffer(), false);
+    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
+    {
+        if (fit->is_interface())
+        {
+            auto tets = s_dsc->get_tets(fit.key());
+            if (s_dsc->get_label(tets[0]) == 0
+                || s_dsc->get_label(tets[1]) == 0)
+            {
+                for(auto n : s_dsc->get_nodes(fit.key()))
+                    air_vertices[n] = true;
+            }
+        }
+    }
     is_vertices_boundary = vector<bool>(s_dsc->get_no_nodes_buffer(), false);
-//    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
-//    {
-//        if (nit->is_boundary())
-//        {
-//            auto neighbor = s_dsc->get_nodes(s_dsc->get_edges(nit.key()));
-//            for (int i =0; i < neighbor.size(); i++)
-//            {
-//                if (s_dsc->get(neighbor[i]).is_interface())
-//                {
-//                    is_vertices_boundary[neighbor[i]] = true;
-//                }
-//            }
-//        }
-//    }
-    static double epsilon = s_dsc->get_avg_edge_length()*0.3;
+
+    static double epsilon = s_dsc->pars.MIN_LENGTH*s_dsc->get_avg_edge_length();
     static vec3 origin(0) ;
     static vec3 domain_size = m_problem->domain_size();
     
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
-        if (nit->is_interface())
+        if (air_vertices[nit.key()])
         {
             auto pos = nit->get_pos();
+
             for (int i = 0; i < 3; i++)
             {
                 if (abs(pos[i] - origin[i]) < epsilon
@@ -633,28 +569,32 @@ void fluid_motion::update_vertex_boundary()
         }
     }
 
-    static vec3 origin1 = origin - vec3(epsilon) ;
-    static vec3 domain_size1 = domain_size + vec3(epsilon);
-    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
-    {
-        if (fit->is_interface())
-        {
-            auto nodes = s_dsc->get_nodes(fit.key());
-            auto tets = s_dsc->get_tets(fit.key());
-            auto p0 = s_dsc->get_pos(s_dsc->get_nodes(tets[0]) - nodes);
-            auto p1 = s_dsc->get_pos(s_dsc->get_nodes(tets[1]) - nodes);
-            
-            bool b_is_bound = is_bound_point(p0[0], origin1, domain_size1) || is_bound_point(p1[0], origin1, domain_size1);
-            
-            if (b_is_bound)
-            {
-                for (auto n : nodes)
-                {
-                    is_vertices_boundary[n] = true;
-                }
-            }
-        }
-    }
+//    static vec3 origin1 = origin - vec3(epsilon) ;
+//    static vec3 domain_size1 = domain_size + vec3(epsilon);
+//    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
+//    {
+//        if (fit->is_interface())
+//        {
+//            auto tets = s_dsc->get_tets(fit.key());
+//            if (s_dsc->get_label(tets[0]) != 0 && s_dsc->get_label(1)!=0)
+//            {
+//                continue;
+//            }
+//            auto nodes = s_dsc->get_nodes(fit.key());
+//            auto p0 = s_dsc->get_pos(s_dsc->get_nodes(tets[0]) - nodes);
+//            auto p1 = s_dsc->get_pos(s_dsc->get_nodes(tets[1]) - nodes);
+//
+//            bool b_is_bound = is_bound_point(p0[0], origin1, domain_size1) || is_bound_point(p1[0], origin1, domain_size1);
+//
+//            if (b_is_bound)
+//            {
+//                for (auto n : nodes)
+//                {
+//                    is_vertices_boundary[n] = true;
+//                }
+//            }
+//        }
+//    }
 }
 
 void fluid_motion::extract_surface_phase(int phase, std::string path)

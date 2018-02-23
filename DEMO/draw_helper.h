@@ -49,6 +49,7 @@ public:
     
     static void save_painting(int WIDTH, int HEIGHT, std::string folder = std::string("LOG"));
     
+    static void dsc_draw_inverted_tets(dsc_class & dsc);
     /*
      Draw 3 axis X - Y - Z
      */
