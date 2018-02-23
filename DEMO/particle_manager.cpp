@@ -617,6 +617,7 @@ void particle_manager::load_next(int idx, double t)
     rebuild_density(); // Because the density output is different, and I dont know why.
 }
 
+
 bool particle_manager::get_projection(vec3 pos, vec3 direction, bool &bInside, double &t)
 {
     static double eps = std::numeric_limits<double>::min();

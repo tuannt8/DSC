@@ -31,7 +31,7 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.15;
+    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.5;
     
     m_max_displacement_projection = m_problem->m_deltap*0.3;
     
@@ -88,19 +88,6 @@ void fluid_motion::load_configuration()
         cout << "Output files: " << m_out_path[i] << endl;
     }
 }
-
-//int fluid_motion::subdivide_time_step()
-//{
-////    double max_displace = -INFINITY;
-////    for (int i = 0; i < m_problem->m_nb_phases; i++)
-////    {
-////        max_displace = std::max(max_displace, m_particles[i]->get_max_displacement());
-////
-////    }
-////
-////    cout << "Max particle displace: " << max_displace << " and dsc " << m_max_dsc_displacement << endl;
-////    return ceil(max_displace / m_max_dsc_displacement);
-//}
 
 void fluid_motion::load_first_particle()
 {
@@ -171,8 +158,8 @@ void fluid_motion:: advect_velocity()
     
     // Update adaptive time step
     dt = dt*m_max_dsc_displacement / max_dis;
-    dt = max(dt,1.0);
-    dt = min(dt, 0.05);
+    dt = min(dt,1.0);
+    dt = max(dt, 0.05);
     
     cout << "Max advection: " << max_dis << endl;
 
@@ -256,11 +243,11 @@ void fluid_motion::deform()
         project_interface_one_iter();
         while (mile_stone < current_time)
         {
-            mile_stone += 0.33; // Project two times at most in every particle
+            mile_stone += 0.33; // Project three times at most in every particle load
         }
     }
     
-    static double mile_stone_log = -0.1;
+    static double mile_stone_log = -0.4;
     if(current_time > mile_stone_log)
     {
         profile_temp t("Log");
@@ -318,7 +305,7 @@ bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 
 void fluid_motion::snapp_boundary_vertices()
 {
-    double thres = s_dsc->pars.MIN_LENGTH*s_dsc->get_avg_edge_length();
+    double thres = m_max_dsc_displacement;
     
     vec3 dim = m_problem->domain_size();
     vec3 origin(0.0);
@@ -549,7 +536,7 @@ void fluid_motion::update_vertex_boundary()
     }
     is_vertices_boundary = vector<bool>(s_dsc->get_no_nodes_buffer(), false);
 
-    static double epsilon = s_dsc->pars.MIN_LENGTH*s_dsc->get_avg_edge_length();
+    static double epsilon = m_max_dsc_displacement;
     static vec3 origin(0) ;
     static vec3 domain_size = m_problem->domain_size();
     
