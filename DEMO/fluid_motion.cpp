@@ -31,9 +31,9 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.5;
+    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.4;
     
-    m_max_displacement_projection = m_problem->m_deltap*0.3;
+    m_max_displacement_projection = m_problem->m_deltap*0.3; // This is just a compliment
     
     cout << "\n\n+++++++++++++++++++++++++++++++++++++++"
     << "\n spacing distance: " << m_problem->m_deltap
@@ -157,9 +157,11 @@ void fluid_motion:: advect_velocity()
     }
     
     // Update adaptive time step
-    dt = dt*m_max_dsc_displacement / max_dis;
-    dt = min(dt,1.0);
-    dt = max(dt, 0.05);
+    if (m_max_dsc_displacement > max_dis)
+    {
+        dt = dt*m_max_dsc_displacement / max_dis;
+        // time step only reduce
+    }
     
     cout << "Max advection: " << max_dis << endl;
 
@@ -247,7 +249,7 @@ void fluid_motion::deform()
         }
     }
     
-    static double mile_stone_log = -0.4;
+    static double mile_stone_log = 0;
     if(current_time > mile_stone_log)
     {
         profile_temp t("Log");
@@ -305,7 +307,7 @@ bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 
 void fluid_motion::snapp_boundary_vertices()
 {
-    double thres = m_max_dsc_displacement;
+    double thres = m_max_dsc_displacement*1.1;
     
     vec3 dim = m_problem->domain_size();
     vec3 origin(0.0);
@@ -536,7 +538,7 @@ void fluid_motion::update_vertex_boundary()
     }
     is_vertices_boundary = vector<bool>(s_dsc->get_no_nodes_buffer(), false);
 
-    static double epsilon = m_max_dsc_displacement;
+    static double epsilon = m_max_dsc_displacement * 1.1;
     static vec3 origin(0) ;
     static vec3 domain_size = m_problem->domain_size();
     
