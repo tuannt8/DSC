@@ -169,6 +169,9 @@ void fluid_motion:: advect_velocity()
     {
         double average_grad = std::accumulate(grad_max_dis.begin(), grad_max_dis.end(), 0.0) / grad_max_dis.size();
         dt = m_max_dsc_displacement / average_grad;
+        
+        dt = min(1.0, dt);
+        dt = max(0.05, dt);
     }
     // End update time step
 

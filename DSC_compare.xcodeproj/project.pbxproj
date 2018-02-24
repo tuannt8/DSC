@@ -283,6 +283,7 @@
 		A642127D1C7B54A600CBB594 /* profile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = profile.h; path = src/profile.h; sourceTree = SOURCE_ROOT; };
 		A64212821C7B555B00CBB594 /* profile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = profile.cpp; path = src/profile.cpp; sourceTree = SOURCE_ROOT; };
 		A64212831C7B555B00CBB594 /* profile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = profile.h; path = src/profile.h; sourceTree = SOURCE_ROOT; };
+		A64328ED20414151000B464C /* fix_DSC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fix_DSC.h; sourceTree = "<group>"; };
 		A647426F1E014A36007C99F2 /* cache.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = cache.hpp; sourceTree = "<group>"; };
 		A64F086A1D8AE1B100378CC1 /* draw_helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = draw_helper.h; sourceTree = "<group>"; };
 		A64F086B1D8AE1B100378CC1 /* draw_helper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = draw_helper.cpp; sourceTree = "<group>"; };
@@ -798,6 +799,7 @@
 			children = (
 				A666A4532023035F0092D021 /* InputParser.h */,
 				A666A45A202317E30092D021 /* config_file.h */,
+				A64328ED20414151000B464C /* fix_DSC.h */,
 			);
 			path = Helper;
 			sourceTree = "<group>";
