@@ -351,7 +351,9 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
 
     if(dis < 0)dis = 0;
     double total = 0;
-    auto const a = tet_dis_coord[dis];
+    auto const & a = tet_dis_coord[dis];
+    
+    
 
     for (auto tb : a)
     {

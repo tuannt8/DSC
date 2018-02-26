@@ -24,6 +24,7 @@
 #endif
 
 #include "otsu_multi.h"
+#include "gaussian_points.h"
 
 std::vector<bool> tet_touched;
 
@@ -33,6 +34,32 @@ using namespace std;
 std::bitset<4> X_direction("0001");
 std::bitset<4> Y_direction("0010");
 std::bitset<4> Z_direction("0100");
+
+inline std::bitset<4> get_direction(vec3 a)
+{
+    static double norm_length = 0.99;
+    
+    int count = 0;
+    std::bitset<4> d("0000");
+    if (std::abs(a[0]) > norm_length)
+    {
+        count ++;
+        d = d | X_direction;
+    }
+    if (std::abs(a[1]) > norm_length)
+    {
+        count++;
+        d = d | Y_direction;
+    }
+    if (std::abs(a[2]) > norm_length)
+    {
+        count++;
+        d = d | Z_direction;
+    }
+    
+    
+    return d;
+}
 
 void segment_function::init()
 {
@@ -353,36 +380,82 @@ void segment_function::update_vertex_stability()
     }
 }
 
-vec3 segment_function::get_node_displacement(is_mesh::NodeKey nkey)
-{
-    return (_forces[(long)nkey]  + ALPHA*_internal_forces[(long)nkey])*_dt_adapt[nkey];
+#define algin_pos(idx) \
+    if(std::abs(pos[idx]) < threshold) \
+        destination[idx] = 0; \
+    if(std::abs(pos[idx] - (domain_dim[idx]-1)) <threshold) \
+        destination[idx] = domain_dim[idx] - 1; \
+
+void segment_function::snapp_boundary(){
+    auto node_mem_size = _dsc->get_no_nodes_buffer();
+    std::vector<unsigned int> is_bound_vertex(node_mem_size,0);
+    std::vector<std::bitset<4>> direction_state(node_mem_size,std::bitset<4>("0000"));
+    for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
+    {
+        if (fid->is_interface() && !fid->is_boundary())
+        {
+            auto tets = _dsc->get_tets(fid.key());
+            if(_dsc->get_label(tets[0]) == BOUND_LABEL
+               || _dsc->get_label(tets[1]) == BOUND_LABEL)
+            {
+                auto nodes_on_face = _dsc->get_nodes(fid.key());
+                auto norm = _dsc->get_normal(fid.key());
+                
+                // SHOULD ALSO BASED ON ITS POSITION
+                //  in some irregular cases
+                std::bitset<4> direction = get_direction(norm);
+                
+                for (auto n : nodes_on_face)
+                {
+                    is_bound_vertex[(unsigned int)n] = 1;
+                    direction_state[(unsigned int)n] = direction_state[(unsigned int)n] | direction;
+                }
+            }
+        }
+    }
+    
+    // 2. Align the boundary vertices to the boundary
+    auto domain_dim = m_prob_img.m_dimension;
+    auto threshold = 0.5*_dsc->AVG_LENGTH;
+    
+    for (auto nid = _dsc->nodes_begin(); nid != _dsc->nodes_end(); nid++)
+    {
+        if ( (nid->is_interface() or nid->is_crossing())
+            && _dsc->exists(nid.key())
+            and !nid->is_boundary())
+        {
+            auto dis = get_node_displacement(nid.key());
+            assert(!isnan(dis.length()));
+            vec3 destination = nid->get_pos() + dis;
+            
+            // Align boundary
+            if (is_bound_vertex[nid.key()])
+            {
+                auto direct = direction_state[nid.key()];
+                auto pos = nid->get_pos();
+                if ((direct & X_direction).to_ulong() != 0) // constraint on x
+                {
+                    algin_pos(0);
+                }
+                if ((direct & Y_direction).to_ulong() != 0){ // constraint on y
+                    algin_pos(1);
+                }
+                if ((direct & Z_direction).to_ulong() != 0){ // constraint on z
+                    algin_pos(2);
+                }
+            }
+            
+            _dsc->set_destination(nid.key(), destination);
+        }
+    }
 }
 
-inline std::bitset<4> get_direction(vec3 a)
+vec3 segment_function::get_node_displacement(is_mesh::NodeKey nkey)
 {
-    static double norm_length = 0.99;
-    
-    int count = 0;
-    std::bitset<4> d("0000");
-    if (std::abs(a[0]) > norm_length)
-    {
-        count ++;
-        d = d | X_direction;
-    }
-    if (std::abs(a[1]) > norm_length)
-    {
-        count++;
-        d = d | Y_direction;
-    }
-    if (std::abs(a[2]) > norm_length)
-    {
-        count++;
-        d = d | Z_direction;
-    }
-    
-    
-    return d;
+    return (_forces[(long)nkey]  + ALPHA*_internal_forces[(long)nkey])*_dt;//_dt_adapt[nkey];
 }
+
+
 
 double segment_function::get_energy_tet_assume_label(is_mesh::TetrahedronKey tkey, int assumed_label)
 {
@@ -600,8 +673,9 @@ void segment_function::adapt_tetrahedra()
     }
 }
 
-void segment_function::relabel_probability()
+int segment_function::relabel_probability()
 {
+    int nb_relablel = 0;
     for (auto tid = _dsc->tetrahedra_begin(); tid != _dsc->tetrahedra_end(); tid++)
     {
         if (_dsc->get_label(tid.key()) == BOUND_LABEL)
@@ -629,9 +703,12 @@ void segment_function::relabel_probability()
             if (new_energy < old_energy)
             {
                 _dsc->set_label(tid.key(), new_idx);
+                nb_relablel++;
             }
         }
     }
+    cout << nb_relablel << " relabeled -------" << endl;
+    return nb_relablel;
 }
 
 void segment_function::relabel_tetrahedra()
@@ -718,11 +795,7 @@ void segment_function::relabel_tetrahedra()
 //    }
 }
 
-#define algin_pos(idx) \
-    if(std::abs(pos[idx]) < threshold) \
-        destination[idx] = 0; \
-    if(std::abs(pos[idx] - (domain_dim[idx]-1)) <threshold) \
-        destination[idx] = domain_dim[idx] - 1; \
+
 // -1 to avoid singularity around the boudary
 
 void segment_function::work_around_on_boundary_vertices()
@@ -770,7 +843,6 @@ void segment_function::work_around_on_boundary_vertices()
     
     // 2. Align the boundary vertices to the boundary
     auto domain_dim = m_prob_img.m_dimension;
-    auto max_displacement = 4;//_dsc->get_avg_edge_length()*1.5;
     
     double max_displacement_real = -INFINITY;
     
@@ -784,21 +856,13 @@ void segment_function::work_around_on_boundary_vertices()
             && _dsc->exists(nid.key())
             and !nid->is_boundary())
         {
-//            auto dis = (_internal_forces[nid.key()]*ALPHA + _forces[nid.key()])*_dt;
             auto dis = get_node_displacement(nid.key());
             
             assert(!isnan(dis.length()));
-            
-            // limit it
-            if (dis.length() > max_displacement)
-            {
-                dis = Util::normalize(dis)*max_displacement;
-                cout << "Force is too large" << endl;
-            }
-            
-            
+
             vec3 destination = nid->get_pos() + dis;
             auto threshold = 0.5*_dsc->AVG_LENGTH;
+            
             // Align boundary
             if (is_bound_vertex[nid.key()])
             {
@@ -1181,18 +1245,9 @@ void segment_function::compute_external_prob_force()
     // Loop on interface faces
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (fid->is_interface() && !fid->is_boundary())
+        if (fid->is_interface() && !is_boundary(fid.key()))
         {
             auto tets = _dsc->get_tets(fid.key());
-            
-            if (_dsc->get_label(tets[0]) == BOUND_LABEL || // dont ignore
-                _dsc->get_label(tets[1]) == BOUND_LABEL )
-            {
-                // Ignore the faces on the boundary.
-                //   These boundary vertices should only move along the boundary
-                //   Forces faces on boundary will make them move perpendicullar to the boundary
-                continue;
-            }
             
             auto verts = _dsc->get_nodes(fid.key());
             auto pts = _dsc->get_pos(verts);
@@ -1200,7 +1255,7 @@ void segment_function::compute_external_prob_force()
             auto l0 = _dsc->get_label(tets[0]);
             auto l1 = _dsc->get_label(tets[1]);
             
-            // get normal
+            // get normal, from label l0 to label l1
             vec3 Norm = _dsc->get_normal(fid.key());
             auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
             Norm = Norm*dot(Norm, l01);// modify normal direction
@@ -1209,34 +1264,17 @@ void segment_function::compute_external_prob_force()
             // Discretize the face
             double area = Util::area<double>(pts[0], pts[1], pts[2]);
             
-            size_t tri_sample_index = std::ceil( sqrt(area) ) - 1;
-            if (tri_sample_index >= tri_coord_size.size())
+            for (auto const & c : gaussian_points::get_point(area))
             {
-                tri_sample_index = tri_coord_size.size() - 1;
-            }
-            if(tri_sample_index < 1)tri_sample_index = 1;
-            
-            auto a = tri_dis_coord[tri_sample_index - 1];
-            
-            if(a.size() > 1 && a.size() > _dsc->area(fid.key()))
-            {
-                std::cout << "--Error in triangle decomposition. Each sample point represents the area < 1 pixel^2 ----: "
-                << a.size() << " - " << _dsc->area(fid.key()) << std::endl;
-            }
-            
-            double da = 1.0/a.size();
-            for (auto coord : a)
-            {
-                auto p = get_coord_tri(pts, coord);
+                auto p = get_coord_tri(pts, c.coord);
                 auto prob0 = m_prob_img.m_prob_map[l0]->get_value_f(p);
                 auto prob1 = m_prob_img.m_prob_map[l1]->get_value_f(p);
                 
-                auto f = Norm* ((prob0-prob1) * da); // Normalized already
+                auto f = Norm* ((2 - prob0 - prob1)*(prob0-prob1) * c.weight * area); // Normalized already
                 
                 // distribute
-                forces[verts[0]] += f*coord[0];
-                forces[verts[1]] += f*coord[1];
-                forces[verts[2]] += f*coord[2];
+                for(int ii =0; ii <3; ii++)
+                    forces[verts[ii]] += f*c.coord[ii];
             }
         }
     }
@@ -1649,25 +1687,56 @@ void segment_function::update_average_intensity()
 
 #pragma mark MAIN FUNCTION
 
+void segment_function::estimate_time_step()
+{
+    update_vertex_boundary();
+    
+    // Curvature force
+    compute_internal_force_2();
+    // Segmentation force
+    compute_external_prob_force();
+    
+    snapp_boundary();
+    
+    double max_force = 0;
+    for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface())
+        {
+            max_force = max(max_force, (nit->get_destination() - nit->get_pos()).length());
+        }
+    }
+    
+    _dt = _dsc->get_avg_edge_length()*0.2 / max_force;
+    cout << "Estimated time step: " << _dt << endl;
+}
+
 void segment_function::segment_probability()
 {
     static int iteration = 0;
     cout << "--------------- Iteration " << iteration << " ----------------" << endl;
+    cout << "dt = " << _dt <<endl;
+    
+    update_vertex_boundary();
     
     // Curvature force
-    compute_surface_curvature();
-    compute_internal_force();
-    
+    compute_internal_force_2();
     // Segmentation force
     compute_external_prob_force();
     
     // 3. Work around to align boundary vertices
     //  including set displacement for interface vertices
-    work_around_on_boundary_vertices();
+//    work_around_on_boundary_vertices();
+    snapp_boundary();
     
-    _dsc->deform();
+    int step = _dsc->deform(10);
+    if (step > 6)
+    {
+        // reduce time step
+        _dt = _dt * (6.0 / step);
+    }
     
-    if (iteration % 5 == 0)
+    if (iteration % 20 == 0)
     {
         relabel_probability();
     }
@@ -1675,52 +1744,77 @@ void segment_function::segment_probability()
     iteration++;
 }
 
+void segment_function::update_vertex_boundary()
+{
+    // Make sure there are gap
+    for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
+    {
+        if(nit->is_boundary())
+        {
+            for(auto t : _dsc->get_tets(nit.key()))
+                _dsc->set_label(t, BOUND_LABEL);
+        }
+    }
+    
+    // Mark boundary vertex
+    m_vertex_bound = vector<bool>(_dsc->get_no_nodes_buffer(), false);
+    for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
+    {
+        if(fit->is_interface())
+        {
+            auto tets = _dsc->get_tets(fit.key());
+            if (_dsc->get_label(tets[0]) == BOUND_LABEL
+                || _dsc->get_label(tets[1]) == BOUND_LABEL)
+            {
+                for(auto n : _dsc->get_nodes(fit.key()))
+                    m_vertex_bound[n] = true;
+            }
+        }
+    }
+}
+
+bool segment_function::is_boundary(is_mesh::FaceKey fk)
+{
+    for(auto & n : _dsc->get_nodes(fk))
+    {
+        if (!m_vertex_bound[n])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+void segment_function::compute_internal_force_2()
+{
+    std::vector<vec3> intern_f_a(_dsc->get_no_nodes_buffer(), vec3(0));
+    for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
+    {
+        if (fit->is_interface()
+            && !is_boundary(fit.key()))
+        {
+            auto nodes = _dsc->get_nodes(fit.key());
+            auto node_pos = _dsc->get_pos(nodes);
+            for (int i = 0; i < 3; i++)
+            {
+                auto l0 = node_pos[i];
+                auto l1 = node_pos[(i+1)%3];
+                auto l2 = node_pos[(i+2)%3];
+                
+                auto p = Util::project_point_line(l0, l1, l2-l1);
+                auto h = Util::normalize(l0-p);
+                
+                intern_f_a[nodes[i]] += -h*(l2-l1).length();
+            }
+        }
+    }
+    
+    _internal_forces = intern_f_a;
+}
+
 
 void segment_function::segment()
 {
-    int num_phases = NB_PHASE;
-    
-    static int iteration = 0;
-    cout << "--------------- Iteration " << iteration++ << " ----------------" << endl;
-    
-    // 1. Compute average intensity
-    profile t("Segment time");
-    
-    _mean_intensities.resize(num_phases);
-    
-    
-    
-//    adapt_tetrahedra();
-    
-    update_average_intensity();
-    
-    
-    
-    
-    // 2. Compute external force
-    compute_surface_curvature();
-    compute_external_force();
-    compute_internal_force();
-    
-    // 3. Work around to align boundary vertices
-    //  including set displacement for interface vertices
-    work_around_on_boundary_vertices();
-    
-    _dsc->deform();
-    
-    /**
-     4. RELABEL TETRAHEDRA
-     */
-    if (iteration % 5 == 0)
-    {
-//        face_split();
-        relabel_tetrahedra();
-    }
-    
-    t.done();
-    profile::close();
-    
-    cout << "Mesh statistic: " << _dsc->get_no_nodes_buffer() << " nodes buffer; " << _dsc->get_no_edges_buffer() << " edge buffer; " << _dsc->get_no_tets_buffer() << " tet buffer" << endl;
+
 }
 
 int segment_function::arg_min_phase_point(vec3 pt, double radius, int current_label) {

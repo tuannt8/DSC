@@ -314,6 +314,8 @@
 		A6EA334D1C1857AD00FFA69B /* libboost_system.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_system.dylib; path = ../../../../../usr/local/lib/libboost_system.dylib; sourceTree = "<group>"; };
 		A6EA334F1C18589300FFA69B /* segment_function.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = segment_function.cpp; sourceTree = "<group>"; };
 		A6EA33501C18589300FFA69B /* segment_function.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = segment_function.h; sourceTree = "<group>"; };
+		A6EFA49820403E41007F2D22 /* gaussian_points.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gaussian_points.h; sourceTree = "<group>"; };
+		A6EFA49920406C3A007F2D22 /* InputParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InputParser.h; sourceTree = "<group>"; };
 		A6F293081C186AF900ED6916 /* libpng15.15.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libpng15.15.dylib; path = ../../../../../opt/X11/lib/libpng15.15.dylib; sourceTree = "<group>"; };
 		A6F2930A1C18738200ED6916 /* glut_menu.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = glut_menu.cpp; sourceTree = "<group>"; };
 		A6F2930B1C18738200ED6916 /* glut_menu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glut_menu.h; sourceTree = "<group>"; };
@@ -600,6 +602,7 @@
 				A6BB33C01FE152F600A9FE93 /* probability_image.cpp */,
 				A6BB33C11FE152F600A9FE93 /* probability_image.hpp */,
 				A6BB33D61FE2C9EA00A9FE93 /* config.h */,
+				A6EFA49820403E41007F2D22 /* gaussian_points.h */,
 			);
 			path = DEMO;
 			sourceTree = "<group>";
@@ -607,6 +610,7 @@
 		A65A0C2F1C15E0DB005A8106 /* Lib */ = {
 			isa = PBXGroup;
 			children = (
+				A6EFA49920406C3A007F2D22 /* InputParser.h */,
 				A652F1C01EF136A500076E59 /* otsu_multi.h */,
 			);
 			name = Lib;

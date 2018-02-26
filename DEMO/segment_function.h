@@ -101,11 +101,12 @@ public:
     void segment_probability();
     
 public:// Configuration parametters
+    int num_iter;
     int NB_PHASE;
     double VARIATION_THRES_FOR_RELABELING;
     double ALPHA = 0.1;
     double QALPHA = 0.2;
-    double _dt = 1;
+    double _dt = 0.3;
     std::string _directory_path;
     
     // Face plit
@@ -115,6 +116,8 @@ public:// Variables
 //    image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc
     probability_image m_prob_img;
+    
+    std::vector<bool> m_vertex_bound;
 public:
     std::vector<double> _mean_intensities;
     std::vector<double> _total_intensities; // To update mean intensity during relabeling
@@ -136,9 +139,16 @@ public:
     void remove_stable_proximity(std::vector<std::vector<double>> & barry_coord, const is_mesh::SimplexSet<is_mesh::NodeKey> & nodes);
     vec3 get_node_displacement(is_mesh::NodeKey nkey);
     
+    void update_vertex_boundary();
+    bool is_boundary(is_mesh::FaceKey);
+    void snapp_boundary();
+    
+    void estimate_time_step();
+    
     void compute_surface_curvature();
     void compute_external_force();
     void compute_internal_force();
+    void compute_internal_force_2();
     void compute_external_prob_force();
     void compute_mesh_quality_control_force();
     
@@ -148,7 +158,7 @@ public:
     double get_energy_tet_assume_label(is_mesh::TetrahedronKey tkey, int );
     double get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, int );
     void relabel_tetrahedra();
-    void relabel_probability();
+    int relabel_probability();
     
     double min_edge, min_V;
     void set_min_edge_length(double l){min_edge = l; min_V = pow(min_edge, 3)/6;};

@@ -31,7 +31,7 @@ extern bool arg_b_build_table_origin;
 #define MAX_COLORS 30
 #define MAX_COLORS_TET 100
 
-#define LOG_DEBUG
+//#define LOG_DEBUG
 
 #define PARALLEL_SMOOTH
 
@@ -329,7 +329,7 @@ namespace DSC {
                     0.,     //MIN_LENGTH
                     2.,     //MAX_LENGTH
                 
-                    0.2,    //MIN_AREA
+                    0.2,    //MIN_AREA // Not in use
                     5.,     //MAX_AREA
                 
                     0.2,    //MIN_VOLUME
@@ -414,6 +414,8 @@ namespace DSC {
         
         void set_min_edge_length(real min_length)
         {
+            
+            
             set_avg_edge_length();
             auto ratio = min_length / AVG_LENGTH;
             
@@ -427,6 +429,7 @@ namespace DSC {
                 0.02,   //DEG_TET_QUALITY
                 0.3,    //MIN_TET_QUALITY, an important parameter
                 
+                // Used for resize function
                 // These below will not be in use
                 0.5,     //MIN_LENGTH, used to resize mesh
                 INFINITY,     //MAX_LENGTH
@@ -2403,6 +2406,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         
         void fix_complex()
         {
+            // By vertex relocation
             {
 #ifdef DSC_CACHE
 #ifdef PARALLEL_SMOOTH
@@ -2416,6 +2420,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
 #endif
             }
             
+            // By edge flip
             {
 #ifdef DSC_CACHE
                             topological_edge_removal();
@@ -2432,16 +2437,17 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             }
             
             
-            remove_degenerate_tets();
-            remove_degenerate_faces();
-            remove_degenerate_edges();
+            // By edge collapse or edge split
+            remove_degenerate_tets(); // tet quality
+            remove_degenerate_faces(); // Smallest angle
+            remove_degenerate_edges(); // lenght / avg_length: multi-res???
 
         }
         
         void resize_complex()
         {
             {
-                
+                // Collapse small edge; split long edge
                 //                resize_interface();
                 
                 thickening_interface();
@@ -2462,7 +2468,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         /**
          * Moves all the vertices to their destination which can be set by the set_destination() function.
          */
-        void deform(int num_steps = 10)
+        int deform(int num_steps = 10)
         {
             //#ifdef DEBUG
             //            validity_check();
@@ -2476,8 +2482,6 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
                 std::cout << "\n\tMove vertices step " << step << std::endl;
 #endif
                 missing = 0;
-                
-                cout << ".";
                 
                 int movable = 0;
                 {
@@ -2506,6 +2510,8 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
                 ++step;
             } while (missing > 0 && step < num_steps);
             
+            cout << "Move DSC in " << step << " step(s)" << endl;
+            
             //#ifdef DEBUG
 //                        validity_check();
             //#endif
@@ -2522,9 +2528,7 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             
 
             cout << endl;
-            //#ifdef DEBUG
-            //            validity_check();
-            //#endif
+            return step;
         }
         
     private:
@@ -2762,8 +2766,6 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         void split_face(const face_key& fid)
         {
             // Check if it create needle triangles
-            
-            
             is_mesh::SimplexSet<edge_key> eids = get_edges(fid);
             
             for (auto e : eids)
@@ -2789,7 +2791,6 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
                     return;
                 }
             }
-            
             
 //            edge_key eid = longest_edge(eids);
 //            // Check if the edge is too short

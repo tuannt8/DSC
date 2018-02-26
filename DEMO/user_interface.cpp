@@ -249,10 +249,10 @@ void UI::load_config_file()
         cout << "Config file with " << options.size() << "values" << endl;
         
         //2. Set property
-        get_opt(_seg._directory_path, "directory-path");
+//        get_opt(_seg._directory_path, "directory-path");
 //        _seg._directory_path = get_option(options,"directory-path");
         _seg._dt = stof(get_option(options,"time-step"));
-        _seg.NB_PHASE = stoi(get_option(options,"number-of-phase"));
+//        _seg.NB_PHASE = stoi(get_option(options,"number-of-phase"));
         _seg.VARIATION_THRES_FOR_RELABELING = stof(get_option(options,"Variation-threshold-for-relabeling"));
         _seg.ALPHA = stof(get_option(options,"length-penalty-coefficient"));
 
@@ -274,7 +274,6 @@ void UI::load_config_file()
     {
         cout << "Fail to read config file: \" " << config_file << "\" with error " << msg << endl;
     }
-
 }
 
 void UI::update_draw_list()
@@ -291,7 +290,7 @@ UI::UI()
 void UI::init_data()
 {
     // Load setting file
-    load_config_file();
+//    load_config_file();
     
     // Load cross sections
     _seg.init();
@@ -308,18 +307,77 @@ void UI::init_data()
     
     
     _seg._dsc = &*dsc;
-    _seg.set_min_edge_length(_min_edge_length);
     _seg.threshold_init_probability();
-    
-//    extern std::string config_file;
-//    std::string file_name = std::string("./LOG/") + config_file.substr(0, config_file.size() - 11)
-//    + std::string(".dsc");
-//    load_model(file_name);
-//    
+    _seg.estimate_time_step();
+
     
     std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
     << dsc->get_no_tets() << " tets" << endl;
 
+}
+
+UI::UI(InputParser p)
+{
+    bool bDisplay = !p.cmdOptionExists("-no-display");
+    _seg.num_iter = std::stoi(p.getCmdOption("-no-iter", "500"));
+    
+    _seg.NB_PHASE = stoi(p.getCmdOption("-nb-phase", "5"));
+    _seg.ALPHA = stof(p.getCmdOption("-alpha", "0.01"));
+    _seg._dt = stof(p.getCmdOption("-dt", "0.01"));
+    m_edge_length = stof(p.getCmdOption("-edge-length", "20"));
+    output_path = p.getCmdOption("-log-path", "prob.dsc");
+    
+    p.print();
+    
+    if(p.cmdOptionExists("-h"))
+        exit(0);
+    
+    if (bDisplay)
+    {
+        instance = this;
+        
+        int a=0;
+        char * b;
+        glutInit(&a, &b);
+        glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL | GLUT_MULTISAMPLE);
+        
+        glutCreateWindow("3D segmentation");
+        
+        glutDisplayFunc(display_);
+        glutKeyboardFunc(keyboard_);
+        glutSpecialFunc(keyboard_special_);
+        glutSetKeyRepeat(GLUT_KEY_REPEAT_ON);
+        glutVisibilityFunc(visible_);
+        glutReshapeFunc(reshape_);
+        glutMotionFunc(motion_);
+        glutMouseFunc(mouse_);
+        
+        
+        glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+        glEnable(GL_DEPTH_TEST);
+        glLineWidth(1.0);
+        
+        setup_light();
+        
+        glutReshapeWindow(WIN_SIZE_X, WIN_SIZE_Y);
+        check_gl_error();
+    }
+    
+    // Init data
+    init_data();
+    
+    if (bDisplay)
+    {
+        // Update texture draw
+        draw_helper::update_texture(*_seg.m_prob_img.m_prob_map[0], 0,0,0);
+        glutMainLoop();
+    }
+    else{
+        for(int i = 0; i < _seg.num_iter; i++)
+        {
+            _seg.segment_probability();
+        }
+    }
 }
 
 UI::UI(int &argc, char** argv)
@@ -453,13 +511,14 @@ void UI::save_model( std::string file_name){
         }
     }
     
+    
+    
     std::vector<vec3> points;
     std::vector<int> faces;
     std::vector<int> tets;
     std::vector<int> tet_labels;
     dsc->extract_tet_mesh(points, tets, tet_labels);
     is_mesh::export_tet_mesh(file_name, points, tets, tet_labels);
-    points.clear();
 }
 
 #define index_cube(x,y,z) ((z)*NX*NY + (y)*NX + (x))
@@ -543,7 +602,6 @@ void UI::init_dsc()
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
     dsc->set_avg_edge_length(delta);
-//    dsc->set_min_edge_length(_min_edge_length);
 }
 
 void UI::update_title()
@@ -780,6 +838,17 @@ void UI::display()
 //        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
         _seg.segment_probability();
         m_iters++;
+        
+        if(m_iters % 20 ==0)
+        {
+            save_model(output_path + "/iter_" + std::to_string(m_iters) + ".dsc");
+        }
+        
+        if (m_iters > _seg.num_iter)
+        {
+            save_model(output_path +  "/output.dsc");
+            exit(0);
+        }
     }
 }
 

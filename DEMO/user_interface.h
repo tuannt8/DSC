@@ -28,6 +28,8 @@
 
 #include <thread>
 
+#include "InputParser.h"
+
 #define VERSION "3.1"
 
 #define PROBLEM_NAME "fuelcells_smaller"
@@ -69,8 +71,9 @@ public:
     
     segment_function _seg;
     
+    std::string output_path;
 public:
-    
+    UI(InputParser p);
     UI(int &argc, char** argv);
     UI(); //no interface
     void init_data();
@@ -103,7 +106,7 @@ public:
 private:
 public:
     double _min_edge_length = 7; // Smallest edge length
-    double m_edge_length = 7; //
+    double m_edge_length; //
     float gl_dis_max;
     vec3 _obj_dim;
     vec3 _dsc_dim; // contain boundary gap
