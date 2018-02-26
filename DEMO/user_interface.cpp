@@ -520,7 +520,7 @@ void UI::save_model( std::string file_name){
         }
     }
     
-    
+    cout << "Save to " << file_name << endl;
     
     std::vector<vec3> points;
     std::vector<int> faces;
@@ -846,7 +846,7 @@ void UI::display()
     {
 //        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
         _seg.segment_probability();
-        m_iters++;
+        
         
         if(m_iters % 20 ==0)
         {
@@ -858,6 +858,8 @@ void UI::display()
             save_model(output_path +  "/output.dsc");
             exit(0);
         }
+        
+        m_iters++;
     }
 }
 

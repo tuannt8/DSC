@@ -449,6 +449,16 @@ void segment_function::snapp_boundary(){
             _dsc->set_destination(nid.key(), destination);
         }
     }
+    
+    double max_dis = 0;
+    for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface())
+        {
+            max_dis = max(max_dis, (nit->get_destination() - nit->get_pos()).length());
+        }
+    }
+    cout << "Max displacement: " << max_dis << endl;
 }
 
 vec3 segment_function::get_node_displacement(is_mesh::NodeKey nkey)
