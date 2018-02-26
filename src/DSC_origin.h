@@ -1411,7 +1411,7 @@ namespace DSC {
         
         void fix_complex()
         {
-            profile t();
+//            profile t();
             smooth();
             
             topological_edge_removal();
