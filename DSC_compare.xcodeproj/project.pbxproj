@@ -122,6 +122,9 @@
 		A642127F1C7B54A600CBB594 /* profile.h in Headers */ = {isa = PBXBuildFile; fileRef = A642127D1C7B54A600CBB594 /* profile.h */; };
 		A64212841C7B555B00CBB594 /* profile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A64212821C7B555B00CBB594 /* profile.cpp */; };
 		A64212851C7B555B00CBB594 /* profile.h in Headers */ = {isa = PBXBuildFile; fileRef = A64212831C7B555B00CBB594 /* profile.h */; };
+		A64328EE204142AD000B464C /* tetralizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A3438E6183C7B7800829EEB /* tetralizer.cpp */; };
+		A64328EF20414D15000B464C /* tetgen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A3438D1183C7A9600829EEB /* tetgen.cpp */; };
+		A64328F020414D18000B464C /* predicates.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A3438CF183C7A9600829EEB /* predicates.cpp */; };
 		A64F086C1D8AE1B100378CC1 /* draw_helper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A64F086B1D8AE1B100378CC1 /* draw_helper.cpp */; };
 		A666A45720230B3C0092D021 /* particle_manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A666A45520230B3C0092D021 /* particle_manager.cpp */; };
 		A666A4592023160B0092D021 /* problem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A666A4582023160B0092D021 /* problem.cpp */; };
@@ -1323,10 +1326,13 @@
 				7AF7E9BA176B402200F43714 /* user_interface.cpp in Sources */,
 				A6BE10CC1FCC3B6A00054BE9 /* fluid_motion.cpp in Sources */,
 				A64F086C1D8AE1B100378CC1 /* draw_helper.cpp in Sources */,
+				A64328EE204142AD000B464C /* tetralizer.cpp in Sources */,
 				A666A4592023160B0092D021 /* problem.cpp in Sources */,
 				7A470AE317F51DC3001FC0CB /* log.cpp in Sources */,
+				A64328F020414D18000B464C /* predicates.cpp in Sources */,
 				A6BE0E7B1FCC2EC400054BE9 /* file_load.cpp in Sources */,
 				A6DABB5D1FD6D9B400BC4D26 /* eigen_wrapper.cpp in Sources */,
+				A64328EF20414D15000B464C /* tetgen.cpp in Sources */,
 				A639A38A1FD6D3160030265E /* anisotrpic_kernel.cpp in Sources */,
 				A6BE10CF1FCC597700054BE9 /* glut_menu.cpp in Sources */,
 				7AF7E9BD176B412900F43714 /* draw.cpp in Sources */,

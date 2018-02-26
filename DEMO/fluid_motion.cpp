@@ -236,55 +236,71 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
     }
 }
 
-void fluid_motion::deform()
-{
-    static int iter = 0;
- 
-    cout << "+++++++++++++++++ " << iter << " +++++++++++++++\n"
-    << "Particle " << m_cur_global_idx + t << "; dt = " << dt << endl;
-    {
-        profile_temp t("Advection");
-        advect_velocity();
-    }
-    
-    load_next_particle();
-    
-    double current_time = m_cur_global_idx + t;
-    static double mile_stone = 0;
-    if (current_time > mile_stone)
-    {
-        profile_temp t("Projection");
-        project_interface_one_iter();
-        while (mile_stone < current_time)
-        {
-            mile_stone += 0.33; // Project three times at most in every particle load
-        }
-    }
-    
-    static double mile_stone_log = 0;
-    if(current_time > mile_stone_log)
-    {
-        log_dsc();
-        while(mile_stone_log < current_time)
-            mile_stone_log += 0.5; // Log 2 times in every step
-    }
-
-    iter++;
-}
-
-void fluid_motion::project_interface_one_iter()
+void fluid_motion::project_interface_test()
 {
     update_vertex_boundary();
     
     static bool built = false;
     if (!built)
     {
+        built = true;
         // Build anisotropic kernel
         for (int i = 0; i < m_problem->m_nb_phases; i++)
         {
             m_particles[i]->build_anisotropic_kernel();
         }
         
+    }
+    
+    project_interface();
+}
+
+void fluid_motion::deform()
+{
+    static int iter = 0;
+ 
+    cout << "+++++++++++++++++ " << iter << " +++++++++++++++\n"
+    << "Particle " << m_cur_global_idx + t << "; dt = " << dt << endl;
+   
+    project_interface_test();
+    
+//    {
+//        profile_temp t("Advection");
+//        advect_velocity();
+//    }
+//
+//    load_next_particle();
+//
+//    double current_time = m_cur_global_idx + t;
+//    static double mile_stone = 0;
+//    if (current_time > mile_stone)
+//    {
+//        profile_temp t("Projection");
+//        project_interface_one_iter();
+//        while (mile_stone < current_time)
+//        {
+//            mile_stone += 0.33; // Project three times at most in every particle load
+//        }
+//    }
+//
+//    static double mile_stone_log = 0;
+//    if(current_time > mile_stone_log)
+//    {
+//        log_dsc();
+//        while(mile_stone_log < current_time)
+//            mile_stone_log += 0.5; // Log 2 times in every step
+//    }
+//
+//    iter++;
+}
+
+void fluid_motion::project_interface_one_iter()
+{
+    update_vertex_boundary();
+    // Build anisotropic kernel
+    for (int i = 0; i < m_problem->m_nb_phases; i++)
+    {
+        m_particles[i]->build_anisotropic_kernel();
     }
 
     project_interface();

@@ -490,6 +490,13 @@ namespace Util
         return bc[0] > -EPSILON && bc[1] > -EPSILON && bc[2] > -EPSILON;
     }
     
+    template<typename vec3>
+    inline bool is_inside(const vec3& p, const vec3& a, const vec3& b, const vec3& c, const vec3& d)
+    {
+        auto bc = barycentric_coords<real>(p, a, b, c,d);
+        return bc[0] > -EPSILON && bc[1] > -EPSILON && bc[2] > -EPSILON && bc[3] > -EPSILON;
+    }
+    
     /**
      Returns whether the point p is between the points in the vector corners.
      */
