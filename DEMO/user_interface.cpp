@@ -385,6 +385,8 @@ UI::UI(InputParser p)
         for(int i = 0; i < _seg.num_iter; i++)
         {
             _seg.segment_probability();
+            if(i%10==0)
+                save_model(output_path + "/iter_" + std::to_string(i) + ".dsc");
         }
     }
 }
