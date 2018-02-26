@@ -212,7 +212,7 @@ namespace is_mesh {
         int color = NO_COLOR;
     public:
         FaceAttributes() {
-//            t_flags.set();
+            flags[3] = 1;//Face projected
         }
 
         FaceAttributes(const FaceAttributes& other)

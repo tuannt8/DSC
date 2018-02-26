@@ -130,7 +130,6 @@
 		A666A4592023160B0092D021 /* problem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A666A4582023160B0092D021 /* problem.cpp */; };
 		A668E3A51FD164CE00EF4C39 /* DSC_cache.h in Headers */ = {isa = PBXBuildFile; fileRef = A668E3A31FD164CE00EF4C39 /* DSC_cache.h */; };
 		A668E3A61FD164CE00EF4C39 /* DSC_origin.h in Headers */ = {isa = PBXBuildFile; fileRef = A668E3A41FD164CE00EF4C39 /* DSC_origin.h */; };
-		A6BE0E7B1FCC2EC400054BE9 /* file_load.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6BE0E791FCC2EC400054BE9 /* file_load.cpp */; };
 		A6BE10CC1FCC3B6A00054BE9 /* fluid_motion.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6BE10CA1FCC3B6A00054BE9 /* fluid_motion.cpp */; };
 		A6BE10CF1FCC597700054BE9 /* glut_menu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6BE10CD1FCC597700054BE9 /* glut_menu.cpp */; };
 		A6DABB5D1FD6D9B400BC4D26 /* eigen_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A6DABB5B1FD6D9B400BC4D26 /* eigen_wrapper.cpp */; };
@@ -300,8 +299,6 @@
 		A668E3A31FD164CE00EF4C39 /* DSC_cache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DSC_cache.h; path = src/DSC_cache.h; sourceTree = SOURCE_ROOT; };
 		A668E3A41FD164CE00EF4C39 /* DSC_origin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DSC_origin.h; path = src/DSC_origin.h; sourceTree = SOURCE_ROOT; };
 		A668E3A71FD16BE300EF4C39 /* dambreak2.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dambreak2.h; sourceTree = "<group>"; };
-		A6BE0E791FCC2EC400054BE9 /* file_load.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = file_load.cpp; sourceTree = "<group>"; };
-		A6BE0E7A1FCC2EC400054BE9 /* file_load.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = file_load.hpp; sourceTree = "<group>"; };
 		A6BE0E7C1FCC387C00054BE9 /* define.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = define.h; sourceTree = "<group>"; };
 		A6BE0E7E1FCC392A00054BE9 /* libvtkproj4-8.0.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libvtkproj4-8.0.1.dylib"; path = "../../../../../../usr/local/Cellar/vtk/8.0.1_1/lib/libvtkproj4-8.0.1.dylib"; sourceTree = "<group>"; };
 		A6BE0E7F1FCC392A00054BE9 /* libvtkFiltersSelectionTCL-8.0.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libvtkFiltersSelectionTCL-8.0.1.dylib"; path = "../../../../../../usr/local/Cellar/vtk/8.0.1_1/lib/libvtkFiltersSelectionTCL-8.0.1.dylib"; sourceTree = "<group>"; };
@@ -773,8 +770,6 @@
 				7AE27B1317675CEA000F8238 /* normal_function.h */,
 				7AE27B1417675CEA000F8238 /* rotate_function.h */,
 				A6C819711FD049600063351E /* KDTree.h */,
-				A6BE0E791FCC2EC400054BE9 /* file_load.cpp */,
-				A6BE0E7A1FCC2EC400054BE9 /* file_load.hpp */,
 				A6BE0E7C1FCC387C00054BE9 /* define.h */,
 				A6BE10CA1FCC3B6A00054BE9 /* fluid_motion.cpp */,
 				A6BE10CB1FCC3B6A00054BE9 /* fluid_motion.hpp */,
@@ -1330,7 +1325,6 @@
 				A666A4592023160B0092D021 /* problem.cpp in Sources */,
 				7A470AE317F51DC3001FC0CB /* log.cpp in Sources */,
 				A64328F020414D18000B464C /* predicates.cpp in Sources */,
-				A6BE0E7B1FCC2EC400054BE9 /* file_load.cpp in Sources */,
 				A6DABB5D1FD6D9B400BC4D26 /* eigen_wrapper.cpp in Sources */,
 				A64328EF20414D15000B464C /* tetgen.cpp in Sources */,
 				A639A38A1FD6D3160030265E /* anisotrpic_kernel.cpp in Sources */,

@@ -31,7 +31,8 @@ inline std::istream& operator>> (std::istream&is, particle& p)
     is >> p.pos[0] >> p.pos[1] >> p.pos[2]
 //    >> p.pressure
     >> p.density
-    >> p.mass;
+    >> p.mass
+    >> p.fluid;
 //    >> p.vel[0] >> p.vel[1] >> p.vel[2];
     
     return is;
@@ -261,7 +262,7 @@ bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
     for (auto p : list)
     {
         auto part = m_current_particles[p];
-        auto vel = m_next_particles[p].pos - m_current_particles[p].pos;
+        auto vel = m_current_particles[p].vel;
         
         double r_h = (part.pos - pos).length()/h;
         
@@ -502,16 +503,7 @@ void particle_manager::draw(double y_under, double y_limit)
 
 bool particle_manager::get_displacement(vec3 pos, vec3 & dis)
 {
-//    vec3 pos_avg(0.0);
-//    get_displacement_avg(pos, pos_avg);
-//    get_displacement_sph_kernel(pos, dis);
-//
-//    cout << pos << pos_avg  << dis << endl;
-    
     return get_displacement_sph_kernel(pos, dis);
-//        return get_displacement_weighted_avg(pos, dis);
-//    return get_displacement_MLS_kernel(pos, dis);
-    //    return get_displacement_cubic_kernel(pos);
 }
 
 void particle_manager::load_first_time(int idx){
@@ -554,10 +546,10 @@ void particle_manager::interpolate(int sub_idx, int sub_count)
 ////        cout << "Max sub vel: " << max_vel <<endl;
 //    }
 //
-
-    
-    build_kd_tree(); // may not need to be build every time step
-    rebuild_density(); // Because the density output is different, and I dont know why.
+//
+//
+//    build_kd_tree(); // may not need to be build every time step
+//    rebuild_density(); // Because the density output is different, and I dont know why.
 //    build_anisotropic_kernel();
 }
 
@@ -594,6 +586,8 @@ void particle_manager::init_first(int idx)
     m_current_particles = m_cache_particles;
 }
 
+// Only load the particle from file
+// No anisotropic, kdtree or rebuild density
 void particle_manager::load_next(int idx, double t)
 {
     assert(t >= 0 && t < 1);
@@ -608,70 +602,103 @@ void particle_manager::load_next(int idx, double t)
         load(m_cache_idx, m_cache_particles_next);
     }
     
+    double max_vel = 0;
     for (int i = 0; i < m_next_particles.size(); i++)
     {
         m_next_particles[i].pos = m_cache_particles[i].pos * (1-t) + m_cache_particles_next[i].pos * t;
+        m_current_particles[i].vel = m_next_particles[i].pos - m_current_particles[i].pos;
+        
+        max_vel = max(max_vel, m_current_particles[i].vel.length());
     }
     
+    cout << "Max vel: " << max_vel << endl;
+}
+
+void particle_manager::add_ghost_particles(vec3 domain_size, double dis)
+{
     build_kd_tree(); // may not need to be build every time step
     rebuild_density(); // Because the density output is different, and I dont know why.
+//    
+//    // Add ghost
+//    
+//    for(int direct = 0; direct < 3; direct++)
+//    {
+//        auto current_size = m_current_particles.size();
+//        for (int i = 0; i < current_size; i++)
+//        {
+//            auto & p = m_current_particles[i];
+//            if (p.pos[direct] < dis)
+//            {
+//                particle new_p = p;
+//                new_p.pos[direct] = -new_p.pos[direct];
+//                m_current_particles.push_back(new_p);
+//            }else if(p.pos[direct] > domain_size[direct]-dis)
+//            {
+//                particle new_p = p;
+//                new_p.pos[direct] = 2*domain_size[direct] - new_p.pos[direct];
+//                m_current_particles.push_back(new_p);
+//            }
+//        }
+//    }
+//
+//    build_kd_tree(); // may not need to be build every time step
 }
 
 
 bool particle_manager::get_projection(vec3 pos, vec3 direction, bool &bInside, double &t)
 {
-    static double eps = std::numeric_limits<double>::min();
-    double phi_pre = m_aniso_kernel.get_value(pos);
-    
-    if (phi_pre >= 0)
-    {
-        
-    }
-    else // No particle nearby.
-    {
-        return false; 
-    }
-    
-    double ra = m_deltap; // Important parameter
-    
-    
-    
-    double epsilon = -ra*(phi_pre>eps? -1:1);
-    
-    bInside = phi_pre > 0;
-    
-    double phi_epsilon = m_aniso_kernel.get_value(pos + direction*epsilon);
-    
-    if (phi_pre * phi_epsilon < 0) //the point is somewhere in between
-    {
-        double ep1 = epsilon;
-        double ep2 = 0;
-        double phi1 = phi_epsilon;
-        double phi2 = phi_pre;
-        
-        for (int i = 0; i < 4; i++)
-        {
-            double phi_middle = m_aniso_kernel.get_value(pos + direction*(ep1+ep2)/2);
-            if (std::abs(phi_middle) < 0.0001)
-            {
-                break;
-            }
-            
-            if (phi_middle*phi1 < 0)
-            {
-                ep2 = (ep1 + ep2)/2;
-            }
-            else
-            {
-                ep1 = (ep1 + ep2)/2;
-                phi1 = phi_middle;
-            }
-        }
-        
-        t = (ep1 + ep2)/2;
-        
-        return true;
-    }
+//    static double eps = std::numeric_limits<double>::min();
+//    double phi_pre = m_aniso_kernel.get_value(pos);
+//
+//    if (phi_pre >= 0)
+//    {
+//
+//    }
+//    else // No particle nearby.
+//    {
+//        return false;
+//    }
+//
+//    double ra = m_deltap; // Important parameter
+//
+//    
+//
+//    double epsilon = -ra*(phi_pre>eps? -1:1);
+//
+//    bInside = phi_pre > 0;
+//
+//    double phi_epsilon = m_aniso_kernel.get_value(pos + direction*epsilon);
+//
+//    if (phi_pre * phi_epsilon < 0) //the point is somewhere in between
+//    {
+//        double ep1 = epsilon;
+//        double ep2 = 0;
+//        double phi1 = phi_epsilon;
+//        double phi2 = phi_pre;
+//
+//        for (int i = 0; i < 4; i++)
+//        {
+//            double phi_middle = m_aniso_kernel.get_value(pos + direction*(ep1+ep2)/2);
+//            if (std::abs(phi_middle) < 0.0001)
+//            {
+//                break;
+//            }
+//
+//            if (phi_middle*phi1 < 0)
+//            {
+//                ep2 = (ep1 + ep2)/2;
+//            }
+//            else
+//            {
+//                ep1 = (ep1 + ep2)/2;
+//                phi1 = phi_middle;
+//            }
+//        }
+//
+//        t = (ep1 + ep2)/2;
+//
+//        return true;
+//    }
     
     //    t = epsilon;
     // fail to project
@@ -686,7 +713,21 @@ void particle_manager::build_anisotropic_kernel()
     
     m_aniso_kernel.build();
 }
-
+std::shared_ptr<Geometry::KDTree<vec3, int>> particle_manager::build_kd_tree(std::vector<particle> *)
+{
+    std::shared_ptr<Geometry::KDTree<vec3, int>> vtree = std::shared_ptr<Geometry::KDTree<vec3, int>>(new Geometry::KDTree<vec3, int>());
+    
+    int idx = 0;
+    for (auto &p : m_current_particles)
+    {
+        vtree->insert(p.pos, idx);
+        idx++;
+    }
+    
+    vtree->build();
+    
+    return vtree;
+}
 void particle_manager::rebuild_density()
 {
     for (auto & part : m_current_particles)
@@ -724,7 +765,6 @@ void particle_manager::build_kd_tree()
     }
     
     m_vtree.build();
-    
 }
 
 void particle_manager::load(int idx, std::vector<particle> & par)

@@ -70,7 +70,9 @@ public:
     // accelerating finding neighbor
     Geometry::KDTree<vec3, int> m_vtree;
     void build_kd_tree();
+    std::shared_ptr<Geometry::KDTree<vec3, int>> build_kd_tree(std::vector<particle> *);
     void rebuild_density();
+    void add_ghost_particles(vec3 domain_size, double dis);
     
     // Aniso tropic kernel
     anisotropic_kernel m_aniso_kernel;

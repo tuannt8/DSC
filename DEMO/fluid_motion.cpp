@@ -31,9 +31,9 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = s_dsc->get_avg_edge_length()*0.3;
+    m_max_dsc_displacement = std::max(s_dsc->get_avg_edge_length()*0.3, m_problem->m_deltap*0.5) ;
     
-    m_max_displacement_projection = m_problem->m_deltap*0.4; // This is just a compliment
+    m_max_displacement_projection = m_problem->m_deltap*0.5; // This is just a compliment
     
     cout << "\n\n+++++++++++++++++++++++++++++++++++++++"
     << "\n spacing distance: " << m_problem->m_deltap
@@ -43,6 +43,7 @@ void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     << "\n Max DSC displacement: " << m_max_dsc_displacement
     << "\n Projection search: " << m_max_displacement_projection
     << "\n++++++++++++++++++++++++++++++++++++++++++\n\n";
+
 }
 void fluid_motion::load_configuration()
 {
@@ -97,8 +98,13 @@ void fluid_motion::load_first_particle()
     }
     
     load_next_particle();
+    
+    project_interface_test();
+    dt = 1;
 }
 
+// Only load the particle from file
+// No anisotropic, kdtree or rebuild density
 void fluid_motion::load_next_particle()
 {
     t += dt;
@@ -114,6 +120,69 @@ void fluid_motion::load_next_particle()
     }
 }
 
+void fluid_motion:: draw_anisotropic_kernel_plane()
+{
+    static vector<vec3> pos;
+    static vector<int> phi;
+    vec3 domain_size = m_problem->domain_size();
+    vec3 c[] = {vec3(1,0,0), vec3(0,0,1)};
+    // Build
+    if (pos.size() == 0)
+    {
+        build_anisotropic_kernel();
+        
+        profile_temp t("Real Build anisotropic");
+        
+        int N = 300;
+        int gap = N/20;
+        vec3 delta = domain_size / N;
+        pos.clear(); phi.clear();
+        
+        for (int i=-gap; i < N+gap; i++)
+        {
+            //                for (int j = 0; j < N; j++)
+            int j = 100;
+            {
+                for (int k = -gap; k < N+gap; k++)
+                    //                    int k = 1;
+                {
+                    vec3 cur_p(i*delta[0], j*delta[1], k*delta[2]);
+                    pos.push_back(cur_p);
+                    
+                    if (m_share_aniso_kernel.is_inside(cur_p,0))
+                    {
+                        phi.push_back(0);
+                    }else if(m_share_aniso_kernel.is_inside(cur_p,1))
+                    {
+                        phi.push_back(1);
+                    }else
+                    {
+                        phi.push_back(-1);
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    // Draw
+    glDisable(GL_LIGHTING);
+    glPointSize(4);
+    glBegin(GL_POINTS);
+    vec3 RED(1,0,0);
+    vec3 BLUE(0,0,1);
+    for (int i = 0; i < pos.size(); i++)
+    {
+        if (phi[i] > -1)
+        {
+            auto & cc = c[phi[i]];
+            glColor3f(cc[0], cc[1], cc[2]);
+            glVertex3dv(pos[i].get());
+        }
+        
+    }
+    glEnd();
+}
 void fluid_motion::draw()
 {
     if(glut_menu::get_state("Particles point 0", 0))
@@ -130,13 +199,22 @@ void fluid_motion::draw()
     
     if(glut_menu::get_state("anisotropic", 0))
     {
-        m_particles[0]->draw_anisotropic_kernel(m_problem->domain_size(), vec3(1,0,0));
-        m_particles[1]->draw_anisotropic_kernel(m_problem->domain_size(), vec3(0,1,1));
+//        m_particles[0]->draw_anisotropic_kernel(m_problem->domain_size(), vec3(1,0,0));
+//        m_particles[1]->draw_anisotropic_kernel(m_problem->domain_size(), vec3(0,1,1));
+        draw_anisotropic_kernel_plane();
     }
     
     if ((glut_menu::get_state("Isotropic sphere", 0)))
     {
         m_particles[1]->draw_anisotropic_kernel(m_problem->domain_size()[1]*0.32, m_problem->domain_size()[1]*0.35);
+    }
+}
+
+void fluid_motion::add_ghost_particles()
+{
+    for (int i = 0; i < m_problem->m_nb_phases; i++)
+    {
+        m_particles[i]->add_ghost_particles(m_problem->domain_size(), 2*m_problem->m_slength);
     }
 }
 
@@ -177,26 +255,30 @@ void fluid_motion:: advect_velocity()
 
     cout << "Max advection: " << max_dis << endl;
 
-    snapp_boundary_vertices();
+//    snapp_boundary_vertices();
 
-    int step = s_dsc->deform(20);
+    s_dsc->deform(20);
 }
 
 void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
 {
     // 1. Interpolate the displacement
-    update_vertex_boundary();
+//    update_vertex_boundary();
     
     vector<bool> should_fix(s_dsc->get_no_nodes_buffer(), true);
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
-        if (fit->is_interface()
-            && !is_boundary_work_around(fit.key())
-            )
+        if (fit->is_interface())
         {
-            for(auto n : s_dsc->get_nodes(fit.key()))
-                should_fix[n] = false;
-            
+            auto tets = s_dsc->get_tets(fit.key());
+            if (s_dsc->get_label(tets[0]) != 0
+                && s_dsc->get_label(tets[1]) != 0)
+            {
+                for (auto n : s_dsc->get_nodes(fit.key()))
+                {
+                    should_fix[n] = false;
+                }
+            }
         }
     }
     
@@ -204,6 +286,7 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
         if (nit->is_interface()
+            && !nit->is_crossing()
             && !should_fix[nit.key()])
         {
             auto pos = nit->get_pos();
@@ -236,48 +319,83 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
     }
 }
 
-void fluid_motion::project_interface_test()
+void fluid_motion::build_anisotropic_kernel()
 {
-    update_vertex_boundary();
+    profile_temp t("Build anisotropic");
     
-    static bool built = false;
-    if (!built)
+    m_share_aniso_kernel.m_particles.clear();
+    for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
-        built = true;
-        // Build anisotropic kernel
-        for (int i = 0; i < m_problem->m_nb_phases; i++)
-        {
-            m_particles[i]->build_anisotropic_kernel();
-        }
-        
+        m_share_aniso_kernel.m_particles.insert(m_share_aniso_kernel.m_particles.end(), m_particles[i]->m_current_particles.begin(), m_particles[i]->m_current_particles.end());
     }
     
-    project_interface();
+    m_share_aniso_kernel.m_h = m_problem->m_slength;
+    m_share_aniso_kernel.m_ra = m_problem->m_deltap;
+    
+    m_share_aniso_kernel.build();
+}
+
+void fluid_motion::project_interface_test()
+{
+    reset_projected_flag();
+    // Build aniso
+    build_anisotropic_kernel();
+
+    int nb_project = 0;
+    while(project_interface() > 0
+          && nb_project < 10)
+    {
+        nb_project ++;
+        cout << "--------------- " << nb_project << endl;
+    }
+    
+    // Adapt time step
+    static int max_iter = 10;
+    nb_project = max(max_iter, nb_project);
+
+    static vector<double> speed;
+    speed.push_back(nb_project/dt);
+    if (speed.size() > 10)
+    {
+        speed.erase(speed.begin());
+    }
+    double avg = std::accumulate(speed.begin(), speed.end(), 0) / speed.size();
+
+    dt = max_iter / avg;
+    dt = min(dt,1.0);
+    dt= max(dt, 0.05);
 }
 
 void fluid_motion::deform()
 {
+
+    
     static int iter = 0;
- 
+
     cout << "+++++++++++++++++ " << iter << " +++++++++++++++\n"
     << "Particle " << m_cur_global_idx + t << "; dt = " << dt << endl;
-    
-    {
-        profile_temp t("Advection");
-        advect_velocity();
-    }
+
+//    {
+//        profile_temp t("Advection");
+//        add_ghost_particles();
+//        advect_velocity();
+//    }
 
     {
         profile_temp t("Load particle");
         load_next_particle();
     }
+    
+    
+    
 
     double current_time = m_cur_global_idx + t;
     static double mile_stone = 0;
     if (current_time > mile_stone)
     {
         profile_temp t("Projection");
-        project_interface_one_iter();
+        project_interface_test();
+//        project_interface_one_iter();
         while (mile_stone < current_time)
         {
             mile_stone += 0.33; // Project three times at most in every particle load
@@ -381,15 +499,17 @@ void fluid_motion::snapp_boundary_vertices()
 }
 
 
-double fluid_motion::project_interface()
+int fluid_motion::project_interface()
 {
     vector<vec3> vertex_dis(s_dsc->get_no_nodes_buffer(), vec3(0.0));
     vector<double> contribution(s_dsc->get_no_nodes_buffer(), 0.0);
     
+    
+    int nb_pjected = 0;
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
         if (fit->is_interface()
-            && !is_boundary_work_around(fit.key())
+            && !fit->is_projected()
             )
         {
             static const vector<vec3> sampling_point = {vec3(0.33, 0.33, 0.33)};
@@ -405,29 +525,33 @@ double fluid_motion::project_interface()
                 vec3 sample_pos = get_barry_pos(sp, node_pos);
                 
                 vec3 vDisplace(0.0);
-
+                bool bLast = false;
+                int label;
+                auto norm = norm_global;
                 // Have to project on both particles
                 if(label_tets[0] == 0 || label_tets[1] == 0) { // Single interface
-                    int label = label_tets[0] == 0? label_tets[1] : label_tets[0];
-                    
-                    bool bLast = false;
-                    vDisplace = m_particles[label - 1]->m_aniso_kernel.get_displacement_projection(sample_pos, norm_global, m_max_displacement_projection, bLast);
-                    
-                    fit->set_projected(bLast);
+                    label = label_tets[0] == 0? label_tets[1] : label_tets[0];
                 }
                 else{
                     // prior smaller label
-                    int label = label_tets[0] < label_tets[1]? label_tets[0] : label_tets[1];
-                    
-                    auto norm = -norm_global;// *( i==0? -1:1);
-                    bool bLast = false;
-                    vDisplace += m_particles[label-1]->m_aniso_kernel.get_displacement_projection(sample_pos, norm, m_max_displacement_projection, bLast);
-                    fit->set_projected(bLast);
-//                    vDisplace *= 0
-                    
+                    label = label_tets[0] < label_tets[1]? label_tets[0] : label_tets[1];
+                    norm = -norm_global;// *( i==0? -1:1);
                 }
                 
-
+                vDisplace = m_share_aniso_kernel.get_displacement_projection(sample_pos, norm, label -1, m_max_displacement_projection, bLast);
+                
+                if (bLast)
+                {
+                    // Prior shared interface
+                    auto tets = s_dsc->get_tets(fit.key());
+                    if (s_dsc->get_label(tets[0]) != 0 && s_dsc->get_label(tets[1]) != 0 )
+                    {
+                        nb_pjected++;
+                    }
+                }
+                
+                fit->set_projected(bLast);
+//                assert(vDisplace.length() < m_max_displacement_projection*1.01);
                 // Distribute
                 for (int i =0; i < 3; i++)
                 {
@@ -438,41 +562,41 @@ double fluid_motion::project_interface()
         } // For all triangles
     }
     
-    // Normalize the displacement
-    int nb_move = 0;
-    for (int i = 0; i < vertex_dis.size(); i++){
-        if (contribution[i] > 0){
+    for(int i = 0; i<vertex_dis.size(); i++)
+    {
+        if (contribution[i] > 0)
+        {
             vertex_dis[i] /= contribution[i];
-//            if (vertex_dis[i].length() > min_displace)
+        }
+    }
+    
+    cout << nb_pjected << " projected " << endl;
+    
+    if (nb_pjected > 0)
+    {
+        // Set destination and deform the DSC
+        for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+        {
+            if (nit->is_interface())
             {
-                nb_move++;
+                s_dsc->set_destination(nit.key(), nit->get_pos() + vertex_dis[nit.key()]);
             }
         }
-    }
-    
-    // Set destination and deform the DSC
-    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
-    {
-        if (nit->is_interface())
-        {
-            s_dsc->set_destination(nit.key(), nit->get_pos() + vertex_dis[nit.key()]);
+        
+        
+        double max_displace = 0;
+        for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++){
+            if (nit->is_interface()){
+                max_displace = max(max_displace,
+                                   (nit->get_destination() -nit->get_pos()).length());
+            }
         }
+        cout << "Max projection: " << max_displace << endl;
+        
+        s_dsc->deform();
     }
-    
-    snapp_boundary_vertices();
-    
-    double max_displace = 0;
-    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++){
-        if (nit->is_interface()){
-            max_displace = max(max_displace,
-                               (nit->get_destination() -nit->get_pos()).length());
-        }
-    }
-    cout << "Max projection: " << max_displace << endl;
-    
-    int step = s_dsc->deform(20);
 
-    return max_displace;
+    return nb_pjected;
 }
 
 void fluid_motion::log_dsc(){

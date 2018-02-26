@@ -21,6 +21,7 @@ public:
     
     double density;
     double mass;
+    long fluid;
     vec3 vel, pos;
 };
 
@@ -35,6 +36,8 @@ public:
     double m_ra; // Spacing distance betwwen particle
     
     double m_r;// Use for everything.
+    
+    
     
     std::vector<mat3x3d> m_G;
     std::vector<double> m_det_G;
@@ -63,6 +66,9 @@ public:
     vec3 get_displacement_projection(vec3 pos, vec3 norm, double max_displace);
     bool is_inside(vec3 pos, std::vector<int> & neighbor);
     bool is_inside(vec3 pos);
+    
+    vec3 get_displacement_projection(vec3 pos, vec3 norm, int phase, double max_displace, bool & bLast);
+    bool is_inside(vec3 pos, int phase);
     
     void draw_connected_component();
     void compute_tranformation_mat_for_particle(int);

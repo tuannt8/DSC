@@ -26,6 +26,8 @@
 #include "problem.h"
 #include "particle_manager.hpp"
 
+#include "anisotrpic_kernel.h"
+
 #define DT_NORM 0.2
 
 
@@ -53,19 +55,21 @@ public:
     DSC::DeformableSimplicialComplex<>* s_dsc; // shared DSC
     std::unique_ptr<problem> m_problem; // Will be casted to specific problem
     std::vector<std::shared_ptr<particle_manager>> m_particles;
+    anisotropic_kernel m_share_aniso_kernel;
     
     int m_cur_global_idx = 0;
     double t = 0, dt = 1;
     
     void load_first_particle();
     void load_next_particle(); // return true if loading new file
+    void add_ghost_particles();
     
     void compute_advection(std::vector<vec3> & vertex_dis);
     
     void deform();
     void project_interface_itteratively();
     void project_interface_one_iter();
-    double project_interface( );
+    int project_interface( );
     void project_interface_test();
     void snapp_boundary_vertices();
     void advect_velocity();
@@ -79,6 +83,9 @@ public:
     bool is_boundary_work_around(is_mesh::FaceKey fkey);
     
     void reset_projected_flag();
+    
+    void build_anisotropic_kernel();
+    void draw_anisotropic_kernel_plane();
 };
 
 

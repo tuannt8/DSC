@@ -39,6 +39,44 @@ vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double
     return get_displacement_projection(pos, norm, max_displace, last);
 }
 
+vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, int label, double max_displace, bool & bLast){
+    
+    //    norm = estimate_norm(pos);
+    
+    // point 1
+    vec3 pos1 = pos;
+    bool bInside1 = is_inside(pos1, label);
+    
+    // point 2
+    vec3 pos2 = pos + norm * (max_displace * (bInside1? 1 : -1));
+    bool bInside2 = is_inside(pos2, label);
+    
+    if (bInside1 == bInside2){
+        bLast = false;
+        
+        
+        return pos2 - pos1;
+    }
+    
+    for (int i = 0; i < 5; i++)
+    {
+        vec3 mid = (pos1 + pos2)*0.5;
+        bool bInside = is_inside(mid, label);
+        
+        if (bInside == bInside1)
+        {
+            pos1 = mid;
+        }else
+            pos2 = mid;
+    }
+    
+    auto dis = (pos1 + pos2)*0.5 - pos;
+    
+    
+    bLast = true; // Binary search means this is the last projection
+    return dis;
+}
+
 vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double max_displace, bool & bLast){
     
 //    norm = estimate_norm(pos);
@@ -51,35 +89,34 @@ vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, double
     vec3 pos2 = pos + norm * (max_displace * (bInside1? 1 : -1));
     bool bInside2 = is_inside(pos2);
     
-    if (bInside1 == bInside2){
+    if (bInside1 == bInside2){        
         bLast = false;
         return pos2 - pos1;
     }
-    else{
-        for (int i = 0; i < 5; i++)
-        {
-            vec3 mid = (pos1 + pos2)*0.5;
-            bool bInside = is_inside(mid);
-            
-            if (bInside == bInside1)
-            {
-                pos1 = mid;
-            }else
-                pos2 = mid;
-        }
+    
+    for (int i = 0; i < 5; i++)
+    {
+        vec3 mid = (pos1 + pos2)*0.5;
+        bool bInside = is_inside(mid);
         
-        auto dis = (pos1 + pos2)*0.5 - pos;
-        if (dis.length() > 1.001*max_displace)
+        if (bInside == bInside1)
         {
-            cout << pos;
-            cout << dis;
-            cout << max_displace;
-            assert(0);
-        }
-        
-        bLast = true; // Binary search means this is the last projection
-        return dis;
+            pos1 = mid;
+        }else
+            pos2 = mid;
     }
+    
+    auto dis = (pos1 + pos2)*0.5 - pos;
+    if (dis.length() > 1.001*max_displace)
+    {
+        cout << pos;
+        cout << dis;
+        cout << max_displace;
+        assert(0);
+    }
+    
+    bLast = true; // Binary search means this is the last projection
+    return dis;
 }
 
 bool anisotropic_kernel::get_projection(vec3 pos, vec3 direction, bool &bInside, vec3& projected_point)
@@ -122,34 +159,35 @@ bool anisotropic_kernel::get_projection(vec3 pos, vec3 direction, bool &bInside,
 }
 
 double anisotropic_kernel::get_value(vec3 pos){
-    // dam-break hard code test
-    static double kernel_sigma = 315.0 / (64 * 3.14159);
-    
-    std::vector<int> close_particles = neighbor_search(pos, m_r);
-    
-    if(close_particles.size() == 0)
-    {
-        return 0; // OUTSIDE
-    }
-    
-    double phi = 0.0;
-    for (auto n_p : close_particles)
-    {
-        auto part = m_particles.at(n_p);
-        auto & G = get_transform_mat(n_p);
-
-        vec3 ra_h = G*(pos-part.pos);
-        
-        
-        if (ra_h.length() < 1)
-        {
-            return 1;
-            phi += part.mass/part.density * kernel_sigma *m_det_G[n_p]
-                * std::pow(1 - Util::dot(ra_h, ra_h), 3);
-        }
-    }
-    
-    return phi;
+//    // dam-break hard code test
+//    static double kernel_sigma = 315.0 / (64 * 3.14159);
+//
+//    std::vector<int> close_particles = neighbor_search(pos, m_r);
+//
+//    if(close_particles.size() == 0)
+//    {
+//        return 0; // OUTSIDE
+//    }
+//
+//    double phi = 0.0;
+//    for (auto n_p : close_particles)
+//    {
+//        auto part = m_particles.at(n_p);
+//        auto & G = get_transform_mat(n_p);
+//
+//        vec3 ra_h = G*(pos-part.pos);
+//
+//
+//        if (ra_h.length() < 1)
+//        {
+//            return 1;
+//            phi += part.mass/part.density * kernel_sigma *m_det_G[n_p]
+//                * std::pow(1 - Util::dot(ra_h, ra_h), 3);
+//        }
+//    }
+//
+//    return phi;
+    return 0;
 };
 
 bool anisotropic_kernel::is_inside(vec3 pos)
@@ -161,6 +199,33 @@ bool anisotropic_kernel::is_inside(vec3 pos)
     
     auto neighbor = neighbor_search(pos, m_r);
     return is_inside(pos, neighbor);
+}
+
+bool anisotropic_kernel::is_inside(vec3 pos, int phase)
+{
+    if (m_b_kernel_computed.size()==0)
+    {
+        return false;
+    }
+    
+    auto neighbor = neighbor_search(pos, m_r);
+    
+    for (auto & n_p : neighbor)
+    {
+        if(m_particles[n_p].fluid == phase)
+        {
+            auto part = m_particles.at(n_p);
+            auto & G = get_transform_mat(n_p);
+            
+            vec3 ra_h = G*(pos-part.pos);
+            
+            if (ra_h.length() < 1)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool anisotropic_kernel::is_inside(vec3 pos, std::vector<int> & neighbor)
@@ -268,8 +333,8 @@ void anisotropic_kernel::build(){
     build_connected_component();
 //    // 2. First smooth the particle
 //    //  Smooth makes better fit, but in case of two phase, there is gap between phases
-//    Taubin_smooth();
-//    compute_kd_tree();
+    Taubin_smooth();
+    compute_kd_tree();
 
     // 3. Build transformation matrix
     m_G.resize(m_particles.size());
@@ -368,20 +433,20 @@ void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
 
 double anisotropic_kernel::get_coeff(vec3 pos, int idx)
 {
-    static double kernel_sigma = 315.0 / (64 * 3.14159);
-    
-    auto & part = (m_particles)[idx];
-    auto & G = get_transform_mat(idx);
-    
-    vec3 ra_h = G*(pos-part.pos);
-    
-    if (ra_h.length() < 1)
-    {
-        return part.mass/part.density * kernel_sigma *m_det_G[idx]
-        * std::pow(1 - Util::dot(ra_h, ra_h), 3);
-    }
-    else
-        return 0;
+//    static double kernel_sigma = 315.0 / (64 * 3.14159);
+//
+//    auto & part = (m_particles)[idx];
+//    auto & G = get_transform_mat(idx);
+//
+//    vec3 ra_h = G*(pos-part.pos);
+//
+//    if (ra_h.length() < 1)
+//    {
+//        return part.mass/part.density * kernel_sigma *m_det_G[idx]
+//        * std::pow(1 - Util::dot(ra_h, ra_h), 3);
+//    }
+//    else
+//        return 0;
 }
 
 void anisotropic_kernel::Taubin_smooth()
