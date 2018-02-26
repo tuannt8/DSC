@@ -112,6 +112,7 @@ public:// Configuration parametters
     // Face plit
     double ratio_signed_and_mag_mean = 0.2;
     
+    double max_dis; // Proportional to avg length
 public:// Variables
 //    image3d _img; // Store crossection -> voxel
     dsc_class *_dsc; // Shared dsc

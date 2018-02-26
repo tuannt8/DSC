@@ -324,9 +324,9 @@ UI::UI(InputParser p)
     
     _seg.NB_PHASE = stoi(p.getCmdOption("-nb-phase", "5"));
     _seg.ALPHA = stof(p.getCmdOption("-alpha", "0.01"));
-    _seg._dt = stof(p.getCmdOption("-dt", "0.01"));
+    _seg.max_dis = stof(p.getCmdOption("-max_dis", "0.3"));
     m_edge_length = stof(p.getCmdOption("-edge-length", "20"));
-    output_path = p.getCmdOption("-log-path", "prob.dsc");
+    output_path = p.getCmdOption("-log-path", "./LOG");
     
     p.print();
     

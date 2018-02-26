@@ -28,6 +28,7 @@
 
 std::vector<bool> tet_touched;
 
+
 using namespace std;
 
 
@@ -1707,7 +1708,7 @@ void segment_function::estimate_time_step()
         }
     }
     
-    _dt = _dsc->get_avg_edge_length()*0.2 / max_force;
+    _dt = _dsc->get_avg_edge_length()*max_dis / max_force;
     cout << "Estimated time step: " << _dt << endl;
 }
 
