@@ -158,8 +158,8 @@ void extract_2_phase_surface(string path)
 
 int main(int argc, char** argv)
 {
-    fix_DSC("/Users/tuannt8/Desktop/iter.dsc", 0.0029, vec3(0.15, 0.15, 0.15));
-    return 0;
+//    fix_DSC("/Users/tuannt8/Desktop/iter.dsc", 0.0029, vec3(0.15, 0.15, 0.15));
+//    return 0;
     
 //    ///////////////////////////////////////////////
 //    // Extract surface
