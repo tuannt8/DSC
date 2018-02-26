@@ -303,6 +303,7 @@ void UI::init_data()
     
     // Generate DSC
     init_dsc();
+//    load_model("/Users/tuannt8/Desktop/bundle_good_0.05.dsc");
     set_dsc_boundary_layer();
     
     
