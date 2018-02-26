@@ -35,6 +35,10 @@
 
 #include "profile.h"
 
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 using namespace DSC;
 using namespace std;
 
@@ -317,6 +321,7 @@ void UI::init_data()
 
 }
 
+
 UI::UI(InputParser p)
 {
     bool bDisplay = !p.cmdOptionExists("-no-display");
@@ -327,6 +332,9 @@ UI::UI(InputParser p)
     _seg.max_dis = stof(p.getCmdOption("-max_dis", "0.3"));
     m_edge_length = stof(p.getCmdOption("-edge-length", "20"));
     output_path = p.getCmdOption("-log-path", "./LOG");
+    
+    // create output path
+    mkdir(output_path.c_str(), S_IRWXU);
     
     p.print();
     
