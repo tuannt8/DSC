@@ -385,22 +385,23 @@ void fluid_motion::deform()
         profile_temp t("Load particle");
         load_next_particle();
     }
-    
-    
-    
+    {
+    profile_temp t("Projection");
+    project_interface_test();
+    }
 
     double current_time = m_cur_global_idx + t;
-    static double mile_stone = 0;
-    if (current_time > mile_stone)
-    {
-        profile_temp t("Projection");
-        project_interface_test();
-//        project_interface_one_iter();
-        while (mile_stone < current_time)
-        {
-            mile_stone += 0.33; // Project three times at most in every particle load
-        }
-    }
+//    static double mile_stone = 0;
+//    if (current_time > mile_stone)
+//    {
+//        profile_temp t("Projection");
+//        project_interface_test();
+////        project_interface_one_iter();
+//        while (mile_stone < current_time)
+//        {
+//            mile_stone += 0.33; // Project three times at most in every particle load
+//        }
+//    }
 
     static double mile_stone_log = 0;
     if(current_time > mile_stone_log)
