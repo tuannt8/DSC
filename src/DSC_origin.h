@@ -298,7 +298,7 @@ namespace DSC {
             return is_unsafe_editable(nid) && get(nid).is_interface(); // crossing is movable. Why not?
         }
         
-    protected:
+    public:
         /**
          * Sets the position of node n.
          */
@@ -1446,7 +1446,7 @@ namespace DSC {
         /**
          * Moves all the vertices to their destination which can be set by the set_destination() function.
          */
-        void deform(int num_steps = 10)
+        int deform(int num_steps = 10)
         {
             profile t("Deform");
 #ifdef DEBUG
@@ -1488,6 +1488,7 @@ namespace DSC {
 #ifdef DEBUG
 //            validity_check();
 #endif
+            return step;
         }
         
     private:
