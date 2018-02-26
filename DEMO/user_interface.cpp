@@ -193,15 +193,18 @@ UI::UI()
 
 void UI::init_data()
 {
+    bool test = true;
+    
     m_fluid.load_configuration();// Load configuration
     
     // init DSC
     _obj_dim = m_fluid.m_problem->domain_size();
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
     
-    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
-    
-//    load_model("/Users/tuannt8/Desktop/iter.dsc");
+    if(!test)
+        dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
+    else
+        load_model("/Users/tuannt8/Desktop/iter.dsc");
 //    {
 //        std::vector<vec3> points;
 //        std::vector<int> faces;
@@ -215,6 +218,9 @@ void UI::init_data()
     
     // Load first particle
     m_fluid.load_first_particle();
+    
+    if(!test)
+        m_fluid.project_interface_test();
     
     dsc->print_mesh_info();
 }

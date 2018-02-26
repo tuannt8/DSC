@@ -74,6 +74,8 @@ public:
     void snapp_boundary_vertices();
     void advect_velocity();
     
+    void make_gap();
+    
     void log_dsc();
     void log_dsc_surface();
     void extract_surface_phase(int phase, std::string path);

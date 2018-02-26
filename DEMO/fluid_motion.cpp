@@ -98,9 +98,23 @@ void fluid_motion::load_first_particle()
     }
     
     load_next_particle();
-    
-    project_interface_test();
+
     dt = 1;
+}
+
+void fluid_motion::make_gap()
+{
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if (nit->is_boundary())
+        {
+            auto tets = s_dsc->get_tets(nit.key());
+            for (auto t : tets)
+            {
+                s_dsc->set_label(t, 0);
+            }
+        }
+    }
 }
 
 // Only load the particle from file
@@ -402,6 +416,8 @@ void fluid_motion::deform()
 //            mile_stone += 0.33; // Project three times at most in every particle load
 //        }
 //    }
+    
+    make_gap();
 
     static double mile_stone_log = 0;
     if(current_time > mile_stone_log)
