@@ -193,7 +193,11 @@ UI::UI()
 
 void UI::init_data()
 {
-    bool test = true;
+#ifdef __APPLE__
+    bool test = false;
+#else
+    bool test = false;
+#endif
     
     m_fluid.load_configuration();// Load configuration
     
