@@ -188,7 +188,7 @@ void UI::update_gl()
 
 UI::UI()
 {
-        init_data();
+    init_data();
 }
 
 void UI::init_data()
@@ -198,6 +198,7 @@ void UI::init_data()
 #else
     bool test = false;
 #endif
+    
     
     m_fluid.load_configuration();// Load configuration
     
@@ -224,7 +225,9 @@ void UI::init_data()
     m_fluid.load_first_particle();
     
     if(!test)
-        m_fluid.project_interface_test();
+    {
+//        m_fluid.init_mesh();
+    }
     
     dsc->print_mesh_info();
 }

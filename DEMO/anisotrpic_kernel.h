@@ -35,7 +35,7 @@ public:
     double m_h;// Smoothing radius. Used for connected component
     double m_ra; // Spacing distance betwwen particle
     
-    double m_r;// Use for everything.
+    double m_r;// Use for everything. = 2*m_h
     
     
     

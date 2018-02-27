@@ -14,6 +14,7 @@
 #include "eigensolution.h"
 #include <queue>
 
+extern double ks;
 
 using namespace std;
 
@@ -53,8 +54,6 @@ vec3 anisotropic_kernel::get_displacement_projection(vec3 pos, vec3 norm, int la
     
     if (bInside1 == bInside2){
         bLast = false;
-        
-        
         return pos2 - pos1;
     }
     
@@ -400,9 +399,9 @@ void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
     // Modify the strecth matrix
     mat3x3d Sigma(0.0);
     double kr = 4.0;
-    double ks = 160000;//cbrt(1 / CGLA::determinant(C));// May optimize latter
+//    double ks = cbrt(1 / CGLA::determinant(C));// May optimize latter
 //    cout << ks << endl;
-    double kn = 0.5;
+    double kn = 0.35;
     for (int d = 0; d < 3; d++)
     {
         if(close_particles.size() > 25)

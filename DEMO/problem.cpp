@@ -12,14 +12,20 @@
 
 using namespace std;
 
+double ks; // Param for isotropic
+
 void problem::init(std::string sumary_file_path)
 {
+    cout << sumary_file_path << endl;
+    
     config_file c_f(sumary_file_path);
     
     m_deltap = c_f.get_double("deltap");
     m_influenceRadius = c_f.get_double("influenceRadius");
     m_slength = c_f.get_double("slength");
     m_nb_phases = c_f.get_int("numFluids");
+    
+    ks = get_ks();
 }
 
 DSC::DeformableSimplicialComplex<> * problem::init_dsc_domain(double scale)
@@ -221,6 +227,53 @@ DSC::DeformableSimplicialComplex<> * bubble_fluid ::init_dsc(double scale)
 DSC::DeformableSimplicialComplex<> * dam_break_fluid::init_dsc(double scale)
 {
     auto dsc = init_dsc_domain(scale);
+    
+    vec3 fluid_ld(0.0);
+    vec3 fluid_ur(0.4, 0.67, 0.4);
+    is_mesh::Cube c((fluid_ld+fluid_ur)/2.0, fluid_ur - fluid_ld);
+    
+    dsc->set_labels(c, 1);
+    
+//    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+//    {
+//        auto pos = nit->get_pos();
+//        bool is_inside = false;
+//
+//        if (c.is_inside(nit->get_pos()))
+//        {
+//            for(auto t : dsc->get_tets(nit.key()))
+//            {
+//                if (dsc->get_label(t) == 0)
+//                {
+//                    dsc->set_label(t, 1);
+//                }
+//            }
+//        }
+//    }
+    // Make wu
+    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+    {
+        if (nit->is_boundary())
+        {
+            for(auto t : dsc->get_tets(nit.key()))
+                dsc->set_label(t, 0);
+        }
+    }
+    
+    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface())
+        {
+            auto pos = nit->get_pos();
+            for (int i = 0; i<3; i++)
+            {
+                pos[i] = max(pos[i], fluid_ld[i]);
+                pos[i] = min(pos[i], fluid_ur[i]);
+            }
+        }
+    }
+
+    dsc->deform(20);
     
     return dsc;
 }

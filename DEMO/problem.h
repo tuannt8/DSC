@@ -30,7 +30,7 @@ public:
     DSC::DeformableSimplicialComplex<> * init_dsc_domain(double);
     virtual DSC::DeformableSimplicialComplex<> * init_dsc(double scale = 1)=0; // Pure virtual function
     virtual vec3 domain_size()=0;
-    
+    virtual double get_ks()=0;
    
     
     void init(std::string sumary_file_path);
@@ -46,6 +46,8 @@ public:
     
     virtual DSC::DeformableSimplicialComplex<> * init_dsc(double scale = 1);
     virtual vec3 domain_size(){return vec3(0.15, 0.15, 0.15);};
+    
+    virtual double get_ks(){return 160000;};
 };
 
 class bubble_fluid:public problem
@@ -63,6 +65,8 @@ public:
     
     virtual DSC::DeformableSimplicialComplex<> * init_dsc(double scale = 1);
     virtual vec3 domain_size(){return vec3(1.6, 0.67, 0.6);};
+    
+    virtual double get_ks(){return 3000;};
 };
 
 

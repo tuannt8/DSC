@@ -47,6 +47,7 @@ void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
 }
 void fluid_motion::load_configuration()
 {
+    cout << m_data_path << endl;
     // Make sure the data path dont have '/' at last
     if(m_data_path.back() == '/')
         m_data_path.pop_back();
@@ -57,12 +58,12 @@ void fluid_motion::load_configuration()
     {
         m_problem = std::unique_ptr<problem>(new two_phase_fluid);
     }
-    else if(problem_name.compare("DamBreak3D")==0){
+    else if(problem_name.compare("dam_break_fluid")==0){
         m_problem = std::unique_ptr<problem>(new dam_break_fluid);
     }
     else
     {
-        throw invalid_argument("Problem name unmatched");
+        assert(0);
     }
     
     // 2. Load problem parameters
@@ -139,7 +140,7 @@ void fluid_motion:: draw_anisotropic_kernel_plane()
     static vector<vec3> pos;
     static vector<int> phi;
     vec3 domain_size = m_problem->domain_size();
-    vec3 c[] = {vec3(1,0,0), vec3(0,0,1)};
+    vec3 c[] = {vec3(0,0,1), vec3(1,0,0)};
     // Build
     if (pos.size() == 0)
     {
@@ -220,7 +221,12 @@ void fluid_motion::draw()
     
     if ((glut_menu::get_state("Isotropic sphere", 0)))
     {
-        m_particles[1]->draw_anisotropic_kernel(m_problem->domain_size()[1]*0.32, m_problem->domain_size()[1]*0.35);
+        static bool built = false;
+        if(!built){
+            m_particles[0]->build_anisotropic_kernel();
+            built = true;
+        }
+        m_particles[0]->draw_anisotropic_kernel(m_problem->domain_size()[1]*0.1, m_problem->domain_size()[1]*0.8);
     }
 }
 
@@ -380,6 +386,45 @@ void fluid_motion::project_interface_test()
     dt= max(dt, 0.05);
 }
 
+void fluid_motion::init_mesh()
+{
+    build_anisotropic_kernel();
+    // assign label
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        for (int i = 0; i < m_problem->m_nb_phases; i++)
+        {
+            if (m_share_aniso_kernel.is_inside(nit->get_pos(), i))
+            {
+                for (auto t : s_dsc->get_tets(nit.key()))
+                {
+                    if (s_dsc->get_label(t) == 0)
+                    {
+                        s_dsc->set_label(t, i+1);
+                    }
+                }
+                
+            }
+        }
+    }
+    
+    make_gap();
+    
+    // Project
+    while (project_vertices() > 0)
+    {
+        
+    }
+    
+//    while (project_interface() > 0)
+//    {
+//
+//    }
+    
+    
+    alpha = 0.1;
+}
+
 void fluid_motion::deform()
 {
 
@@ -517,10 +562,28 @@ void fluid_motion::snapp_boundary_vertices()
 
 int fluid_motion::project_vertices()
 {
+    vector<int> correspond_fluid(s_dsc->get_no_nodes_buffer(), 0);
+    int nb_move = 0;
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
-        
+        if(nit->is_interface())
+        {
+            auto norm = s_dsc->get_normal(nit.key());
+            bool bLast;
+            auto vDisplace = m_share_aniso_kernel.get_displacement_projection(nit->get_pos(), norm, correspond_fluid[nit.key()], m_max_displacement_projection, bLast);
+            if (vDisplace.length() > m_max_dsc_displacement*0.1)
+            {
+                s_dsc->set_destination(nit.key(), nit->get_pos() + vDisplace);
+                nb_move++;
+            }
+
+        }
     }
+    
+    cout << nb_move << " vertices move" << endl;
+    
+    s_dsc->deform();
+    return nb_move;
 }
 
 int fluid_motion::project_interface()
@@ -529,7 +592,7 @@ int fluid_motion::project_interface()
     vector<double> contribution(s_dsc->get_no_nodes_buffer(), 0.0);
     
     
-    int nb_pjected = 0;
+    
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
         if (fit->is_interface()
@@ -564,33 +627,30 @@ int fluid_motion::project_interface()
                 
                 vDisplace = m_share_aniso_kernel.get_displacement_projection(sample_pos, norm, label -1, m_max_displacement_projection, bLast);
                 
-                if (bLast)
+                fit->set_projected(bLast);
+                
+//                if (vDisplace.length() > m_max_displacement_projection*0.1)
                 {
-                    // Prior shared interface
-                    auto tets = s_dsc->get_tets(fit.key());
-                    if (s_dsc->get_label(tets[0]) != 0 && s_dsc->get_label(tets[1]) != 0 )
+                    // Distribute
+                    for (int i =0; i < 3; i++)
                     {
-                        nb_pjected++;
+                        vertex_dis[node_pts[i]] += vDisplace*sp[i];
+                        contribution[node_pts[i]] += sp[i];
                     }
                 }
                 
-                fit->set_projected(bLast);
-//                assert(vDisplace.length() < m_max_displacement_projection*1.01);
-                // Distribute
-                for (int i =0; i < 3; i++)
-                {
-                    vertex_dis[node_pts[i]] += vDisplace*sp[i];
-                    contribution[node_pts[i]] += sp[i];
-                }
+
             } // If interface
         } // For all triangles
     }
     
+    int nb_pjected = 0;
     for(int i = 0; i<vertex_dis.size(); i++)
     {
         if (contribution[i] > 0)
         {
             vertex_dis[i] /= contribution[i];
+            nb_pjected++;
         }
     }
     

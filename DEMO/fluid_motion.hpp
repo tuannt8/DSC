@@ -82,6 +82,8 @@ public:
     
     void make_gap();
     
+    void init_mesh();
+    
     void log_dsc();
     void log_dsc_surface();
     void extract_surface_phase(int phase, std::string path);
