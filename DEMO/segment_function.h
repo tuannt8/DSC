@@ -104,7 +104,7 @@ public:// Configuration parametters
     int num_iter;
     int NB_PHASE;
     double VARIATION_THRES_FOR_RELABELING;
-    double ALPHA = 0.1;
+    double m_alpha = 0.1;
     double QALPHA = 0.2;
     double _dt = 0.3;
     std::string _directory_path;

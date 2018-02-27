@@ -219,65 +219,65 @@ cout<<"Could not load key: " << k << endl;\
 
 void UI::load_config_file()
 {
-    try
-    {
-        // 1. Read the configuration file
-        ifstream infile(config_file);
-        
-        if (!infile.is_open())
-        {
-            throw "config file path incorrect";
-        }
-        
-        std::map<std::string, std::string> options;
-        
-        for (std::string line; std::getline(infile, line); )
-        {
-            line.erase(std::remove(line.begin(),line.end(),' '),line.end());
-            
-            if (line.empty() || line[0] == '#')
-            {
-                continue;
-            }
-            
-            size_t pos = line.find_first_of("=");
-            if(pos > line.size() -1)
-                throw "Syntax error";
-            
-            string key = line.substr(0, pos);
-            string val = line.substr(pos+1, line.size()-1);
-            
-            options[key] = val;
-        }
-        
-        cout << "Config file with " << options.size() << "values" << endl;
-        
-        //2. Set property
-//        get_opt(_seg._directory_path, "directory-path");
-//        _seg._directory_path = get_option(options,"directory-path");
-        _seg._dt = stof(get_option(options,"time-step"));
-//        _seg.NB_PHASE = stoi(get_option(options,"number-of-phase"));
-        _seg.VARIATION_THRES_FOR_RELABELING = stof(get_option(options,"Variation-threshold-for-relabeling"));
-        _seg.ALPHA = stof(get_option(options,"length-penalty-coefficient"));
-
-        m_edge_length = stof(get_option(options,"average-edge-length"));
-        
-        if(options.find("min-edge-length") != options.end())
-        {
-            _min_edge_length = stof(options["min-edge-length"]);
-        }
-        if(options.find("number_images") != options.end())
-        {
-            num_images = stoi(get_option(options,"number_images", true));
-        }
-        
-        infile.close();
-        
-    }
-    catch (const char* msg)
-    {
-        cout << "Fail to read config file: \" " << config_file << "\" with error " << msg << endl;
-    }
+//    try
+//    {
+//        // 1. Read the configuration file
+//        ifstream infile(config_file);
+//
+//        if (!infile.is_open())
+//        {
+//            throw "config file path incorrect";
+//        }
+//
+//        std::map<std::string, std::string> options;
+//
+//        for (std::string line; std::getline(infile, line); )
+//        {
+//            line.erase(std::remove(line.begin(),line.end(),' '),line.end());
+//
+//            if (line.empty() || line[0] == '#')
+//            {
+//                continue;
+//            }
+//
+//            size_t pos = line.find_first_of("=");
+//            if(pos > line.size() -1)
+//                throw "Syntax error";
+//
+//            string key = line.substr(0, pos);
+//            string val = line.substr(pos+1, line.size()-1);
+//
+//            options[key] = val;
+//        }
+//
+//        cout << "Config file with " << options.size() << "values" << endl;
+//
+//        //2. Set property
+////        get_opt(_seg._directory_path, "directory-path");
+////        _seg._directory_path = get_option(options,"directory-path");
+//        _seg._dt = stof(get_option(options,"time-step"));
+////        _seg.NB_PHASE = stoi(get_option(options,"number-of-phase"));
+//        _seg.VARIATION_THRES_FOR_RELABELING = stof(get_option(options,"Variation-threshold-for-relabeling"));
+//        _seg.m_alpha = stof(get_option(options,"length-penalty-coefficient"));
+//
+//        m_edge_length = stof(get_option(options,"average-edge-length"));
+//
+//        if(options.find("min-edge-length") != options.end())
+//        {
+//            _min_edge_length = stof(options["min-edge-length"]);
+//        }
+//        if(options.find("number_images") != options.end())
+//        {
+//            num_images = stoi(get_option(options,"number_images", true));
+//        }
+//
+//        infile.close();
+//
+//    }
+//    catch (const char* msg)
+//    {
+//        cout << "Fail to read config file: \" " << config_file << "\" with error " << msg << endl;
+//    }
 }
 
 void UI::update_draw_list()
@@ -293,9 +293,6 @@ UI::UI()
 
 void UI::init_data()
 {
-    // Load setting file
-//    load_config_file();
-    
     // Load cross sections
     _seg.init();
     _obj_dim = vec3(_seg.m_prob_img.m_dimension);
@@ -306,8 +303,9 @@ void UI::init_data()
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
     // Generate DSC
-    init_dsc();
-//    load_model("/Users/tuannt8/Desktop/bundle_good_0.05.dsc");
+//    init_dsc();
+    load_model("/Users/tuannt8/Desktop/iter_490.dsc");
+    
     set_dsc_boundary_layer();
     
     
@@ -328,7 +326,7 @@ UI::UI(InputParser p)
     _seg.num_iter = std::stoi(p.getCmdOption("-no-iter", "500"));
     
     _seg.NB_PHASE = stoi(p.getCmdOption("-nb-phase", "5"));
-    _seg.ALPHA = stof(p.getCmdOption("-alpha", "0.01"));
+    _seg.m_alpha = stof(p.getCmdOption("-alpha", "0.01"));
     _seg.max_dis = stof(p.getCmdOption("-max_dis", "0.3"));
     m_edge_length = stof(p.getCmdOption("-edge-length", "20"));
     output_path = p.getCmdOption("-log-path", "./LOG");
@@ -848,7 +846,6 @@ void UI::display()
     {
 //        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
         _seg.segment_probability();
-        
         
         if(m_iters % 20 ==0)
         {

@@ -463,7 +463,7 @@ void segment_function::snapp_boundary(){
 
 vec3 segment_function::get_node_displacement(is_mesh::NodeKey nkey)
 {
-    return (_forces[(long)nkey]  + ALPHA*_internal_forces[(long)nkey])*_dt;//_dt_adapt[nkey];
+    return (_forces[(long)nkey]  + m_alpha*_internal_forces[(long)nkey])*_dt;//_dt_adapt[nkey];
 }
 
 
@@ -486,7 +486,7 @@ double segment_function::get_energy_tet_assume_label(is_mesh::TetrahedronKey tke
         
         if (other_label != BOUND_LABEL && other_label != assumed_label)
         {
-            energy += _dsc->area(fid)*ALPHA;
+            energy += _dsc->area(fid)*m_alpha;
         }
     }
     
