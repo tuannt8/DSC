@@ -361,16 +361,20 @@ void fluid_motion::project_interface_test()
     // Build aniso
     build_anisotropic_kernel();
 
+    static int max_iter = 20;
+    
     int nb_project = 0;
     while(project_interface() > 0
-          && nb_project < 15)
+          && nb_project < max_iter * 1.3)
     {
         nb_project ++;
         cout << "--------------- " << nb_project << endl;
     }
     
+    project_vertices();
+    
     // Adapt time step
-    static int max_iter = 10;
+
     nb_project = max(max_iter, nb_project);
 
     static vector<double> speed;
@@ -383,7 +387,7 @@ void fluid_motion::project_interface_test()
 
     dt = max_iter / avg;
     dt = min(dt,1.0);
-    dt= max(dt, 0.05);
+    dt= max(dt, 0.03);
 }
 
 void fluid_motion::init_mesh()
@@ -562,25 +566,71 @@ void fluid_motion::snapp_boundary_vertices()
 
 int fluid_motion::project_vertices()
 {
-    vector<int> correspond_fluid(s_dsc->get_no_nodes_buffer(), 0);
-    int nb_move = 0;
-    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    vector<int> correspond_fluid(s_dsc->get_no_nodes_buffer(), -1);
+    vector<vec3> norm_corres(s_dsc->get_no_nodes_buffer(), vec3(0.0));
+    
+    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
-        if(nit->is_interface())
+        if (fit->is_interface())
         {
-            auto norm = s_dsc->get_normal(nit.key());
-            bool bLast;
-            auto vDisplace = m_share_aniso_kernel.get_displacement_projection(nit->get_pos(), norm, correspond_fluid[nit.key()], m_max_displacement_projection, bLast);
-            if (vDisplace.length() > m_max_dsc_displacement*0.1)
+            auto tets = s_dsc->get_tets(fit.key());
+            int l[2];
+            l[0] = s_dsc->get_label(tets[0]);
+            l[1] = s_dsc->get_label(tets[1]);
+            if (l[0] > l[1])
+                std::swap(l[0], l[1]);
+            
+            auto norm = s_dsc->get_normal(fit.key());
+            
+            if (l[0] == 0)
+                l[0] = l[1];
+            else{
+                norm = -norm; // because we prior smaller phase
+            }
+
+            
+            for(auto n : s_dsc->get_nodes(fit.key()))
             {
-                s_dsc->set_destination(nit.key(), nit->get_pos() + vDisplace);
-                nb_move++;
+                if (correspond_fluid[n] == -1
+                    || correspond_fluid[n] == l[0] - 1)
+                {
+                    norm_corres[n] += norm;
+                    correspond_fluid[n] = l[0] - 1;
+                }
             }
 
         }
     }
     
-    cout << nb_move << " vertices move" << endl;
+    for(auto & n : norm_corres)
+    {
+        auto l = n.length();
+        if(l > EPSILON)
+            n /= l;
+    }
+    
+    int nb_move = 0;
+    double max_dis = 0;
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if(nit->is_interface())
+        {
+            auto norm = norm_corres[nit.key()];
+            
+            bool bLast;
+            auto vDisplace = m_share_aniso_kernel.get_displacement_projection(nit->get_pos(), norm, correspond_fluid[nit.key()], m_max_displacement_projection, bLast);
+//            if (vDisplace.length() > m_max_dsc_displacement*0.1)
+            {
+                max_dis = max(max_dis, vDisplace.length());
+                s_dsc->set_destination(nit.key(), nit->get_pos() + vDisplace);
+//                nb_move++;
+            }
+
+        }
+    }
+    
+//    cout << nb_move << " vertices move" << endl;
+    cout << "max vertices project: " << max_dis;
     
     s_dsc->deform();
     return nb_move;
@@ -591,7 +641,7 @@ int fluid_motion::project_interface()
     vector<vec3> vertex_dis(s_dsc->get_no_nodes_buffer(), vec3(0.0));
     vector<double> contribution(s_dsc->get_no_nodes_buffer(), 0.0);
     
-    
+    static vector<vec3> face_dis(s_dsc->get_no_faces_buffer(), vec3(0.0));
     
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
@@ -627,6 +677,8 @@ int fluid_motion::project_interface()
                 
                 vDisplace = m_share_aniso_kernel.get_displacement_projection(sample_pos, norm, label -1, m_max_displacement_projection, bLast);
                 
+                face_dis[fit.key()] += vDisplace;
+                
                 fit->set_projected(bLast);
                 
 //                if (vDisplace.length() > m_max_displacement_projection*0.1)
@@ -655,6 +707,11 @@ int fluid_motion::project_interface()
     }
     
     cout << nb_pjected << " projected " << endl;
+    
+    double total_max = 0;
+    for(auto fd : face_dis)
+        total_max = max(total_max, fd.length());
+    cout << "total max: " << total_max << endl;
     
     if (nb_pjected > 0)
     {

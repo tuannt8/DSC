@@ -59,7 +59,6 @@ public:
     
     int m_cur_global_idx = 0;
     double t = 0, dt = 1;
-    double max_smooth = 0.5;
     double alpha = 1;
     
     void load_first_particle();
