@@ -48,6 +48,7 @@ public:
     
     // Return variation to intensity c
     double get_variation(std::vector<vec3> tet_points, double c);
+    double get_energy(std::vector<vec3> tet_points, double c);
     
     double sum_area(int x, int y, int z);
     double sum_line_z(int x, int y, int z1, int z2);

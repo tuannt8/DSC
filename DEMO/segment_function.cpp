@@ -476,7 +476,7 @@ double segment_function::get_energy_tet_assume_label(is_mesh::TetrahedronKey tke
     auto nodes_pos = _dsc->get_pos(_dsc->get_nodes(tkey));
 #endif
     
-    auto energy = m_prob_img.m_prob_map[assumed_label]->get_variation(nodes_pos, 1);
+    auto energy = m_prob_img.m_prob_map[assumed_label]->get_energy(nodes_pos, 1);
     for (auto fid : _dsc->get_faces(tkey))
     {
         auto cobound_tets = _dsc->get_tets(fid); // We assume that this face is not DSC boundary, as there is a gap between DSC boundary and the image domain
