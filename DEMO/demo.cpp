@@ -32,6 +32,8 @@ using namespace std;
 
 string fluid_motion::m_data_path;
 
+double smooth_ratio;
+
 #ifdef __APPLE__
 string data_path = "../Large_data";
 #else
@@ -176,6 +178,7 @@ int main(int argc, char** argv)
     
     fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-name", problem);
     g_out_path = input.getCmdOption("-out_path", "surface");
+    smooth_ratio = atof(input.getCmdOption("-smooth", "0.3").c_str());
     
     bool nodisplay = input.cmdOptionExists("-no_display");
     g_res = atof(input.getCmdOption("-res", "3.0").c_str());

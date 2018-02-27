@@ -59,6 +59,8 @@ public:
     
     int m_cur_global_idx = 0;
     double t = 0, dt = 1;
+    double max_smooth = 0.5;
+    double alpha = 1;
     
     void load_first_particle();
     void load_next_particle(); // return true if loading new file
@@ -70,9 +72,13 @@ public:
     void project_interface_itteratively();
     void project_interface_one_iter();
     int project_interface( );
+    int project_vertices();
     void project_interface_test();
     void snapp_boundary_vertices();
     void advect_velocity();
+    
+    std::vector<vec3> m_smooth_force;
+    void compute_smooth_force();
     
     void make_gap();
     

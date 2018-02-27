@@ -357,7 +357,7 @@ void fluid_motion::project_interface_test()
 
     int nb_project = 0;
     while(project_interface() > 0
-          && nb_project < 10)
+          && nb_project < 15)
     {
         nb_project ++;
         cout << "--------------- " << nb_project << endl;
@@ -515,6 +515,13 @@ void fluid_motion::snapp_boundary_vertices()
     }// For all nodes
 }
 
+int fluid_motion::project_vertices()
+{
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        
+    }
+}
 
 int fluid_motion::project_interface()
 {
@@ -591,12 +598,16 @@ int fluid_motion::project_interface()
     
     if (nb_pjected > 0)
     {
+        compute_smooth_force();
+        
         // Set destination and deform the DSC
         for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
         {
-            if (nit->is_interface())
+            if (nit->is_interface()
+                && contribution[nit.key()] > 0)
             {
-                s_dsc->set_destination(nit.key(), nit->get_pos() + vertex_dis[nit.key()]);
+                vec3 dis = vertex_dis[nit.key()] + m_smooth_force[nit.key()]*(alpha*dt);
+                s_dsc->set_destination(nit.key(), nit->get_pos() + dis);
             }
         }
         
@@ -614,6 +625,48 @@ int fluid_motion::project_interface()
     }
 
     return nb_pjected;
+}
+
+extern double smooth_ratio;
+
+void fluid_motion::compute_smooth_force()
+{
+    auto _dsc = s_dsc;
+    std::vector<vec3> intern_f_a(_dsc->get_no_nodes_buffer(), vec3(0));
+    for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
+    {
+        if (fit->is_interface())
+        {
+            auto nodes = _dsc->get_nodes(fit.key());
+            auto node_pos = _dsc->get_pos(nodes);
+            for (int i = 0; i < 3; i++)
+            {
+                auto l0 = node_pos[i];
+                auto l1 = node_pos[(i+1)%3];
+                auto l2 = node_pos[(i+2)%3];
+                
+                auto p = Util::project_point_line(l0, l1, l2-l1);
+                auto h = Util::normalize(l0-p);
+                
+                intern_f_a[nodes[i]] += -h*(l2-l1).length();
+            }
+        }
+    }
+    
+    m_smooth_force = intern_f_a;
+    
+    double max_smooth = 0;
+    for(auto & f : m_smooth_force)
+    {
+        max_smooth = max(max_smooth, f.length());
+    }
+    
+    // Make sure smooth is less than projection
+    if(max_smooth*alpha*dt > smooth_ratio*m_max_displacement_projection)
+    {
+        alpha = smooth_ratio*m_max_displacement_projection / (max_smooth * dt);
+    }
+    cout << "Max smooth: " << max_smooth << ", alpha= " << alpha << endl;
 }
 
 void fluid_motion::log_dsc(){

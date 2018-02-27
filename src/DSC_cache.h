@@ -2420,7 +2420,11 @@ namespace DSC {
             vec3 ray = destination - pos;
             
             real min_t = INFINITY;
+#ifdef DSC_CACHE
+            auto fids = *get_link(n);
+#else
             auto fids = get_faces(get_tets(n)) - get_faces(n);
+#endif
             for(auto f : fids)
             {
                 auto face_pos = get_pos(get_nodes(f));
