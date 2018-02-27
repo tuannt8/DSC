@@ -1718,7 +1718,7 @@ void segment_function::estimate_time_step()
         }
     }
     
-    _dt = _dsc->get_avg_edge_length()*max_dis / max_force;
+    _dt = _dsc->get_avg_edge_length()*m_max_dis / max_force;
     cout << "Estimated time step: " << _dt << endl;
 }
 

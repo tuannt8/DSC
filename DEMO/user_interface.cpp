@@ -303,8 +303,8 @@ void UI::init_data()
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
     // Generate DSC
-//    init_dsc();
-    load_model("/Users/tuannt8/Desktop/iter_490.dsc");
+    init_dsc();
+//    load_model("/Users/tuannt8/Desktop/iter_490.dsc");
     
     set_dsc_boundary_layer();
     
@@ -327,7 +327,7 @@ UI::UI(InputParser p)
     
     _seg.NB_PHASE = stoi(p.getCmdOption("-nb-phase", "5"));
     _seg.m_alpha = stof(p.getCmdOption("-alpha", "0.01"));
-    _seg.max_dis = stof(p.getCmdOption("-max_dis", "0.3"));
+    _seg.m_max_dis = stof(p.getCmdOption("-max_dis", "0.3"));
     m_edge_length = stof(p.getCmdOption("-edge-length", "20"));
     output_path = p.getCmdOption("-log-path", "./LOG");
     
