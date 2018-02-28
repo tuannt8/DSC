@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+
 using namespace DSC;
 using namespace std;
 
@@ -304,7 +305,7 @@ void UI::init_data()
     
     // Generate DSC
     init_dsc();
-//    load_model("/Users/tuannt8/Desktop/iter_490.dsc");
+//    load_model("/Users/tuannt8/Desktop/iter.dsc");
     
     set_dsc_boundary_layer();
     
@@ -327,10 +328,27 @@ UI::UI(InputParser p)
     
     _seg.NB_PHASE = stoi(p.getCmdOption("-nb-phase", "5"));
     _seg.m_alpha = stof(p.getCmdOption("-alpha", "0.01"));
-    _seg.m_max_dis = stof(p.getCmdOption("-max_dis", "0.3"));
+    _seg.m_max_dis = stof(p.getCmdOption("-max-dis", "0.3"));
     m_edge_length = stof(p.getCmdOption("-edge-length", "20"));
-    output_path = p.getCmdOption("-log-path", "./LOG");
+    if (p.cmdOptionExists("-log-path"))
+    {
+        output_path = p.getCmdOption("-log-path", "./LOG");
+    }else{
+        std::ostringstream out;
+#ifdef __APPLE__
+        out << "./LOG/seg_" << std::setprecision(2) << m_edge_length << "_" << std::setprecision(3) << _seg.m_alpha;
+#else
+        out << "./seg_" << std::setprecision(2) << m_edge_length << "_"<< std::setprecision(3) << _seg.m_alpha;
+#endif
+        output_path = out.str();
+    }
+    cout << "Log to: " << output_path << endl;
     
+    
+    for (int i = 0; i < 10; i++)
+    {
+        
+    }
     // create output path
     mkdir(output_path.c_str(), S_IRWXU);
     
@@ -383,7 +401,7 @@ UI::UI(InputParser p)
         for(int i = 0; i < _seg.num_iter; i++)
         {
             _seg.segment_probability();
-            if(i%10==0)
+            if(i%20==0)
                 save_model(output_path + "/iter_" + std::to_string(i) + ".dsc");
         }
     }

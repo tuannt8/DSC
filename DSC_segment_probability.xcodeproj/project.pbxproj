@@ -1091,6 +1091,7 @@
 		7AE27B0C17675CDA000F8238 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
 				GCC_WARN_ABOUT_MISSING_NEWLINE = YES;
 				GCC_WARN_PEDANTIC = NO;
@@ -1117,6 +1118,7 @@
 		7AE27B0D17675CDA000F8238 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
 				GCC_WARN_ABOUT_MISSING_NEWLINE = YES;
 				GCC_WARN_PEDANTIC = NO;

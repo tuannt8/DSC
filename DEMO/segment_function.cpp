@@ -401,11 +401,11 @@ void segment_function::snapp_boundary(){
             {
                 auto nodes_on_face = _dsc->get_nodes(fid.key());
                 auto norm = _dsc->get_normal(fid.key());
-                
+
                 // SHOULD ALSO BASED ON ITS POSITION
                 //  in some irregular cases
                 std::bitset<4> direction = get_direction(norm);
-                
+
                 for (auto n : nodes_on_face)
                 {
                     is_bound_vertex[(unsigned int)n] = 1;
@@ -432,18 +432,18 @@ void segment_function::snapp_boundary(){
             // Align boundary
             if (is_bound_vertex[nid.key()])
             {
-                auto direct = direction_state[nid.key()];
+//                auto direct = direction_state[nid.key()];
                 auto pos = nid->get_pos();
-                if ((direct & X_direction).to_ulong() != 0) // constraint on x
-                {
+//                if ((direct & X_direction).to_ulong() != 0) // constraint on x
+//                {
                     algin_pos(0);
-                }
-                if ((direct & Y_direction).to_ulong() != 0){ // constraint on y
+//                }
+//                if ((direct & Y_direction).to_ulong() != 0){ // constraint on y
                     algin_pos(1);
-                }
-                if ((direct & Z_direction).to_ulong() != 0){ // constraint on z
+//                }
+//                if ((direct & Z_direction).to_ulong() != 0){ // constraint on z
                     algin_pos(2);
-                }
+//                }
             }
             
             _dsc->set_destination(nid.key(), destination);
@@ -1801,7 +1801,8 @@ void segment_function::compute_internal_force_2()
     for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
     {
         if (fit->is_interface()
-            && !is_boundary(fit.key()))
+//            && !is_boundary(fit.key())
+            )
         {
             auto nodes = _dsc->get_nodes(fit.key());
             auto node_pos = _dsc->get_pos(nodes);
