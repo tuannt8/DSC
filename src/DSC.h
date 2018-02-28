@@ -320,13 +320,13 @@ namespace DSC {
             pars = {0.1,    //DEG_EDGE_QUALITY
                     0.5,    //MIN_EDGE_QUALITY
                 
-                    0.0005, //DEG_FACE_QUALITY 0.0005 = 2 degree
-                    0.015,  //MIN_FACE_QUALITY : 0.06 = 20 degree; 0.015 = 10 degree
+                    0.0038, //0.0005, //DEG_FACE_QUALITY 0.0005 = 2 degree 0.0038 = 5 (1 - cos())
+                    0.06, //0.015,  //MIN_FACE_QUALITY : 0.06 = 20 degree; 0.015 = 10 degree
                 
-                    0.02,   //DEG_TET_QUALITY
-                    0.3,    //MIN_TET_QUALITY
+                    0.05, // 0.02,   //DEG_TET_QUALITY. increase a bit
+                    0.4, //0.3,    //MIN_TET_QUALITY
                 
-                    0.,     //MIN_LENGTH
+                    0.3, //0    //MIN_LENGTH
                     2.,     //MAX_LENGTH
                 
                     0.2,    //MIN_AREA // Not in use
@@ -336,6 +336,8 @@ namespace DSC {
                     INFINITY};//MAX_VOLUME
             set_avg_edge_length();
             
+            
+            cache.init(this->get_no_faces_buffer()*4);
         }
         
         ~DeformableSimplicialComplex()

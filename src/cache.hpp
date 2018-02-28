@@ -17,7 +17,7 @@
 
 #define DSC_CACHE
 
-#define MAX_ELEMENTS 1000000
+//#define MAX_ELEMENTS 1000000
 
 #define CLEAN_GARBAGE(a, b) if(a[b]){delete a[b]; a[b] = nullptr;}
 
@@ -50,8 +50,9 @@ public:
     // for adaptive time step
     std::vector<bool *> is_clean;
 public:
+    dsc_cache(){};
     
-    dsc_cache()
+    void init(int MAX_ELEMENTS)
     {
         // Node
         link_of_node = std::vector<is_mesh::SimplexSet<is_mesh::FaceKey>*>(MAX_ELEMENTS, nullptr);
