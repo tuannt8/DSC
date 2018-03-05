@@ -203,7 +203,7 @@ void fluid_motion::draw()
     if(glut_menu::get_state("Particles point 0", 0))
     {
         glColor3f(1, 0, 0);
-        m_particles[0]->draw(m_problem->domain_size()[1]*0.32, m_problem->domain_size()[1]*0.35);
+        m_particles[0]->draw(m_problem->domain_size()[1]*0.1, m_problem->domain_size()[1]*0.8);
     }
     
     if(glut_menu::get_state("Particles point 1", 0))
@@ -354,7 +354,13 @@ void fluid_motion::project_interface_test()
     // Build aniso
     build_anisotropic_kernel();
     
+    //    project_vertices();
     
+    // interface 1
+    reset_projected_flag();
+    project_interface();
+    
+    // interface 2
 //    reset_projected_flag();
 //
 //    static int max_iter = 20;
@@ -367,7 +373,7 @@ void fluid_motion::project_interface_test()
 //        cout << "--------------- " << nb_project << endl;
 //    }
     
-    project_vertices();
+
 
     
 //    // Adapt time step
@@ -428,7 +434,7 @@ void fluid_motion::init_mesh()
 
 void fluid_motion::deform()
 {
-
+    
     
     static int iter = 0;
 
@@ -445,23 +451,24 @@ void fluid_motion::deform()
         profile_temp t("Load particle");
         load_next_particle();
     }
-//    {
-//    profile_temp t("Projection");
-//    project_interface_test();
-//    }
+    {
+    profile_temp t("Projection");
+    project_interface_test();
+    }
+//    laplace_smooth(0.1);
 
     double current_time = m_cur_global_idx + t;
-    static double mile_stone = 0;
-    if (current_time > mile_stone)
-    {
-        profile_temp t("Projection");
-        project_interface_test();
-//        project_interface_one_iter();
-        while (mile_stone < current_time)
-        {
-            mile_stone += 0.33; // Project three times at most in every particle load
-        }
-    }
+//    static double mile_stone = 0;
+//    if (current_time > mile_stone)
+//    {
+//        profile_temp t("Projection");
+//        project_interface_test();
+////        project_interface_one_iter();
+//        while (mile_stone < current_time)
+//        {
+//            mile_stone += 0.33; // Project three times at most in every particle load
+//        }
+//    }
     
     make_gap();
 
@@ -638,8 +645,59 @@ int fluid_motion::project_vertices()
     return nb_move;
 }
 
+void fluid_motion::laplace_smooth(double lamda)
+{
+    vector<vec3> laplace_operator(s_dsc->get_no_nodes_buffer(), vec3(0.0));
+    vector<int> count(s_dsc->get_no_nodes_buffer(), 0);
+    for (auto eit = s_dsc->edges_begin(); eit != s_dsc->edges_end(); eit++)
+    {
+        if (eit->is_interface())
+        {
+            auto nodes =  s_dsc->get_nodes(eit.key());
+            auto pos = s_dsc->get_pos(nodes);
+            auto l01 = pos[1] - pos[0];
+            laplace_operator[nodes[0]] += l01;
+            laplace_operator[nodes[1]] += -l01;
+            for(int i = 0; i < 2; i++)
+                count[nodes[i]] ++;
+        }
+    }
+    
+    for(int i = 0; i < laplace_operator.size(); i++)
+    {
+        if (count[i] > 0)
+        {
+            laplace_operator[i] /= count[i];
+        }
+    }
+    
+//    double lamd = 0.5;
+//    double mu = -0.52;
+//    static int iter = 0;
+//    lamda = lamd;
+//    if (iter%2==1)
+//    {
+//        lamda = mu;
+//    }iter++;
+    
+    update_vertex_boundary();
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface()
+            && !is_vertices_boundary[nit.key()])
+        {
+            vec3 des = nit->get_pos() + laplace_operator[nit.key()]*lamda;
+            nit->set_destination(des);
+        }
+    }
+    
+    s_dsc->deform();
+}
+
 int fluid_motion::project_interface()
 {
+    update_vertex_boundary();
+    
     vector<vec3> vertex_dis(s_dsc->get_no_nodes_buffer(), vec3(0.0));
     vector<double> contribution(s_dsc->get_no_nodes_buffer(), 0.0);
     
@@ -649,9 +707,15 @@ int fluid_motion::project_interface()
     {
         if (fit->is_interface()
             && !fit->is_projected()
+            && !is_boundary_work_around(fit.key())
             )
         {
-            static const vector<vec3> sampling_point = {vec3(0.33, 0.33, 0.33)};
+//            static const vector<vec3> sampling_point = {vec3(0.33, 0.33, 0.33)};
+            static const vector<vector<double>> sampling_point = {    {0.166667, 0.666667, 0.166667},
+                {0.333333, 0.333333, 0.333333},
+                {0.166667, 0.166667, 0.666667},
+                {0.666667, 0.166667, 0.166667},};
+            
             auto node_pts = s_dsc->get_nodes(fit.key());
             auto node_pos = s_dsc->get_pos(node_pts);
             auto tet_keys = s_dsc->get_tets(fit.key());
@@ -725,7 +789,7 @@ int fluid_motion::project_interface()
             if (nit->is_interface()
                 && contribution[nit.key()] > 0)
             {
-                vec3 dis = vertex_dis[nit.key()] + m_smooth_force[nit.key()]*(alpha*dt);
+                vec3 dis = vertex_dis[nit.key()];// + m_smooth_force[nit.key()]*(alpha*dt);
                 s_dsc->set_destination(nit.key(), nit->get_pos() + dis);
             }
         }

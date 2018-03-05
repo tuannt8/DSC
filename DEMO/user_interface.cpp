@@ -194,7 +194,7 @@ UI::UI()
 void UI::init_data()
 {
 #ifdef __APPLE__
-    bool test = false;
+    bool test = true;
 #else
     bool test = false;
 #endif
@@ -209,7 +209,10 @@ void UI::init_data()
     if(!test)
         dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
     else
+    {
         load_model("/Users/tuannt8/Desktop/iter.dsc");
+        dsc->validity_check();
+    }
 //    {
 //        std::vector<vec3> points;
 //        std::vector<int> faces;

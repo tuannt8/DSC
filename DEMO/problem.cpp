@@ -234,23 +234,7 @@ DSC::DeformableSimplicialComplex<> * dam_break_fluid::init_dsc(double scale)
     
     dsc->set_labels(c, 1);
     
-//    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
-//    {
-//        auto pos = nit->get_pos();
-//        bool is_inside = false;
-//
-//        if (c.is_inside(nit->get_pos()))
-//        {
-//            for(auto t : dsc->get_tets(nit.key()))
-//            {
-//                if (dsc->get_label(t) == 0)
-//                {
-//                    dsc->set_label(t, 1);
-//                }
-//            }
-//        }
-//    }
-    // Make wu
+    // Make gap
     for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
     {
         if (nit->is_boundary())
@@ -270,6 +254,7 @@ DSC::DeformableSimplicialComplex<> * dam_break_fluid::init_dsc(double scale)
                 pos[i] = max(pos[i], fluid_ld[i]);
                 pos[i] = min(pos[i], fluid_ur[i]);
             }
+            nit->set_destination(pos);
         }
     }
 

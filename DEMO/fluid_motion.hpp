@@ -76,6 +76,8 @@ public:
     void snapp_boundary_vertices();
     void advect_velocity();
     
+    void laplace_smooth(double lamda);
+    
     std::vector<vec3> m_smooth_force;
     void compute_smooth_force();
     
