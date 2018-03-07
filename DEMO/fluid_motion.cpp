@@ -31,7 +31,7 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = std::max(s_dsc->get_avg_edge_length()*0.3, m_problem->m_deltap*0.3) ;
+    m_max_dsc_displacement = m_problem->m_deltap*0.3; //std::max(s_dsc->get_avg_edge_length()*0.3, m_problem->m_deltap*0.3) ;
     
     m_max_displacement_projection = m_problem->m_deltap*0.3; // This is just a compliment
     
@@ -270,7 +270,7 @@ void fluid_motion:: advect_velocity()
         dt = m_max_dsc_displacement / average_grad;
         
         dt = min(1.0, dt);
-        dt = max(0.02, dt);
+        dt = max(0.01, dt);
     }
     // End update time step
 
