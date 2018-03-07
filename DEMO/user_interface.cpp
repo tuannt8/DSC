@@ -274,6 +274,7 @@ void UI::export_surface(const std::string& dsc_path)
 
 void UI::export_dam_break()
 {
+#ifdef __APPLE__
     string dir_path = "../Large_data/dam_break_fluid/v_2_dam_0.1_0";
     
     DIR *dp;
@@ -298,6 +299,7 @@ void UI::export_dam_break()
     }
     else
         perror ("Couldn't open the directory");
+#endif
 }
 
 UI::UI(int &argc, char** argv)
