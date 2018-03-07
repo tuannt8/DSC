@@ -31,6 +31,9 @@
 
 #include "debugger.h"
 
+#include <sys/types.h>
+#include <dirent.h>
+
 extern double g_res;
 
 using namespace DSC;
@@ -207,11 +210,11 @@ void UI::init_data()
     gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
     
     if(!test)
-        dsc = std::unique_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
+        dsc = std::shared_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
     else
     {
-        load_model("/Users/tuannt8/Desktop/iter.dsc");
-        dsc->validity_check();
+        dsc = load_model("/Users/tuannt8/Desktop/iter.dsc");
+//        dsc->validity_check();
     }
 //    {
 //        std::vector<vec3> points;
@@ -233,6 +236,68 @@ void UI::init_data()
     }
     
     dsc->print_mesh_info();
+}
+
+void UI::export_surface(const std::string& dsc_path)
+{
+    dsc = load_model(dsc_path);
+    std::vector<vec3> points;
+    std::vector<int> faces;
+    dsc->extract_surface_mesh(points, faces);
+    
+    // snapp
+//    double epsilon = m_fluid.m_problem->m_deltap;
+//    vec3 origin(0.0);
+//    vec3 bound = m_fluid.m_problem->domain_size();
+//    for(auto & p : points)
+//    {
+//        for (int i = 0; i < 3; i++)
+//        {
+//            if (p[i] - origin[i] < epsilon)
+//            {
+//                p[i] = origin[i];
+//            }
+//            if (bound[i] - p[i] < epsilon)
+//            {
+//                p[i] = bound[i];
+//            }
+//        }
+//    }
+    
+    string directory = dsc_path.substr(0, dsc_path.find_last_of("\\/"));
+    string name = dsc_path.substr(dsc_path.find_last_of("\\/") + 1);
+    string phase =  directory + "/"  + "sur_" + name + ".obj";
+    is_mesh::export_surface_mesh(phase, points, faces);
+    
+    cout << "Export to " << phase << endl;
+}
+
+void UI::export_dam_break()
+{
+    string dir_path = "../Large_data/dam_break_fluid/v_2_dam_0.1_0";
+    
+    DIR *dp;
+    struct dirent *ep;
+    dp = opendir ("../Large_data/dam_break_fluid/v_2_dam_0.1_0");
+    
+    if (dp != NULL)
+    {
+        while (ep = readdir (dp))
+        {
+            string name(ep->d_name);
+            if(name.length() > 5)
+            {
+                if (strcmp(name.substr(name.size() - 4).c_str(), ".dsc") == 0)
+                {
+                    export_surface(dir_path + "/" + name);
+                }
+            }
+        }
+        
+        (void) closedir (dp);
+    }
+    else
+        perror ("Couldn't open the directory");
 }
 
 UI::UI(int &argc, char** argv)
@@ -357,40 +422,25 @@ void UI::init_dsc()
     
     cout << "Init DSC from point\n";
     
-    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
+    dsc = std::shared_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
     dsc->set_avg_edge_length(delta);
     
     
 }
 
-void UI::load_model(const std::string& file_name)
+std::shared_ptr<DeformableSimplicialComplex<>> UI::load_model(const std::string& file_name)
 {
     std::cout << "\nLoading " <<file_name << std::endl;
-    dsc = nullptr;
     std::vector<vec3> points;
     std::vector<int>  tets;
     std::vector<int>  tet_labels;
     is_mesh::import_tet_mesh(file_name, points, tets, tet_labels);
     
-    dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
-    
-//    vec3 p_min(INFINITY), p_max(-INFINITY);
-//    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++) {
-//        for (int i = 0; i < 3; i++) {
-//            p_min[i] = Util::min(nit->get_pos()[i], p_min[i]);
-//            p_max[i] = Util::max(nit->get_pos()[i], p_max[i]);
-//        }
-//    }
-//    
-//    vec3 size = p_max - p_min;
-//    real var = Util::max(Util::max(size[0], size[1]), size[2]);
-//    real dist = 1.2*var;
-//    eye_pos = {dist, var, dist};
-//    camera_pos = {var, var, -dist};
-//    light_pos = {0., 0., dist};
-    
-//    painter->update(*dsc);
+    auto l_dsc = std::shared_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
+
     std::cout << "Loading done" << std::endl << std::endl;
+    
+    return l_dsc;
 }
 
 void UI::update_title()
@@ -669,28 +719,28 @@ void UI::keyboard(unsigned char key, int x, int y) {
             stop();
             QUIT_ON_COMPLETION = false;
             RECORD = false;
-            vel_fun = std::unique_ptr<VelocityFunc<>>(new VelocityFunc<>(vel_fun->get_velocity(), vel_fun->get_accuracy(), 500));
+            vel_fun = std::shared_ptr<VelocityFunc<>>(new VelocityFunc<>(vel_fun->get_velocity(), vel_fun->get_accuracy(), 500));
             start("");
             break;
         case '1':
             stop();
             QUIT_ON_COMPLETION = false;
             RECORD = false;
-            vel_fun = std::unique_ptr<VelocityFunc<>>(new RotateFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
+            vel_fun = std::shared_ptr<VelocityFunc<>>(new RotateFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
             start("rotate");
             break;
         case '2':
             stop();
             QUIT_ON_COMPLETION = false;
             RECORD = false;
-            vel_fun = std::unique_ptr<VelocityFunc<>>(new AverageFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
+            vel_fun = std::shared_ptr<VelocityFunc<>>(new AverageFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
             start("smooth");
             break;
         case '3':
             stop();
             QUIT_ON_COMPLETION = false;
             RECORD = false;
-            vel_fun = std::unique_ptr<VelocityFunc<>>(new NormalFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
+            vel_fun = std::shared_ptr<VelocityFunc<>>(new NormalFunc(vel_fun->get_velocity(), vel_fun->get_accuracy()));
             start("expand");
             break;
         case ' ':
@@ -883,7 +933,7 @@ void UI::start(const std::string& log_folder_name)
 {
     if(RECORD)
     {
-        basic_log = std::unique_ptr<Log>(new Log(log_path + log_folder_name));
+        basic_log = std::shared_ptr<Log>(new Log(log_path + log_folder_name));
 //        painter->set_view_position(camera_pos);
         painter->save_painting(log_path, vel_fun->get_time_step());
         basic_log->write_message(vel_fun->get_name().c_str());

@@ -30,10 +30,10 @@
 class UI
 {
 public:
-    std::unique_ptr<DSC::VelocityFunc<>> vel_fun;
-    std::unique_ptr<DSC::DeformableSimplicialComplex<>> dsc;
-    std::unique_ptr<Log> basic_log;
-    std::unique_ptr<Painter> painter;
+    std::shared_ptr<DSC::VelocityFunc<>> vel_fun;
+    std::shared_ptr<DSC::DeformableSimplicialComplex<>> dsc;
+    std::shared_ptr<Log> basic_log;
+    std::shared_ptr<Painter> painter;
     
     fluid_motion m_fluid;
     
@@ -97,12 +97,17 @@ public:
      */
     void keyboard(unsigned char key, int x, int y);
     
+    
+    // Exporting
+    void export_dam_break();
+    void export_surface(const std::string& dsc_path);
+    
 private:
     
     /**
      Loads the .dsc file specified by the model_file_name variable.
      */
-    void load_model(const std::string& file_name);
+    std::shared_ptr<DSC::DeformableSimplicialComplex<>> load_model(const std::string& file_name);
     void init_dsc();
     void init_dam_break();
     /**

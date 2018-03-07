@@ -97,6 +97,9 @@ public:
     
     void build_anisotropic_kernel();
     void draw_anisotropic_kernel_plane();
+    
+    // Export surface
+    void export_surface(std::string path_dsc);
 };
 
 

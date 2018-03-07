@@ -31,9 +31,9 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = std::max(s_dsc->get_avg_edge_length()*0.3, m_problem->m_deltap*0.5) ;
+    m_max_dsc_displacement = std::max(s_dsc->get_avg_edge_length()*0.3, m_problem->m_deltap*0.3) ;
     
-    m_max_displacement_projection = m_problem->m_deltap*0.5; // This is just a compliment
+    m_max_displacement_projection = m_problem->m_deltap*0.3; // This is just a compliment
     
     cout << "\n\n+++++++++++++++++++++++++++++++++++++++"
     << "\n spacing distance: " << m_problem->m_deltap
@@ -240,6 +240,8 @@ void fluid_motion::add_ghost_particles()
 
 void fluid_motion:: advect_velocity()
 {
+    update_vertex_boundary();
+    
     vector<vec3> vertex_dis;
     compute_advection(vertex_dis);
     double max_dis = 0;
@@ -277,6 +279,11 @@ void fluid_motion:: advect_velocity()
     snapp_boundary_vertices();
 
     s_dsc->deform(20);
+}
+
+void export_surface(std::string path_dsc)
+{
+    
 }
 
 void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
@@ -707,7 +714,7 @@ int fluid_motion::project_interface()
     {
         if (fit->is_interface()
             && !fit->is_projected()
-            && !is_boundary_work_around(fit.key())
+//            && !is_boundary_work_around(fit.key())
             )
         {
 //            static const vector<vec3> sampling_point = {vec3(0.33, 0.33, 0.33)};
@@ -781,7 +788,7 @@ int fluid_motion::project_interface()
     
     if (nb_pjected > 0)
     {
-        compute_smooth_force();
+//        compute_smooth_force();
         
         // Set destination and deform the DSC
         for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
@@ -804,6 +811,7 @@ int fluid_motion::project_interface()
         }
         cout << "Max projection: " << max_displace << endl;
         
+        snapp_boundary_vertices();
         s_dsc->deform();
     }
 
