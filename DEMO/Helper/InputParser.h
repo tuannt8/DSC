@@ -34,7 +34,7 @@ public:
     
     std::string getCmdOption(const std::string &option, const std::string &default_){
         
-        argument_used.push_back(option + " []");
+        argument_used.push_back(option + " [" + default_ + "]");
         
         std::vector<std::string>::const_iterator itr;
         itr =  std::find(this->tokens.begin(), this->tokens.end(), option);

@@ -611,7 +611,7 @@ void particle_manager::load_next(int idx, double t)
         max_vel = max(max_vel, m_current_particles[i].vel.length());
     }
     
-    cout << "Max vel: " << max_vel << endl;
+//    cout << "Max vel: " << max_vel << endl;
 }
 
 void particle_manager::add_ghost_particles(vec3 domain_size, double dis)

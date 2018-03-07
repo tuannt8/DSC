@@ -146,7 +146,7 @@ void fluid_motion:: draw_anisotropic_kernel_plane()
     {
         build_anisotropic_kernel();
         
-        profile_temp t("Real Build anisotropic");
+//        profile_temp t("Real Build anisotropic");
         
         int N = 300;
         int gap = N/20;
@@ -342,7 +342,7 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
 
 void fluid_motion::build_anisotropic_kernel()
 {
-    profile_temp t("Build anisotropic");
+//    profile_temp t("Build anisotropic");
     
     m_share_aniso_kernel.m_particles.clear();
     for (int i = 0; i < m_problem->m_nb_phases; i++)
@@ -439,6 +439,8 @@ void fluid_motion::init_mesh()
     alpha = 0.1;
 }
 
+extern double smooth_ratio;
+
 void fluid_motion::deform()
 {
     
@@ -465,17 +467,16 @@ void fluid_motion::deform()
 //    laplace_smooth(0.1);
 
     double current_time = m_cur_global_idx + t;
-//    static double mile_stone = 0;
-//    if (current_time > mile_stone)
-//    {
-//        profile_temp t("Projection");
-//        project_interface_test();
-////        project_interface_one_iter();
-//        while (mile_stone < current_time)
-//        {
-//            mile_stone += 0.33; // Project three times at most in every particle load
-//        }
-//    }
+    static double mile_stone = 0;
+    if (current_time > mile_stone)
+    {
+        laplace_smooth(smooth_ratio);
+//        project_interface_one_iter();
+        while (mile_stone < current_time)
+        {
+            mile_stone += 0.33; // Project three times at most in every particle load
+        }
+    }
     
     make_gap();
 
@@ -652,8 +653,16 @@ int fluid_motion::project_vertices()
     return nb_move;
 }
 
-void fluid_motion::laplace_smooth(double lamda)
+void fluid_motion::laplace_smooth(double lamda_in)
 {
+    cout << "Smooth .... " << endl;
+    double lamda = lamda_in;
+    static int iter = 0;
+    if (iter % 2 == 1)
+    {
+        lamda = -(lamda_in + 0.02);
+    }
+    
     vector<vec3> laplace_operator(s_dsc->get_no_nodes_buffer(), vec3(0.0));
     vector<int> count(s_dsc->get_no_nodes_buffer(), 0);
     for (auto eit = s_dsc->edges_begin(); eit != s_dsc->edges_end(); eit++)
@@ -677,15 +686,6 @@ void fluid_motion::laplace_smooth(double lamda)
             laplace_operator[i] /= count[i];
         }
     }
-    
-//    double lamd = 0.5;
-//    double mu = -0.52;
-//    static int iter = 0;
-//    lamda = lamd;
-//    if (iter%2==1)
-//    {
-//        lamda = mu;
-//    }iter++;
     
     update_vertex_boundary();
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
@@ -781,10 +781,10 @@ int fluid_motion::project_interface()
     
     cout << nb_pjected << " projected " << endl;
     
-    double total_max = 0;
-    for(auto fd : face_dis)
-        total_max = max(total_max, fd.length());
-    cout << "total max: " << total_max << endl;
+//    double total_max = 0;
+//    for(auto fd : face_dis)
+//        total_max = max(total_max, fd.length());
+//    cout << "total max: " << total_max << endl;
     
     if (nb_pjected > 0)
     {
@@ -800,7 +800,6 @@ int fluid_motion::project_interface()
                 s_dsc->set_destination(nit.key(), nit->get_pos() + dis);
             }
         }
-        
         
         double max_displace = 0;
         for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++){
