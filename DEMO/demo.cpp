@@ -206,7 +206,7 @@ int main(int argc, char** argv)
     {
     
         UI ui(argc, argv);
-        ui.export_dam_break();
+//        ui.export_dam_break();
         glutMainLoop();
     }
     return 0;
