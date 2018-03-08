@@ -31,9 +31,9 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = m_problem->m_deltap*0.3; //std::max(s_dsc->get_avg_edge_length()*0.3, m_problem->m_deltap*0.3) ;
+    m_max_dsc_displacement = std::min(s_dsc->get_avg_edge_length()*0.2, m_problem->m_deltap*0.3) ;
     
-    m_max_displacement_projection = m_problem->m_deltap*0.3; // This is just a compliment
+    m_max_displacement_projection = std::min(s_dsc->get_avg_edge_length()*0.2, m_problem->m_deltap*0.2) ;; // This is just a compliment
     
     cout << "\n\n+++++++++++++++++++++++++++++++++++++++"
     << "\n spacing distance: " << m_problem->m_deltap
@@ -360,44 +360,11 @@ void fluid_motion::project_interface_test()
 {
     // Build aniso
     build_anisotropic_kernel();
-    
     //    project_vertices();
-    
-    // interface 1
-    reset_projected_flag();
+
+    project_vertices();
     project_interface();
-    
-    // interface 2
-//    reset_projected_flag();
-//
-//    static int max_iter = 20;
-//
-//    int nb_project = 0;
-//    while(project_interface() > 0
-//          && nb_project < max_iter * 1.3)
-//    {
-//        nb_project ++;
-//        cout << "--------------- " << nb_project << endl;
-//    }
-    
 
-
-    
-//    // Adapt time step
-//
-//    nb_project = max(max_iter, nb_project);
-//
-//    static vector<double> speed;
-//    speed.push_back(nb_project/dt);
-//    if (speed.size() > 10)
-//    {
-//        speed.erase(speed.begin());
-//    }
-//    double avg = std::accumulate(speed.begin(), speed.end(), 0) / speed.size();
-//
-//    dt = max_iter / avg;
-//    dt = min(dt,1.0);
-//    dt= max(dt, 0.03);
 }
 
 void fluid_motion::init_mesh()
@@ -460,23 +427,26 @@ void fluid_motion::deform()
         profile_temp t("Load particle");
         load_next_particle();
     }
+    
     {
-    profile_temp t("Projection");
-    project_interface_test();
+        if (iter %3 == 0)
+        {
+            project_interface_test();
+        }
     }
 //    laplace_smooth(0.1);
 
     double current_time = m_cur_global_idx + t;
-    static double mile_stone = 0;
-    if (current_time > mile_stone)
-    {
-        laplace_smooth(smooth_ratio);
-//        project_interface_one_iter();
-        while (mile_stone < current_time)
-        {
-            mile_stone += 0.33; // Project three times at most in every particle load
-        }
-    }
+//    static double mile_stone = 0;
+//    if (current_time > mile_stone)
+//    {
+//        laplace_smooth(smooth_ratio);
+////        project_interface_one_iter();
+//        while (mile_stone < current_time)
+//        {
+//            mile_stone += 0.33; // Project three times at most in every particle load
+//        }
+//    }
     
     make_gap();
 
@@ -631,12 +601,10 @@ int fluid_motion::project_vertices()
             
             bool bLast;
             auto vDisplace = m_share_aniso_kernel.get_displacement_projection(nit->get_pos(), norm, correspond_fluid[nit.key()], m_max_displacement_projection, bLast);
-//            if (vDisplace.length() > m_max_dsc_displacement*0.1)
-            {
-                max_dis = max(max_dis, vDisplace.length());
-                s_dsc->set_destination(nit.key(), nit->get_pos() + vDisplace);
-//                nb_move++;
-            }
+
+            max_dis = max(max_dis, vDisplace.length());
+            s_dsc->set_destination(nit.key(), nit->get_pos() + vDisplace);
+
 
         }
     }
