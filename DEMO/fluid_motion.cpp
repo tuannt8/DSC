@@ -674,7 +674,7 @@ int fluid_motion::project_interface()
     vector<vec3> vertex_dis(s_dsc->get_no_nodes_buffer(), vec3(0.0));
     vector<double> contribution(s_dsc->get_no_nodes_buffer(), 0.0);
     
-    static vector<vec3> face_dis(s_dsc->get_no_faces_buffer(), vec3(0.0));
+//    static vector<vec3> face_dis(s_dsc->get_no_faces_buffer(), vec3(0.0));
     
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
@@ -712,7 +712,7 @@ int fluid_motion::project_interface()
                 
                 vDisplace = m_share_aniso_kernel.get_displacement_projection(sample_pos, norm, label -1, m_max_displacement_projection, bLast);
                 
-                face_dis[fit.key()] += vDisplace;
+//                face_dis[fit.key()] += vDisplace;
                 
                 fit->set_projected(bLast);
                 
