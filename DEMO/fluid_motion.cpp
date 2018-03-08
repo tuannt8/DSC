@@ -604,8 +604,6 @@ int fluid_motion::project_vertices()
 
             max_dis = max(max_dis, vDisplace.length());
             s_dsc->set_destination(nit.key(), nit->get_pos() + vDisplace);
-
-
         }
     }
     
@@ -680,12 +678,8 @@ int fluid_motion::project_interface()
     
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
-        if (fit->is_interface()
-            && !fit->is_projected()
-//            && !is_boundary_work_around(fit.key())
-            )
+        if (fit->is_interface())
         {
-//            static const vector<vec3> sampling_point = {vec3(0.33, 0.33, 0.33)};
             static const vector<vector<double>> sampling_point = {    {0.166667, 0.666667, 0.166667},
                 {0.333333, 0.333333, 0.333333},
                 {0.166667, 0.166667, 0.666667},
@@ -722,7 +716,6 @@ int fluid_motion::project_interface()
                 
                 fit->set_projected(bLast);
                 
-//                if (vDisplace.length() > m_max_displacement_projection*0.1)
                 {
                     // Distribute
                     for (int i =0; i < 3; i++)
