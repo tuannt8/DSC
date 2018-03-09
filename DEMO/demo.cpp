@@ -24,9 +24,7 @@
 
 #include "DSC.h"
 
-#ifdef __APPLE__
-#include "fix_DSC.h"
-#endif
+#include "export.hpp"
 
 using namespace std;
 
@@ -144,8 +142,6 @@ void extract_surface_phase(int phase, std::string path, DSC::DeformableSimplicia
 
 void extract_2_phase_surface(string path)
 {
-
-    
     string directory = path.substr(0, path.find_last_of("\\/"));
     string name = path.substr(path.find_last_of("\\/") + 1);
     string phase[2] =  {directory + "/" + name + "_0.obj", directory +"/" + name + "_1.obj"};
@@ -179,11 +175,23 @@ int main(int argc, char** argv)
     
     InputParser input(argc, argv);
     
+    /////////////////////////////////
+    // Export surface
+    bool export_mesh = input.cmdOptionExists("-export");
+    if(export_mesh)
+    {
+        string path = input.getCmdOption("-export");
+        dsc_export::export_surface(path);
+        return 0;
+    }
+    ///////////////////////////////////////////////
+    
     fluid_motion::m_data_path = data_path + "/" + input.getCmdOption("-name", problem);
     g_out_path = input.getCmdOption("-out_path", "surface");
     smooth_ratio = atof(input.getCmdOption("-smooth", "0.3").c_str());
     
     bool nodisplay = input.cmdOptionExists("-no_display");
+    
     g_res = atof(input.getCmdOption("-res", "3.0").c_str());
     
     input.print();
@@ -192,6 +200,8 @@ int main(int argc, char** argv)
     {
         return 0;
     }
+
+    
     
     if (nodisplay)
     {

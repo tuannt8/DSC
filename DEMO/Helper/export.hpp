@@ -1,0 +1,29 @@
+//
+//  export.hpp
+//  DEMO
+//
+//  Created by Tuan Nguyen Trung on 09/03/2018.
+//  Copyright © 2018 Asger Nyman Christiansen. All rights reserved.
+//
+
+#ifndef export_hpp
+#define export_hpp
+
+#include <stdio.h>
+#include "DSC.h"
+#include <memory.h>
+#include <string>
+
+namespace dsc_export{
+    typedef std::shared_ptr<DSC::DeformableSimplicialComplex<>> dsc_ptr;
+    
+    // Export upto 10 surface, individually
+    void export_surface(std::string path);
+    
+    // Load DSC
+    dsc_ptr load_dsc(std::string path);
+    
+    void export_surface(dsc_ptr dsc, int phase, std::string path);
+};
+
+#endif /* export_hpp */

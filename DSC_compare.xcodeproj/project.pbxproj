@@ -126,6 +126,7 @@
 		A64328EF20414D15000B464C /* tetgen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A3438D1183C7A9600829EEB /* tetgen.cpp */; };
 		A64328F020414D18000B464C /* predicates.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A3438CF183C7A9600829EEB /* predicates.cpp */; };
 		A64F086C1D8AE1B100378CC1 /* draw_helper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A64F086B1D8AE1B100378CC1 /* draw_helper.cpp */; };
+		A65548D62052853100DADBB8 /* export.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A65548D42052853100DADBB8 /* export.cpp */; };
 		A666A45720230B3C0092D021 /* particle_manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A666A45520230B3C0092D021 /* particle_manager.cpp */; };
 		A666A4592023160B0092D021 /* problem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A666A4582023160B0092D021 /* problem.cpp */; };
 		A668E3A51FD164CE00EF4C39 /* DSC_cache.h in Headers */ = {isa = PBXBuildFile; fileRef = A668E3A31FD164CE00EF4C39 /* DSC_cache.h */; };
@@ -285,10 +286,11 @@
 		A642127D1C7B54A600CBB594 /* profile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = profile.h; path = src/profile.h; sourceTree = SOURCE_ROOT; };
 		A64212821C7B555B00CBB594 /* profile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = profile.cpp; path = src/profile.cpp; sourceTree = SOURCE_ROOT; };
 		A64212831C7B555B00CBB594 /* profile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = profile.h; path = src/profile.h; sourceTree = SOURCE_ROOT; };
-		A64328ED20414151000B464C /* fix_DSC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fix_DSC.h; sourceTree = "<group>"; };
 		A647426F1E014A36007C99F2 /* cache.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = cache.hpp; sourceTree = "<group>"; };
 		A64F086A1D8AE1B100378CC1 /* draw_helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = draw_helper.h; sourceTree = "<group>"; };
 		A64F086B1D8AE1B100378CC1 /* draw_helper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = draw_helper.cpp; sourceTree = "<group>"; };
+		A65548D42052853100DADBB8 /* export.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = export.cpp; sourceTree = "<group>"; };
+		A65548D52052853100DADBB8 /* export.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = export.hpp; sourceTree = "<group>"; };
 		A666A4532023035F0092D021 /* InputParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = InputParser.h; sourceTree = "<group>"; };
 		A666A4542023090E0092D021 /* problem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = problem.h; sourceTree = "<group>"; };
 		A666A45520230B3C0092D021 /* particle_manager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = particle_manager.cpp; sourceTree = "<group>"; };
@@ -797,7 +799,8 @@
 			children = (
 				A666A4532023035F0092D021 /* InputParser.h */,
 				A666A45A202317E30092D021 /* config_file.h */,
-				A64328ED20414151000B464C /* fix_DSC.h */,
+				A65548D42052853100DADBB8 /* export.cpp */,
+				A65548D52052853100DADBB8 /* export.hpp */,
 			);
 			path = Helper;
 			sourceTree = "<group>";
@@ -1327,6 +1330,7 @@
 				A64328F020414D18000B464C /* predicates.cpp in Sources */,
 				A6DABB5D1FD6D9B400BC4D26 /* eigen_wrapper.cpp in Sources */,
 				A64328EF20414D15000B464C /* tetgen.cpp in Sources */,
+				A65548D62052853100DADBB8 /* export.cpp in Sources */,
 				A639A38A1FD6D3160030265E /* anisotrpic_kernel.cpp in Sources */,
 				A6BE10CF1FCC597700054BE9 /* glut_menu.cpp in Sources */,
 				7AF7E9BD176B412900F43714 /* draw.cpp in Sources */,
