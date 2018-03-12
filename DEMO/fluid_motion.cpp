@@ -31,9 +31,9 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = std::min(s_dsc->get_avg_edge_length()*0.2, m_problem->m_deltap*0.3) ;
+    m_max_dsc_displacement = std::min(s_dsc->get_avg_edge_length()*0.15, m_problem->m_deltap*0.2) ;
     
-    m_max_displacement_projection = std::min(s_dsc->get_avg_edge_length()*0.2, m_problem->m_deltap*0.2) ;; // This is just a compliment
+    m_max_displacement_projection = std::min(s_dsc->get_avg_edge_length()*0.15, m_problem->m_deltap*0.15) ;; // This is just a compliment
     
     cout << "\n\n+++++++++++++++++++++++++++++++++++++++"
     << "\n spacing distance: " << m_problem->m_deltap
