@@ -240,7 +240,7 @@ void fluid_motion::add_ghost_particles()
 
 void fluid_motion:: advect_velocity()
 {
-    update_vertex_boundary();
+//    update_vertex_boundary();
     
     vector<vec3> vertex_dis;
     compute_advection(vertex_dis);
@@ -276,7 +276,7 @@ void fluid_motion:: advect_velocity()
 
     cout << "Max advection: " << max_dis << endl;
 
-    snapp_boundary_vertices();
+//    snapp_boundary_vertices();
 
     s_dsc->deform(20);
 }
@@ -295,7 +295,8 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
     for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
     {
         if (fit->is_interface()
-            && !is_boundary_work_around(fit.key()))
+//            && !is_boundary_work_around(fit.key())
+            )
         {
             for (auto n : s_dsc->get_nodes(fit.key()))
             {
@@ -308,7 +309,8 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
         if (nit->is_interface()
-            && !should_fix[nit.key()])
+//            && !should_fix[nit.key()]
+            )
         {
             auto pos = nit->get_pos();
             vec3 dis(0.0);
@@ -487,6 +489,8 @@ void fluid_motion::project_interface_itteratively(){
 
 bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 {
+    return false;
+    
     auto nodes = s_dsc->get_nodes(fkey);
     for (int idx = 0; idx < 3; idx++)
     {
@@ -501,6 +505,8 @@ bool fluid_motion::is_boundary_work_around(is_mesh::FaceKey fkey)
 
 void fluid_motion::snapp_boundary_vertices()
 {
+    return;
+    
     double thres = m_problem->m_deltap*0.5;
     
     vec3 dim = m_problem->domain_size();
@@ -612,8 +618,8 @@ int fluid_motion::project_vertices()
     
     
     
-    update_vertex_boundary();
-    snapp_boundary_vertices();
+//    update_vertex_boundary();
+//    snapp_boundary_vertices();
     
     s_dsc->deform();
     return nb_move;
@@ -669,7 +675,7 @@ void fluid_motion::laplace_smooth(double lamda_in)
 
 int fluid_motion::project_interface()
 {
-    update_vertex_boundary();
+//    update_vertex_boundary();
     
     vector<vec3> vertex_dis(s_dsc->get_no_nodes_buffer(), vec3(0.0));
     vector<double> contribution(s_dsc->get_no_nodes_buffer(), 0.0);
@@ -771,7 +777,7 @@ int fluid_motion::project_interface()
         }
         cout << "Max projection: " << max_displace << endl;
         
-        snapp_boundary_vertices();
+//        snapp_boundary_vertices();
         s_dsc->deform();
     }
 
@@ -883,6 +889,7 @@ inline bool is_bound_point(vec3 & p, vec3 & origin, vec3 & domain_size)
 
 void fluid_motion::update_vertex_boundary()
 {
+    return;
     // 1. Make sure there is a layer gap
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {

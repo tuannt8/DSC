@@ -618,30 +618,32 @@ void particle_manager::add_ghost_particles(vec3 domain_size, double dis)
 {
     build_kd_tree(); // may not need to be build every time step
     rebuild_density(); // Because the density output is different, and I dont know why.
-//    
-//    // Add ghost
-//    
-//    for(int direct = 0; direct < 3; direct++)
-//    {
-//        auto current_size = m_current_particles.size();
-//        for (int i = 0; i < current_size; i++)
-//        {
-//            auto & p = m_current_particles[i];
-//            if (p.pos[direct] < dis)
-//            {
-//                particle new_p = p;
-//                new_p.pos[direct] = -new_p.pos[direct];
-//                m_current_particles.push_back(new_p);
-//            }else if(p.pos[direct] > domain_size[direct]-dis)
-//            {
-//                particle new_p = p;
-//                new_p.pos[direct] = 2*domain_size[direct] - new_p.pos[direct];
-//                m_current_particles.push_back(new_p);
-//            }
-//        }
-//    }
-//
-//    build_kd_tree(); // may not need to be build every time step
+    
+    // Add ghost
+    
+    for(int direct = 0; direct < 3; direct++)
+    {
+        auto current_size = m_current_particles.size();
+        for (int i = 0; i < current_size; i++)
+        {
+            auto & p = m_current_particles[i];
+            if (p.pos[direct] < dis)
+            {
+                particle new_p = p;
+                new_p.pos[direct] = -new_p.pos[direct];
+                new_p.vel[direct] = -new_p.vel[direct];
+                m_current_particles.push_back(new_p);
+            }else if(p.pos[direct] > domain_size[direct]-dis)
+            {
+                particle new_p = p;
+                new_p.pos[direct] = 2*domain_size[direct] - new_p.pos[direct];
+                new_p.vel[direct] = -new_p.vel[direct];
+                m_current_particles.push_back(new_p);
+            }
+        }
+    }
+
+    build_kd_tree(); // may not need to be build every time step
 }
 
 
