@@ -44,120 +44,6 @@ string problem = "two_phase_fluid";
 string g_out_path; // TO write the surface
 double g_res; // Affect DSC resolution
 
-void extract_surface_phase(int phase, std::string path, DSC::DeformableSimplicialComplex<> * s_dsc)
-{
-    bool shift = false;
-    // If not shift, then the shared interface will be removed
-    
-//    if (shift && phase == 2)
-//    {
-//        // Shrink the share interface
-//
-//        double shrink = 0.001*s_dsc->get_avg_edge_length();
-//        vector<vec3> vertex_shrink(s_dsc->get_no_nodes(), vec3(0.0));
-//        vector<double> contribute(s_dsc->get_no_nodes(), (0.0));
-//
-//
-//        for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
-//        {
-//            auto tets = s_dsc->get_tets(fit.key());
-//            if (s_dsc->get_label(tets[0]) != 0
-//                && s_dsc->get_label(tets[1]) != 0)
-//            {
-//                auto norm = s_dsc->get_normal(fit.key());
-//                for(auto n : s_dsc->get_nodes(fit.key()))
-//                {
-//                    vertex_shrink[n] += -norm*shrink;
-//                    contribute[n] += 1;
-//                }
-//            }
-//        }
-//        for (int i = 0; i < vertex_shrink.size(); i++)
-//        {
-//            if (contribute[i] > 0)
-//            {
-//                vec3 dis = vertex_shrink[i]/contribute[i];
-//                is_mesh::NodeKey nkey(i);
-//                vec3 pos = s_dsc->get_pos(nkey) + dis;
-//                s_dsc->set_pos(nkey, pos);
-//            }
-//        }
-//    }
-    
-    vector<int> indices_map(s_dsc->get_no_nodes_buffer(), -1);
-    int idx = 0;
-    
-    // Write face first
-    stringstream vertices_write, faces_write;
-    for (auto fit = s_dsc->faces_begin(); fit != s_dsc->faces_end(); fit++)
-    {
-        if (fit->is_interface())
-        {
-            auto tets = s_dsc->get_tets(fit.key());
-            
-            if(s_dsc->get_label(tets[0]) == phase
-               || s_dsc->get_label(tets[1]) == phase)
-            {
-                if (!shift
-                    && phase == 2
-                    && s_dsc->get_label(tets[0]) != 0
-                    && s_dsc->get_label(tets[1]) != 0)
-                {
-                    continue;
-                }
-                
-                auto tid = (s_dsc->get_label(tets[0]) == phase? tets[0]:tets[1]);
-                
-                auto nodes = s_dsc->get_sorted_nodes(fit.key(), tid);
-                
-                faces_write << "f ";
-                for (int i = 0; i < 3; i++)
-                {
-                    auto n = nodes[i];
-                    if (indices_map[n] == -1)
-                    {
-                        indices_map[n] = idx++;
-                        
-                        auto pos = s_dsc->get(n).get_pos();
-                        // snapp
-                        
-                        //
-                        vertices_write << "v " << pos[0] << " " << pos[1] << " " << pos[2] << endl;
-                    }
-                    
-                    faces_write << indices_map[n] + 1 << " ";
-                }
-                faces_write << endl;
-            }
-        }
-    }
-    
-    ofstream of(path);
-    of << vertices_write.str();
-    of << faces_write.str();
-    of.close();
-    
-    cout << "Write to: " << path << endl;
-}
-
-void extract_2_phase_surface(string path)
-{
-    string directory = path.substr(0, path.find_last_of("\\/"));
-    string name = path.substr(path.find_last_of("\\/") + 1);
-    string phase[2] =  {directory + "/" + name + "_0.obj", directory +"/" + name + "_1.obj"};
-    
-    // Load
-    std::vector<vec3> points;
-    std::vector<int>  tets;
-    std::vector<int>  tet_labels;
-    is_mesh::import_tet_mesh(path, points, tets, tet_labels);
-    
-    DSC::DeformableSimplicialComplex<> dsc(points, tets, tet_labels);
-    
-    // Write
-    extract_surface_phase(1, phase[0], &dsc);
-    extract_surface_phase(2, phase[1], &dsc);
-}
 
 int main(int argc, char** argv)
 {
@@ -181,7 +67,11 @@ int main(int argc, char** argv)
     if(export_mesh)
     {
         string path = input.getCmdOption("-export");
-        dsc_export::export_surface(path);
+        if (input.cmdOptionExists("-two-phases"))
+        {
+            dsc_export::export_two_phase_fluid(path);
+        }else
+            dsc_export::export_surface(path);
         return 0;
     }
     ///////////////////////////////////////////////

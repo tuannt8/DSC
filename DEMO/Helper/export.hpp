@@ -13,17 +13,22 @@
 #include "DSC.h"
 #include <memory.h>
 #include <string>
+#include "define.h"
 
 namespace dsc_export{
     typedef std::shared_ptr<DSC::DeformableSimplicialComplex<>> dsc_ptr;
     
     // Export upto 10 surface, individually
     void export_surface(std::string path);
+    void export_two_phase_fluid(std::string path);
     
     // Load DSC
     dsc_ptr load_dsc(std::string path);
     
     void export_surface(dsc_ptr dsc, int phase, std::string path);
+    
+    // main phase is index [0]
+    void export_shared_bound(dsc_ptr dsc, std::vector<vec3i> phases, std::string path);
 };
 
 #endif /* export_hpp */

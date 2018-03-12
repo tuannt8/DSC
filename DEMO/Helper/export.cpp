@@ -7,7 +7,6 @@
 //
 
 #include "export.hpp"
-#include "define.h"
 #include <fstream>
 
 namespace dsc_export
@@ -25,6 +24,18 @@ namespace dsc_export
         auto l_dsc = dsc_ptr(new DeformableSimplicialComplex<>(points, tets, tet_labels));
 
         return l_dsc;
+    }
+    
+    void export_two_phase_fluid(std::string path)
+    {
+        auto dsc = load_dsc(path);
+        
+        string directory = path.substr(0, path.find_last_of("\\/"));
+        string name = path.substr(path.find_last_of("\\/") + 1);
+        string path_0 = directory + "/mesh0/" + name + ".obj";
+        export_shared_bound(dsc, {vec3i(1,0,0), vec3i(1,2,0)}, path_0);
+        string path_1 = directory + "/mesh1/" + name + ".obj";
+        export_shared_bound(dsc, {vec3i(2,0,0)}, path_1);
     }
     
     void export_surface(std::string path)
@@ -48,6 +59,65 @@ namespace dsc_export
         
     }
     
+    void export_shared_bound(dsc_ptr dsc, std::vector<vec3i> phases, std::string path)
+    {
+        std::vector<int> points_maps(dsc->get_no_nodes(), -1); // points_maps[dsc_idx] = new_idx
+        std::vector<vec3> points;
+        std::vector<vec3i> faces;
+        
+        int cur_point_idx = 0;
+        for (auto fit = dsc->faces_begin(); fit != dsc->faces_end(); fit++)
+        {
+            if (!fit->is_interface())
+                continue;
+            
+            auto tets = dsc->get_tets(fit.key());
+            
+            int labels[2] = {dsc->get_label(tets[0]), dsc->get_label(tets[1])};
+            
+            int idx_other;
+            bool found = false;
+            for (auto pp : phases)
+            {
+                if ( (pp[0] == labels[0] && pp[1] == labels[1])
+                    ||  (pp[1] == labels[0] && pp[0] == labels[1])
+                )
+                {
+                    idx_other = pp[0] == labels[0]? 0 : 1;
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found)
+                continue;
+            
+            
+            auto nodes = dsc->get_sorted_nodes(fit.key(), tets[idx_other]);
+            vec3i face_map;
+            for(int i = 0; i < 3; i++)
+            {
+                auto n = nodes[i];
+                if(points_maps[n] == -1)
+                {
+                    points.push_back(dsc->get_pos(n));
+                    points_maps[n] = cur_point_idx++;
+                }
+                face_map[i] = points_maps[n] + 1;
+            }
+            faces.push_back(face_map);
+        }
+        
+        ofstream file(path);
+        
+        for(auto p : points)
+            file << "v " << p[0] << " " << p[1] << " " << p[2] << endl;
+        for (auto f : faces)
+        {
+            file << "f " << f[0] << " " << f[1] << " " << f[2] << endl;
+        }
+    }
+    
     void export_surface(dsc_ptr dsc, int phase, std::string path)
     {
         std::vector<int> points_maps(dsc->get_no_nodes(), -1); // points_maps[dsc_idx] = new_idx
@@ -61,6 +131,7 @@ namespace dsc_export
                 continue;
             
             auto tets = dsc->get_tets(fit.key());
+            
             int labels[2] = {dsc->get_label(tets[0]), dsc->get_label(tets[1])};
             
             if (labels[0] != phase && labels[1] != phase)
