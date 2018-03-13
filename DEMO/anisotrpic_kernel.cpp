@@ -274,7 +274,7 @@ void anisotropic_kernel::build_connected_component()
     m_connected_component_label = std::vector<int>(m_particles.size(), -1);
     
     // m_h or 1.1 m_ra
-    double connected_radius = 1.2*m_ra;
+    double connected_radius = m_h;
     
     int cc_count = 0;
     int num_fluid_particles = 0;

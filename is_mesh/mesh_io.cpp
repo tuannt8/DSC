@@ -45,8 +45,10 @@ namespace is_mesh {
         std::ifstream file(filename.data());
         
         char c;
+        long nb_line = 0;
         while (file >> c)
         {
+            nb_line++;
             if (c == 'v')
             {
                 real x,y,z; // The (x,y,z) coordinates of a vertex.
@@ -74,7 +76,7 @@ namespace is_mesh {
             }
             //            c = '\n';
         }
-        
+//        std::cout << nb_line << " lines\n";
         file.close();
         //        scale(points, 3.);
     }

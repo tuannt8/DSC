@@ -484,7 +484,7 @@ void particle_manager::draw_anisotropic_kernel(vec3 domain_size, vec3 c)
 void particle_manager::draw(double y_under, double y_limit)
 {
     glDisable(GL_LIGHTING);
-    glPointSize(6);
+    glPointSize(2);
     glBegin(GL_POINTS);
     //            int idx = 0;
     //            for (int idx : idx_list)
@@ -711,7 +711,7 @@ void particle_manager::build_anisotropic_kernel()
 {
     m_aniso_kernel.m_particles = m_current_particles;
     m_aniso_kernel.m_h = m_slength;
-    m_aniso_kernel.m_ra = m_deltap;
+//    m_aniso_kernel.m_ra = m_deltap;
     
     m_aniso_kernel.build();
 }

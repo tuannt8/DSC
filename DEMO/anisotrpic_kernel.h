@@ -33,7 +33,7 @@ public:
     std::vector<int> m_connected_component_label;
     int m_nb_component;
     double m_h;// Smoothing radius. Used for connected component
-    double m_ra; // Spacing distance betwwen particle
+//    double m_ra; // Spacing distance betwwen particle
     
     double m_r;// Use for everything. = 2*m_h
     

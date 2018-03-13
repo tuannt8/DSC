@@ -203,7 +203,7 @@ void fluid_motion::draw()
     if(glut_menu::get_state("Particles point 0", 0))
     {
         glColor3f(1, 0, 0);
-        m_particles[0]->draw(m_problem->domain_size()[1]*0.1, m_problem->domain_size()[1]*0.8);
+        m_particles[0]->draw(m_problem->domain_size()[1]*0, m_problem->domain_size()[1]);
     }
     
     if(glut_menu::get_state("Particles point 1", 0))
@@ -341,7 +341,7 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
         }
     }
 }
-
+extern double scale_anisotropic;
 void fluid_motion::build_anisotropic_kernel()
 {
 //    profile_temp t("Build anisotropic");
@@ -352,8 +352,8 @@ void fluid_motion::build_anisotropic_kernel()
         m_share_aniso_kernel.m_particles.insert(m_share_aniso_kernel.m_particles.end(), m_particles[i]->m_current_particles.begin(), m_particles[i]->m_current_particles.end());
     }
     
-    m_share_aniso_kernel.m_h = m_problem->m_slength;
-    m_share_aniso_kernel.m_ra = m_problem->m_deltap;
+    m_share_aniso_kernel.m_h = m_problem->m_slength*scale_anisotropic;
+
     
     m_share_aniso_kernel.build();
 }

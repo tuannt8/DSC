@@ -207,7 +207,7 @@ void UI::init_data()
     
     // init DSC
     _obj_dim = m_fluid.m_problem->domain_size();
-    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.7;
+    gl_dis_max = std::max(std::max(_obj_dim[0], _obj_dim[1]), _obj_dim[2])*1.3;
     
     if(!test)
         dsc = std::shared_ptr<DeformableSimplicialComplex<>>(m_fluid.m_problem->init_dsc(g_res));
