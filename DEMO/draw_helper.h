@@ -55,6 +55,7 @@ public:
     static void update_normal_vector_interface(dsc_class & dsc, int phase, vec3 eye_pos);
     static void dsc_draw_one_interface(dsc_class & dsc, int phase);
     static void dsc_draw_one_interface_edge(dsc_class & dsc, int phase);
+    static void dsc_draw_one_interface_no_share(dsc_class & dsc, int phase);
     
     static void dsc_draw_interface(dsc_class & dsc);
     static void dsc_draw_interface_edge(dsc_class & dsc);
@@ -66,6 +67,7 @@ public:
     
     static void save_painting(int WIDTH, int HEIGHT, std::string folder = std::string("LOG"));
     
+    static void draw_cross(dsc_class & dsc, int nb_phase, vec3 domain_size);
     
     static void dsc_draw_debug_node(is_mesh::NodeKey nk);
     /*

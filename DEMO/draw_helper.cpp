@@ -440,6 +440,62 @@ void draw_helper::dsc_draw_one_interface_edge(dsc_class & dsc, int phase)
     }
 }
 
+void draw_helper:: dsc_draw_one_interface_no_share(dsc_class & dsc, int phase)
+{
+    for (auto f = dsc.faces_begin(); f != dsc.faces_end(); f++)
+    {
+        if (f->is_interface() && !f->is_boundary())
+        {
+            auto tets = dsc.get_tets(f.key());
+            int label[2] = {dsc.get_label(tets[0]), dsc.get_label(tets[1])};
+            if (!(label[0] == phase
+                  or label[1] == phase)
+                )
+            {
+                continue;
+            }
+            
+            int other_label = label[0] == phase? label[1] : label[0];
+            if (other_label < phase)
+            {
+                continue;
+            }
+            
+#ifdef DSC_CACHE
+            auto nodes=*dsc.get_nodes_cache(f.key());
+#else
+            auto nodes=dsc.get_nodes(f.key());
+#endif
+            auto pts = dsc.get_pos(nodes);
+            
+            // normalize the normal to the eye
+            is_mesh::TetrahedronKey other_tet = (dsc.get_label(tets[0]) == phase)? tets[1] : tets[0];
+            
+            
+            auto norm = -dsc.get_normal(f.key(), other_tet);
+            
+            
+            
+            // Draw triangle
+            glBegin(GL_TRIANGLES);
+            for (int i =0; i < 3; i++)
+            {
+                auto v = pts[i];
+                auto n = nodes[i];
+                vec3 real_norm = norm;
+//                if((int)n < node_normal_vector.size() && node_normal_vector[n].length() > 0.1)
+//                    real_norm = node_normal_vector[n];
+                
+                glNormal3dv(real_norm.get());
+                glVertex3dv(v.get());
+            }
+            glEnd();
+            
+            
+        }
+    }
+}
+
 void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
 {
     
@@ -489,6 +545,78 @@ void draw_helper::dsc_draw_one_interface(dsc_class & dsc, int phase)
             
         }
     }
+}
+
+void draw_helper::draw_cross(dsc_class & dsc, int nb_phase, vec3 domain_size)
+{
+    vector<vector<double>> colors = {{1,0,0}, {0,1,0}, {0,0,1}, {1,1,0}, {1,0,1}};
+    // draw all phase near boundary
+    double y_lim = domain_size[1] / 2.1;
+    double y_lim_2 = y_lim - dsc.get_avg_edge_length()*1.5;
+    double epsilon = dsc.get_avg_edge_length();
+    
+
+    for (auto fit = dsc.faces_begin(); fit != dsc.faces_end(); fit++)
+    {
+        auto node_pos = dsc.get_pos(dsc.get_nodes(fit.key()));
+        auto mid_point = (node_pos[0] + node_pos[1] + node_pos[2])/3;
+        auto tets = dsc.get_tets(fit.key());
+        
+        bool should_draw = false;
+        bool between = false;
+        if (!fit->is_boundary() &&
+            mid_point[1] < y_lim)
+        {
+            for(int i = 0; i < 3; i++)
+            {
+                if (mid_point[i] < epsilon
+                    || domain_size[i] - mid_point[i]  < epsilon)
+                {
+                    should_draw = true;
+                }
+            }
+            if (mid_point[1] > y_lim_2)
+            {
+                should_draw = true;
+                between = true;
+            }
+        }
+        if (should_draw)
+        {
+            auto norm = dsc.get_normal(fit.key());
+            if(between)
+                norm = norm*(Util::dot(norm, vec3(0,1,0)) > 0? 1 : -1);
+            else
+                norm = -norm;
+            
+            int l = std::min(dsc.get_label(tets[0]), dsc.get_label(tets[1]));
+            
+            glBegin(GL_TRIANGLES);
+            glEnable(GL_LIGHTING);
+            if(l != BOUND_LABEL)
+            {
+                glColor3dv(&colors[l][0]);
+                glNormal3dv(norm.get());
+                for(auto v : node_pos)
+                    glVertex3dv(v.get());
+            }
+            glEnd();
+            
+            if (between)
+            {
+                glBegin(GL_LINES);
+                glDisable(GL_LIGHTING);
+                glColor3f(1, 1, 1);
+                for (int i = 0; i < 3; i++)
+                {
+                    glVertex3dv(node_pos[i].get());
+                    glVertex3dv(node_pos[((i+1)%3)].get());
+                }
+                glEnd();
+            }
+        }
+    }
+
 }
 
 void draw_helper::draw_curvature(dsc_class & dsc, std::vector<std::vector<vec3>> const & mean_curvature_hats, int phase, std::vector<std::vector<int>> const & correspond_label)
@@ -605,16 +733,17 @@ void draw_helper::draw_curvature(dsc_class & dsc, std::vector<std::vector<vec3>>
 
 void draw_helper::draw_transparent_surface(dsc_class & dsc, int nb_phase)
 {
-    std::vector<vec3> color = {vec3(0), vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
+    std::vector<vec3> color = {vec3(0,1,1), vec3(1,0,0), vec3(0,1,0), vec3(0,0,1), vec3(1,1,0), vec3(1,0,1)};
  
-    glDisable(GL_BLEND);
-    
-    for(int i = 1; i< nb_phase; i++)
+//    glEnable(GL_BLEND);
+//    glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+//    glDisable(GL_LIGHTING);
+    for(int i = 0; i< nb_phase; i++)
     {
         auto c = color[i];
         glColor4f(c[0], c[1], c[2], 0.3);
         
-        dsc_draw_one_interface(dsc, i);
+        dsc_draw_one_interface_no_share(dsc, i);
     }
     
 //    glColor3f(1.0, 0.0, 0.0);
@@ -623,7 +752,7 @@ void draw_helper::draw_transparent_surface(dsc_class & dsc, int nb_phase)
 //    glColor4f(0.0, 0.0, 1.0, 0.4);
 //    dsc_draw_one_interface(dsc, 2);
     
-    glEnable(GL_BLEND);
+    glDisable(GL_BLEND);
 }
 
 void draw_helper::draw_triple_interface(dsc_class &dsc)

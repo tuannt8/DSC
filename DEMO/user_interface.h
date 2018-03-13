@@ -83,6 +83,8 @@ public:
         return instance;
     }
     
+    void take_screen_shot(string name = "");
+    
     void display();
     
     void animate();

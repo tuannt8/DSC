@@ -304,19 +304,19 @@ void UI::init_data()
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
     // Generate DSC
-    init_dsc();
-//    load_model("/Users/tuannt8/Desktop/iter.dsc");
+//    init_dsc();
+    load_model("/Users/tuannt8/Desktop/iter.dsc");
     
-    set_dsc_boundary_layer();
-    
-    
-    _seg._dsc = &*dsc;
-    _seg.threshold_init_probability();
-    _seg.estimate_time_step();
-
-    
-    std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
-    << dsc->get_no_tets() << " tets" << endl;
+//    set_dsc_boundary_layer();
+//
+//
+//    _seg._dsc = &*dsc;
+//    _seg.threshold_init_probability();
+//    _seg.estimate_time_step();
+//
+//
+//    std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
+//    << dsc->get_no_tets() << " tets" << endl;
 
 }
 
@@ -718,6 +718,11 @@ void UI::display()
         glEnable(GL_LIGHTING);
     }
     
+    if (glut_menu::get_state("Cross section", 0))
+    {
+        draw_helper::draw_cross(*dsc, _seg.NB_PHASE, vec3(_seg.m_prob_img.m_dimension));
+    }
+    
     if (glut_menu::get_state("Surface curvature", 0))
     {
         draw_helper::draw_curvature(*dsc, _seg._mean_curvature_of_each_hat, phase_draw, _seg._mean_curvature_label);
@@ -948,6 +953,22 @@ void UI::keyboard(unsigned char key, int x, int y) {
     
     
 }
+
+void UI::take_screen_shot(string name)
+{
+#ifdef __APPLE__
+    if (name.length() == 0)
+    {
+        // date and time
+        auto now = std::chrono::system_clock::now();
+        auto in_time_t = std::chrono::system_clock::to_time_t(now);
+        std::stringstream ss;
+        ss << "./LOG/"<< std::put_time(std::localtime(&in_time_t), "%Y%m%d_%X") << ".png";
+    }
+    int success = SOIL_save_screenshot(name.c_str(), SOIL_SAVE_TYPE_PNG, 0, 0, WIN_SIZE_X, WIN_SIZE_Y);
+#endif
+}
+
 
 void idle(void)
 {

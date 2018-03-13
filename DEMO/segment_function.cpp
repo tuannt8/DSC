@@ -1737,7 +1737,6 @@ void segment_function::segment_probability()
     
     // 3. Work around to align boundary vertices
     //  including set displacement for interface vertices
-//    work_around_on_boundary_vertices();
     snapp_boundary();
     
     int step = _dsc->deform(10);
@@ -1830,53 +1829,7 @@ void segment_function::segment()
 }
 
 int segment_function::arg_min_phase_point(vec3 pt, double radius, int current_label) {
-//    // Compute mean intensity
-//    int radius_i = (int)radius;
-//    double mean_inten, total_inten = 0, count = 0;
-//    vec3i pti(pt);
-//    auto im_dim = _img.dimension();
-//    for (int i = std::max(0, pti[0] - radius_i); i < std::min(im_dim[0], pti[0] + radius_i); i++)
-//    {
-//        for (int j = std::max(0, pti[1] - radius_i); j < std::min(im_dim[1], pti[1] + radius_i); j++)
-//        {
-//            for (int k = std::max(0, pti[2] - radius_i); k < std::min(im_dim[2], pti[2] + radius_i); k++)
-//            {
-//                total_inten += _img.get_value(i, j, k);
-//                count++;
-//            }
-//        }
-//    }
-//    
-//    mean_inten = total_inten / count;
-//    
-//    // Find optimal phase
-//    double min_E  = INFINITY;
-//    int label_min = -1;
-//    for (int i = 0; i < _mean_intensities.size(); i++)
-//    {
-//        auto ci = _mean_intensities[i];
-//        double E = count * (ci - mean_inten) * (ci - mean_inten);
-//        if (min_E > E)
-//        {
-//            min_E = E;
-//            label_min = i;
-//        }
-//    }
-//    
-//    // Include smoothing factor
-//    if(label_min != current_label)
-//    {
-//        double c_current = _mean_intensities[current_label];
-//        double current_E = count * (c_current - mean_inten) * (c_current - mean_inten);
-//        
-//        double area = 6 * radius * radius;
-//        if(min_E + ALPHA * area > current_E)
-//        {
-//            label_min = current_label;
-//        }
-//    }
-//    
-//    return label_min;
+
 }
 
 void segment_function::recursive_subdivide(is_mesh::TetrahedronKey tkey, vec3 pt, int new_label, double min_volume)
