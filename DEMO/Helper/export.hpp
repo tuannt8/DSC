@@ -29,6 +29,7 @@ namespace dsc_export{
     
     // main phase is index [0]
     void export_shared_bound(dsc_ptr dsc, std::vector<vec3i> phases, std::string path);
+    void export_shared_bound_no_bound(dsc_ptr dsc, std::vector<vec3i> phases, std::string path, vec3 ld, vec3 ru);
 };
 
 #endif /* export_hpp */

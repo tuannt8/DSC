@@ -197,7 +197,7 @@ UI::UI()
 void UI::init_data()
 {
 #ifdef __APPLE__
-    bool test = false;
+    bool test = true;
 #else
     bool test = false;
 #endif
