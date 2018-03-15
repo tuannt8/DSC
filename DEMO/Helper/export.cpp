@@ -64,7 +64,7 @@ namespace dsc_export
     
     inline bool is_bound_v(vec3 p, vec3 ld, vec3 ru, double gap)
     {
-        return p[2] < gap;
+//        return p[2] < gap;
         
         bool is_bound = false;
         for (int i = 0; i < 3; i++)
