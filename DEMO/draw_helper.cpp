@@ -619,6 +619,55 @@ void draw_helper::draw_cross(dsc_class & dsc, int nb_phase, vec3 domain_size)
 
 }
 
+void draw_helper::draw_tet_cross(dsc_class & dsc, int nb_phase, vec3 domain_size)
+{
+    vector<vector<double>> colors = {{1,0,0}, {0,1,0}, {0,0,1}, {1,1,0}, {1,0,1}};
+    // draw all phase near boundary
+    double y_lim = domain_size[1] / 2;
+    double y_lim_2 = y_lim + dsc.get_avg_edge_length()*2;
+    vec3 eye(0,0,1);
+    
+    for(auto tit = dsc.tetrahedra_begin(); tit != dsc.tetrahedra_end(); tit++)
+    {
+        auto node_pos = dsc.get_pos(dsc.get_nodes(tit.key()));
+        bool b_draw = false;
+        for(auto & p : node_pos)
+            if (p[2] > y_lim && p[2] < y_lim_2)
+            {
+                b_draw = true;
+            }
+        
+        if (b_draw)
+        {
+            glEnable(GL_LIGHTING);
+            glColor3f(0.6, 0.6, 0.6);
+            glBegin(GL_TRIANGLES);
+            for(auto f : dsc.get_faces(tit.key()))
+            {
+                auto norm = dsc.get_normal(f);
+                norm = norm*Util::dot(norm, eye);
+                glNormal3dv(norm.get());
+                for(auto v : dsc.get_pos(dsc.get_nodes(f)))
+                    glVertex3dv(v.get());
+            }
+            glEnd();
+            
+            glDisable(GL_LIGHTING);
+            glBegin(GL_LINES);
+            glColor3f(0, 0, 1);
+            for (int i = 0; i < 4; i++)
+            {
+                glVertex3dv(node_pos[i].get());
+                glVertex3dv(node_pos[(i+1)%4].get());
+            }
+            glEnd();
+        }
+            
+    }
+    
+}
+
+
 void draw_helper::draw_curvature(dsc_class & dsc, std::vector<std::vector<vec3>> const & mean_curvature_hats, int phase, std::vector<std::vector<int>> const & correspond_label)
 {
     if(mean_curvature_hats.size() == 0)

@@ -566,11 +566,6 @@ void segment_function::adapt_tetrahedra_1()
     // 1. Find potential points for subdivision
     update_average_intensity();
     
-//    compute_surface_curvature();
-//    compute_external_force();
-//    compute_internal_force();
-//    update_vertex_stability();
-    
     int num_relabel = 0;
 
     for (auto tit = _dsc->tetrahedra_begin(); tit != _dsc->tetrahedra_end(); tit++)
@@ -1720,6 +1715,97 @@ void segment_function::estimate_time_step()
     
     _dt = _dsc->get_avg_edge_length()*m_max_dis / max_force;
     cout << "Estimated time step: " << _dt << endl;
+}
+
+void segment_function::adapt_surface()
+{
+#ifdef DSC_CACHE
+    long nb_collasped = 0;
+    for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
+    {
+        if (_dsc->exists(nit.key()) && nit->is_interface() && !nit->is_crossing())
+        {
+            // Compute curvature
+            is_mesh::SimplexSet<is_mesh::FaceKey> neighbor_faces;
+            std::vector<vec3> norm_faces;
+            for(auto f : *_dsc->get_faces_cache(nit.key()))
+            {
+                if (_dsc->get(f).is_interface())
+                {
+                    neighbor_faces += f;
+                    norm_faces.push_back(_dsc->get_normal(f));
+                }
+            }
+            
+            // Check if the surface is flat
+            static double cos_flat = cos(88.*M_PI/180.); // Threshold of flat surface
+            double cos_max_angle = 1;
+            for (int i = 0; i < norm_faces.size(); i++)
+            {
+                for (int j = 0; j < norm_faces.size(); j++)
+                {
+                    double cc = Util::dot(norm_faces[i], norm_faces[j]);
+                    cos_max_angle = min(cos_max_angle, cc);
+                }
+            }
+            
+            if (cos_max_angle > cos_flat)
+            {
+                is_mesh::SimplexSet<is_mesh::EdgeKey> ring_edge, cobound_edge;
+                for(auto e : _dsc->get_edges(neighbor_faces))
+                {
+                    auto nodes = _dsc->get_nodes(e);
+                    if (nodes[0] == nit.key() || nodes[1] == nit.key())
+                    {
+                        cobound_edge += e;
+                    }else{
+                        ring_edge += e;
+                    }
+                }
+                
+                // find shortest edges
+                auto shortest_edge =  _dsc->shortest_edge(cobound_edge);
+                auto colapse_node =_dsc->get_nodes(shortest_edge) - nit.key();
+                assert(colapse_node.size()==1); // Hold only the opposite node of nit
+                vec3 new_pos = _dsc->get_pos(colapse_node[0]);
+                auto nid0 = colapse_node[0];
+                
+                // Check quality
+                double min_tet_quality = INFINITY;
+                auto face_link = _dsc->get_link(nit.key());
+                for(auto fid : *face_link)
+                {
+                    auto f_pts = *_dsc->get_nodes_cache(fid);
+
+                    // The nid0 belong to the triangle
+                    if(nid0 == f_pts[0] || nid0 == f_pts[1]  || nid0 == f_pts[2])
+                        continue;
+                    
+                    auto f_pos = _dsc->get_pos(f_pts);
+                    min_tet_quality = std::min(min_tet_quality,
+                                               std::abs(Util::quality<real>(f_pos[0], f_pos[1], f_pos[2], new_pos)));
+                }
+                
+                std::cout << min_tet_quality << std::endl;
+                
+                if (min_tet_quality < _dsc->pars.MIN_TET_QUALITY)
+                {
+                    _dsc->is_edge_adapted(shortest_edge, true);
+                }
+                else
+                {
+//                    _dsc->collapse_cache(shortest_edge, nid0, 0);
+                    if(_dsc->collapse(shortest_edge, true))
+                        nb_collasped++;
+                }
+            }
+        }
+    }
+    cout << nb_collasped << " collapsed\n";
+    _dsc->garbage_collect();
+#else
+    assert(0); // Implement non cache code
+#endif
 }
 
 void segment_function::segment_probability()

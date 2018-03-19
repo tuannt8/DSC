@@ -220,65 +220,6 @@ cout<<"Could not load key: " << k << endl;\
 
 void UI::load_config_file()
 {
-//    try
-//    {
-//        // 1. Read the configuration file
-//        ifstream infile(config_file);
-//
-//        if (!infile.is_open())
-//        {
-//            throw "config file path incorrect";
-//        }
-//
-//        std::map<std::string, std::string> options;
-//
-//        for (std::string line; std::getline(infile, line); )
-//        {
-//            line.erase(std::remove(line.begin(),line.end(),' '),line.end());
-//
-//            if (line.empty() || line[0] == '#')
-//            {
-//                continue;
-//            }
-//
-//            size_t pos = line.find_first_of("=");
-//            if(pos > line.size() -1)
-//                throw "Syntax error";
-//
-//            string key = line.substr(0, pos);
-//            string val = line.substr(pos+1, line.size()-1);
-//
-//            options[key] = val;
-//        }
-//
-//        cout << "Config file with " << options.size() << "values" << endl;
-//
-//        //2. Set property
-////        get_opt(_seg._directory_path, "directory-path");
-////        _seg._directory_path = get_option(options,"directory-path");
-//        _seg._dt = stof(get_option(options,"time-step"));
-////        _seg.NB_PHASE = stoi(get_option(options,"number-of-phase"));
-//        _seg.VARIATION_THRES_FOR_RELABELING = stof(get_option(options,"Variation-threshold-for-relabeling"));
-//        _seg.m_alpha = stof(get_option(options,"length-penalty-coefficient"));
-//
-//        m_edge_length = stof(get_option(options,"average-edge-length"));
-//
-//        if(options.find("min-edge-length") != options.end())
-//        {
-//            _min_edge_length = stof(options["min-edge-length"]);
-//        }
-//        if(options.find("number_images") != options.end())
-//        {
-//            num_images = stoi(get_option(options,"number_images", true));
-//        }
-//
-//        infile.close();
-//
-//    }
-//    catch (const char* msg)
-//    {
-//        cout << "Fail to read config file: \" " << config_file << "\" with error " << msg << endl;
-//    }
 }
 
 void UI::update_draw_list()
@@ -307,16 +248,16 @@ void UI::init_data()
 //    init_dsc();
     load_model("/Users/tuannt8/Desktop/iter.dsc");
     
-//    set_dsc_boundary_layer();
-//
-//
-//    _seg._dsc = &*dsc;
+    dsc->set_min_edge_length(m_edge_length);
+    
+    set_dsc_boundary_layer();
+    _seg._dsc = &*dsc;
 //    _seg.threshold_init_probability();
-//    _seg.estimate_time_step();
-//
-//
-//    std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
-//    << dsc->get_no_tets() << " tets" << endl;
+    _seg.estimate_time_step();
+
+
+    std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
+    << dsc->get_no_tets() << " tets" << endl;
 
 }
 
@@ -330,6 +271,7 @@ UI::UI(InputParser p)
     _seg.m_alpha = stof(p.getCmdOption("-alpha", "0.01"));
     _seg.m_max_dis = stof(p.getCmdOption("-max-dis", "0.3"));
     m_edge_length = stof(p.getCmdOption("-edge-length", "20"));
+    
     if (p.cmdOptionExists("-log-path"))
     {
         output_path = p.getCmdOption("-log-path", "./LOG");
@@ -458,6 +400,9 @@ void UI::set_dsc_boundary_layer()
             }
         }
     }
+    
+    // Padding the boundary, for adaptive mesh
+    
 }
 
 void UI::load_model(const std::string& file_name)
@@ -471,13 +416,13 @@ void UI::load_model(const std::string& file_name)
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
     
-    vec3 p_min(INFINITY), p_max(-INFINITY);
-    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++) {
-        for (int i = 0; i < 3; i++) {
-            p_min[i] = Util::min(nit->get_pos()[i], p_min[i]);
-            p_max[i] = Util::max(nit->get_pos()[i], p_max[i]);
-        }
-    }
+//    vec3 p_min(INFINITY), p_max(-INFINITY);
+//    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++) {
+//        for (int i = 0; i < 3; i++) {
+//            p_min[i] = Util::min(nit->get_pos()[i], p_min[i]);
+//            p_max[i] = Util::max(nit->get_pos()[i], p_max[i]);
+//        }
+//    }
     
     std::cout << "Loading done" << std::endl << std::endl;
 }
@@ -718,6 +663,11 @@ void UI::display()
         glEnable(GL_LIGHTING);
     }
     
+    if (glut_menu::get_state("tet cross", 0))
+    {
+        draw_helper::draw_tet_cross(*dsc, _seg.NB_PHASE, vec3(_seg.m_prob_img.m_dimension));
+    }
+    
     if (glut_menu::get_state("Cross section", 0))
     {
         draw_helper::draw_cross(*dsc, _seg.NB_PHASE, vec3(_seg.m_prob_img.m_dimension));
@@ -870,10 +820,10 @@ void UI::display()
 //        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
         _seg.segment_probability();
         
-        if(m_iters % 20 ==0)
-        {
-            save_model(output_path + "/iter_" + std::to_string(m_iters) + ".dsc");
-        }
+//        if(m_iters % 20 ==0)
+//        {
+//            save_model(output_path + "/iter_" + std::to_string(m_iters) + ".dsc");
+//        }
         
         if (m_iters > _seg.num_iter)
         {
@@ -936,7 +886,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case 'u':
 //            draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);
-            _seg.compute_surface_curvature();
+            _seg.adapt_surface();
             break;
         case 't':
             dsc->deform();
@@ -945,7 +895,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             _seg.adapt_tetrahedra_1();
             break;
         case 'z':
-            _seg.face_split();
+            dsc->adapt();
             break;
         default:
             break;

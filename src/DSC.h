@@ -89,7 +89,7 @@ namespace DSC {
         real AVG_VOLUME;
         
         // Should be eliminated
-        real FLIP_EDGE_INTERFACE_FLATNESS = 0.995;
+        real FLIP_EDGE_INTERFACE_FLATNESS = 0.965; // 1 - cos(88) = 0.965 //0.995;
         
         parameters pars;
         
@@ -219,6 +219,17 @@ namespace DSC {
 #define CACHE_REFER
 #endif
         
+        bool is_edge_adapted(is_mesh::EdgeKey ek, bool set_v = false)
+        {
+            if (set_v)
+            {
+                cache.edge_adapted[ek] = new bool(true);
+            }
+//            if(!cache.edge_adapted[ek])
+//                return false;
+            
+            return cache.edge_adapted[ek];
+        }
         
         is_mesh::SimplexSet<tet_key> * get_tets_cache(is_mesh::NodeKey nid)
         {
@@ -418,29 +429,111 @@ namespace DSC {
         {
             
             
-            set_avg_edge_length();
-            auto ratio = min_length / AVG_LENGTH;
+            set_avg_edge_length(2*min_length);
             
             pars = {
-                0.3*ratio,    //DEG_EDGE_QUALITY, ratio to AVG_LENGTH
-                ratio,    //MIN_EDGE_QUALITY, ratio to AVG_LENGTH, not in use
+                0.5,        //DEG_EDGE_QUALITY, ratio to AVG_LENGTH
+                NAN,        //MIN_EDGE_QUALITY, ratio to AVG_LENGTH, not in use
                 
-                0.0005, //DEG_FACE_QUALITY 0.0005 = 2 degree
-                0.015,  //MIN_FACE_QUALITY : 0.06 = 20 degree; 0.015 = 10 degree //Not in use
+                0.0038,     //DEG_FACE_QUALITY 0.0005 = 2 degree; 0.0038 = 5; 0.015 = 10 (1-cos(alpha))
+                NAN,        //MIN_FACE_QUALITY : 0.06 = 20 degree; 0.015 = 10 degree //Not in use. Only in remove_faces()
                 
-                0.02,   //DEG_TET_QUALITY
-                0.3,    //MIN_TET_QUALITY, an important parameter
+                0.02,       //DEG_TET_QUALITY, in remove degenerate tet
+                0.3,        //MIN_TET_QUALITY, an important parameter. Topo edge removal, face removal
                 
                 // Used for resize function
                 // These below will not be in use
-                0.5,     //MIN_LENGTH, used to resize mesh
-                INFINITY,     //MAX_LENGTH
+                0.5,        //MIN_LENGTH, thinning interface
+                INFINITY,     //MAX_LENGTH. thickening interface
                 
-                0.2,    //MIN_AREA, not in use
-                INFINITY,     //MAX_AREA, not in use
+                NAN,        //MIN_AREA, not in use
+                NAN,        //MAX_AREA, not in use
                 
-                0.0, //0.2,    //MIN_VOLUME, , used to resize mesh
-                INFINITY};//MAX_VOLUME
+                0.1,        //MIN_VOLUME, thinning mesh
+                INFINITY    //MAX_VOLUME, thickening mesh
+            };
+        }
+        
+        void adapt()
+        {
+            long num_edge = 0;
+            long num_collapse = 0;
+            for (auto eit = edges_begin(); eit != edges_end(); eit++)
+            {
+                num_edge ++;
+                
+                auto eid = eit.key();
+                
+                if(!exists(eid) || is_edge_adapted(eid))
+                    continue;
+                
+                // Check collapsable
+                is_mesh::SimplexSet<node_key> nids = get_nodes(eid);
+                bool n0_is_editable = is_collapsable(eid, nids[0], true);
+                bool n1_is_editable = is_collapsable(eid, nids[1], true);
+                
+                if (!n0_is_editable && !n1_is_editable)
+                {
+                    continue;
+                }
+
+                vec3 new_pos;
+                if (!n0_is_editable || !n1_is_editable)
+                {
+                    if(!n0_is_editable)
+                    {
+                        nids.swap();
+                    }
+                    new_pos = get_pos(nids[0]);
+                }else
+                {
+                    new_pos = (get_pos(nids[0]) + get_pos(nids[1])) * 0.5;
+                }
+
+                // Check quality of the new tets
+                //  Will collapse nids[1] to nids[0], with weighted position
+                auto nid0 = nids[0];
+                double min_tet_quality = INFINITY;
+#ifdef DSC_CACHE
+                auto face_link = get_link(nids[1]);
+                for(auto fid : *face_link)
+                {
+                    auto f_pts = *get_nodes_cache(fid);
+#else
+                    is_mesh::SimplexSet<tet_key> * tids = get_tets_cache(nk);
+                    is_mesh::SimplexSet<face_key> fids = get_faces(*tids) - *get_faces_cache(nk);
+                    for(auto fid : fids)
+                    {
+                        auto f_pts = get_nodes(fid);
+#endif
+                    // The nid0 belong to the triangle
+                    if(nid0 == f_pts[0] || nid0 == f_pts[1]  || nid0 == f_pts[2])
+                        continue;
+                        
+                    auto f_pos = get_pos(f_pts);
+                    min_tet_quality = std::min(min_tet_quality,
+                       std::abs(Util::quality<real>(f_pos[0], f_pos[1], f_pos[2], new_pos)));
+                    
+                    assert(min_tet_quality < 100);
+                }
+                assert(!isnan(min_tet_quality));
+                    
+                std::cout << min_tet_quality << std::endl;
+                    
+                if (min_tet_quality < pars.MIN_TET_QUALITY)
+                {
+                    is_edge_adapted(eid, true);
+                }
+                else
+                {
+                    num_collapse++;
+                    collapse(eid, true);
+                }
+            }
+                
+            std::cout << num_collapse << "/" << num_edge << " adapted";
+                
+            garbage_collect();
         }
         
         void set_parameters(parameters pars_)
@@ -1796,10 +1889,6 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
 #endif
         }
         
-        void resize_interface()
-        {
-            
-        }
         
         /**
          * Splits all tetrahedra with a volume greater than MAX_TET_VOLUME by inserting a vertex.
@@ -2022,33 +2111,33 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         /**
          * Attempt to remove edges with worse quality than MIN_EDGE_QUALITY by safely collapsing them.
          */
-        void remove_edges()
-        {
-            std::list<edge_key> edges;
-            for (auto eit = edges_begin(); eit != edges_end(); eit++)
-            {
-                if (quality(eit.key()) < pars.MIN_EDGE_QUALITY)
-                {
-                    edges.push_back(eit.key());
-                }
-            }
-            int i = 0, j = 0;
-            for(auto e : edges)
-            {
-                if(is_unsafe_editable(e) && quality(e) < pars.MIN_EDGE_QUALITY)
-                {
-                    if(collapse(e))
-                    {
-                        i++;
-                    }
-                    j++;
-                }
-            }
-#ifdef LOG_DEBUG
-            std::cout << "Removed " << i <<"/"<< j << " low quality edges" << std::endl;
-#endif
-            garbage_collect();
-        }
+//        void remove_edges()
+//        {
+//            std::list<edge_key> edges;
+//            for (auto eit = edges_begin(); eit != edges_end(); eit++)
+//            {
+//                if (quality(eit.key()) < pars.MIN_EDGE_QUALITY)
+//                {
+//                    edges.push_back(eit.key());
+//                }
+//            }
+//            int i = 0, j = 0;
+//            for(auto e : edges)
+//            {
+//                if(is_unsafe_editable(e) && quality(e) < pars.MIN_EDGE_QUALITY)
+//                {
+//                    if(collapse(e))
+//                    {
+//                        i++;
+//                    }
+//                    j++;
+//                }
+//            }
+//#ifdef LOG_DEBUG
+//            std::cout << "Removed " << i <<"/"<< j << " low quality edges" << std::endl;
+//#endif
+//            garbage_collect();
+//        }
         
         /**
          * Attempt to remove the cap f by splitting the longest edge and collapsing it with cap's apex.
@@ -2449,9 +2538,6 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         void resize_complex()
         {
             {
-                // Collapse small edge; split long edge
-                //                resize_interface();
-                
                 thickening_interface();
                 
                 thinning_interface();
@@ -2950,41 +3036,71 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
                 
                 if(!safe || q_max > Util::min(min_quality(get_tets(nids[0]) + get_tets(nids[1])), pars.MIN_TET_QUALITY) + EPSILON)
                 {
-#ifdef DSC_CACHE // collapse edge
-                    //                    t.change("collapse e - cache overhead");
+//#ifdef DSC_CACHE // collapse edge
+//                    //                    t.change("collapse e - cache overhead");
+//
+//                    auto tets = get_tets(get_nodes(eid));
+//
+//                    for (auto tkey : tets)
+//                    {
+//                        cache.mark_dirty(tkey, true);
+//                    }
+//
+//                    auto faces = get_faces(tets);
+//                    for (auto fk : faces)
+//                    {
+//                        cache.mark_dirty(fk, true);
+//                    }
+//
+//                    auto edges = get_edges(faces);
+//                    for (auto ek : edges)
+//                    {
+//                        cache.mark_dirty(ek, true);
+//                    }
+//
+//                    auto dnodes = get_nodes(edges);
+//                    for(auto nk : dnodes)
+//                    {
+//                        cache.mark_dirty(nk, true);
+//                    }
+//#endif
                     
-                    auto tets = get_tets(get_nodes(eid));
-                    
-                    for (auto tkey : tets)
-                    {
-                        cache.mark_dirty(tkey, true);
-                    }
-                    
-                    auto faces = get_faces(tets);
-                    for (auto fk : faces)
-                    {
-                        cache.mark_dirty(fk, true);
-                    }
-                    
-                    auto edges = get_edges(faces);
-                    for (auto ek : edges)
-                    {
-                        cache.mark_dirty(ek, true);
-                    }
-                    
-                    auto dnodes = get_nodes(edges);
-                    for(auto nk : dnodes)
-                    {
-                        cache.mark_dirty(nk, true);
-                    }
-#endif
-                    //                    t.change("collapse e - collapse");
-                    
-                    collapse(eid, nids[1], weight);
+                    collapse_cache(eid, nids[1], weight);
                     return true;
                 }
             }
             return false;
+        }
+            
+        void collapse_cache(const is_mesh::EdgeKey& eid, const is_mesh::NodeKey& nid, real weight = 0.5)
+        {
+#ifdef DSC_CACHE // collapse edge
+            auto tets = get_tets(get_nodes(eid));
+            
+            for (auto tkey : tets)
+            {
+                cache.mark_dirty(tkey, true);
+            }
+            
+            auto faces = get_faces(tets);
+            for (auto fk : faces)
+            {
+                cache.mark_dirty(fk, true);
+            }
+            
+            auto edges = get_edges(faces);
+            for (auto ek : edges)
+            {
+                cache.mark_dirty(ek, true);
+            }
+            
+            auto dnodes = get_nodes(edges);
+            for(auto nk : dnodes)
+            {
+                cache.mark_dirty(nk, true);
+            }
+#endif
+            collapse(eid, nid, weight);
         }
         
         bool collapse(is_mesh::SimplexSet<edge_key>& eids, bool safe)

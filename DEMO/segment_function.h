@@ -187,6 +187,10 @@ public:
     
     std::vector<std::vector<vec3>> _curvature_force;
     std::vector<std::vector<vec3>> _area_force;
+    
+public: // Adaptation
+    void adapt_inside();
+    void adapt_surface();
 };
 
 #endif /* segment_function_hpp */

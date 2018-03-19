@@ -68,6 +68,7 @@ public:
     static void save_painting(int WIDTH, int HEIGHT, std::string folder = std::string("LOG"));
     
     static void draw_cross(dsc_class & dsc, int nb_phase, vec3 domain_size);
+    static void draw_tet_cross(dsc_class & dsc, int nb_phase, vec3 domain_size);
     
     static void dsc_draw_debug_node(is_mesh::NodeKey nk);
     /*
