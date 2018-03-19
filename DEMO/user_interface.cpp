@@ -250,11 +250,10 @@ void UI::init_data()
     
     dsc->set_min_edge_length(m_edge_length);
     
-    set_dsc_boundary_layer();
+//    set_dsc_boundary_layer();
     _seg._dsc = &*dsc;
-//    _seg.threshold_init_probability();
-    _seg.estimate_time_step();
-
+//    _seg.estimate_time_step();
+//    _seg.pad_boundary(4);
 
     std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
     << dsc->get_no_tets() << " tets" << endl;
@@ -405,6 +404,11 @@ void UI::set_dsc_boundary_layer()
     
 }
 
+void UI::pad_boundary(double scale)
+{
+
+}
+
 void UI::load_model(const std::string& file_name)
 {
     std::cout << "\nLoading " << file_name << std::endl;
@@ -413,6 +417,16 @@ void UI::load_model(const std::string& file_name)
     std::vector<int>  tets;
     std::vector<int>  tet_labels;
     is_mesh::import_tet_mesh(file_name, points, tets, tet_labels);
+    
+    for(int i = 0; i < tet_labels.size(); i++)
+    {
+        int l = tet_labels[i];
+        if(l == BOUND_LABEL)
+            l = 0;
+        else
+            l++;
+        tet_labels[i] = l;
+    }
     
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
     
@@ -803,8 +817,40 @@ void UI::display()
 
     if (glut_menu::get_state("Debug", 0))
     {
-        std::vector<int> tet_list = {126,321,322};
-        draw_helper::draw_tet_list(*dsc, tet_list);
+        // Draw incorect interface
+        static is_mesh::SimplexSet<is_mesh::FaceKey> wrong_face;
+        if(wrong_face.size()== 0)
+        {
+            for(auto tit = dsc->tetrahedra_begin(); tit != dsc->tetrahedra_end(); tit++)
+            {
+                assert(dsc->exists(tit.key()));
+                // Check faces:
+                auto faces = dsc->get_faces(tit.key());
+                assert(faces.size() == 4);
+                for (auto f : faces) {
+                    assert(dsc->exists(f));
+                    auto cotets = dsc->get_tets(f);
+                    int labels[2] = {dsc->get_label(cotets[0]), dsc->get_label(cotets[1])};
+                    if((dsc->get(f).is_boundary() && cotets.size() == 2) || (!dsc->get(f).is_boundary() && cotets.size() == 1)
+                       )
+                    {
+                        wrong_face += f;
+                        goto OUT;
+                    }
+                }
+            }
+        OUT:
+            cout << endl << wrong_face.size() << " invalid faces" << endl;
+        }
+        glColor3f(1, 0, 0);
+        glBegin(GL_TRIANGLES);
+        for(auto f : wrong_face)
+        {
+            for( auto pos : dsc->get_pos(dsc->get_nodes(f)))
+                glVertex3dv(pos.get());
+            
+        }
+        glEnd();
     }
   
     glutSwapBuffers();
@@ -867,7 +913,7 @@ void UI::keyboard(unsigned char key, int x, int y) {
             save_model();
             break;
         case 'i':
-            export_segment();
+            dsc->validity_check();
             break;
         case 'l':
         {
@@ -896,6 +942,9 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case 'z':
             dsc->adapt();
+            break;
+        case 'd':
+            dsc->deform();
             break;
         default:
             break;

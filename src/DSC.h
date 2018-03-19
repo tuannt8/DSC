@@ -518,7 +518,7 @@ namespace DSC {
                 }
                 assert(!isnan(min_tet_quality));
                     
-                std::cout << min_tet_quality << std::endl;
+//                std::cout << min_tet_quality << std::endl;
                     
                 if (min_tet_quality < pars.MIN_TET_QUALITY)
                 {

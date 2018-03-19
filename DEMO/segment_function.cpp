@@ -35,6 +35,7 @@ using namespace std;
 std::bitset<4> X_direction("0001");
 std::bitset<4> Y_direction("0010");
 std::bitset<4> Z_direction("0100");
+std::vector<std::bitset<4>> direction_st = {std::bitset<4>("0001"), std::bitset<4>("0010"), std::bitset<4>("0100")};
 
 inline std::bitset<4> get_direction(vec3 a)
 {
@@ -61,6 +62,12 @@ inline std::bitset<4> get_direction(vec3 a)
     
     return d;
 }
+
+#define algin_pos(idx) \
+if(std::abs(pos[idx]) < threshold) \
+destination[idx] = 0; \
+if(std::abs(pos[idx] - (domain_dim[idx]-1)) <threshold) \
+destination[idx] = domain_dim[idx] - 1; \
 
 void segment_function::init()
 {
@@ -381,11 +388,7 @@ void segment_function::update_vertex_stability()
     }
 }
 
-#define algin_pos(idx) \
-    if(std::abs(pos[idx]) < threshold) \
-        destination[idx] = 0; \
-    if(std::abs(pos[idx] - (domain_dim[idx]-1)) <threshold) \
-        destination[idx] = domain_dim[idx] - 1; \
+
 
 void segment_function::snapp_boundary(){
     auto node_mem_size = _dsc->get_no_nodes_buffer();
@@ -1721,9 +1724,10 @@ void segment_function::adapt_surface()
 {
 #ifdef DSC_CACHE
     long nb_collasped = 0;
+    long nb_collasped_force = 0;
     for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
     {
-        if (_dsc->exists(nit.key()) && nit->is_interface() && !nit->is_crossing())
+        if (_dsc->exists(nit.key()) && nit->is_interface() && !nit->is_crossing() && !nit->is_boundary())
         {
             // Compute curvature
             is_mesh::SimplexSet<is_mesh::FaceKey> neighbor_faces;
@@ -1786,7 +1790,7 @@ void segment_function::adapt_surface()
                                                std::abs(Util::quality<real>(f_pos[0], f_pos[1], f_pos[2], new_pos)));
                 }
                 
-                std::cout << min_tet_quality << std::endl;
+//                std::cout << min_tet_quality << std::endl;
                 
                 if (min_tet_quality < _dsc->pars.MIN_TET_QUALITY)
                 {
@@ -1797,15 +1801,66 @@ void segment_function::adapt_surface()
 //                    _dsc->collapse_cache(shortest_edge, nid0, 0);
                     if(_dsc->collapse(shortest_edge, true))
                         nb_collasped++;
+                    else{
+                        _dsc->collapse(shortest_edge, false);
+                        nb_collasped_force ++;
+                    }
                 }
             }
         }
     }
-    cout << nb_collasped << " collapsed\n";
+    cout << nb_collasped << " collapsed; " << nb_collasped_force << " forced" << endl;
     _dsc->garbage_collect();
 #else
     assert(0); // Implement non cache code
 #endif
+}
+
+#define align_bound_gap(idx) \
+if(pos[idx] < 0) pos[idx] = origin[idx]; \
+if(pos[idx] > im_bound[idx]) pos[idx] = bound[idx];
+void segment_function::pad_boundary(double scale)
+{
+    double gap = _dsc->get_avg_edge_length()*scale;
+    vec3 origin = vec3(0.) - vec3(gap);
+    vec3 im_bound = vec3(m_prob_img.m_dimension);
+    vec3 bound = vec3(m_prob_img.m_dimension) + vec3(gap);
+    
+    std::vector<std::bitset<4>> direction_state(_dsc->get_no_nodes_buffer(),std::bitset<4>("0000"));
+    for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
+    {
+        if (fit->is_boundary())
+        {
+            auto norm = _dsc->get_normal(fit.key());
+            
+            auto direct = get_direction(norm);
+            for(auto n : _dsc->get_nodes(fit.key()))
+            {
+                direction_state[n] = direction_state[n] | direct;
+            }
+        }
+    }
+ 
+    for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
+    {
+        if (nit->is_boundary())
+        {
+            auto direct = direction_state[nit.key()];
+            auto pos = nit->get_pos();
+            if ((direct & X_direction).to_ulong() != 0) // constraint on x
+            {
+                align_bound_gap(0);
+            }
+            if ((direct & Y_direction).to_ulong() != 0){ // constraint on y
+                align_bound_gap(1);
+            }
+            if ((direct & Z_direction).to_ulong() != 0){ // constraint on z
+                align_bound_gap(2);
+            }
+            
+            _dsc->set_pos(nit.key(), pos);
+        }
+    }
 }
 
 void segment_function::segment_probability()

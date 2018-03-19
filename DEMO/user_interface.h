@@ -122,7 +122,9 @@ public:
     
     int phase_draw = 0;//Which phase to draw the interface
     void init_dsc();
+    
     void set_dsc_boundary_layer();
+    void pad_boundary(double scale = 5);
     
     ///////////// Thread
     GLuint m_gl_sence;

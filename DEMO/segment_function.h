@@ -191,6 +191,8 @@ public:
 public: // Adaptation
     void adapt_inside();
     void adapt_surface();
+    
+    void pad_boundary(double scale);
 };
 
 #endif /* segment_function_hpp */
