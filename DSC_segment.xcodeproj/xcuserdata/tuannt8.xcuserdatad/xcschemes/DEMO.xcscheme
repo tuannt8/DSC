@@ -71,6 +71,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-config_file adapt_2.properties"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-config_file square_sin.properties"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

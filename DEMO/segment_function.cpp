@@ -237,7 +237,7 @@ void segment_function::initialization_discrete_opt()
         
         auto v_pos = std::lower_bound(thres_hold_array.begin(), thres_hold_array.end(), mean_inten_tet);
         
-        int label = (v_pos == thres_hold_array.end())? thres_hold_array.size() : int(v_pos - thres_hold_array.begin());
+        int label = (v_pos == thres_hold_array.end())? (int)thres_hold_array.size() : int(v_pos - thres_hold_array.begin());
         
 
         
@@ -336,7 +336,7 @@ void segment_function::update_vertex_stability()
 
 vec3 segment_function::get_node_displacement(is_mesh::NodeKey nkey)
 {
-    return _forces[(long)nkey]*_dt_adapt[nkey];
+    return (_forces[(long)nkey]  + _internal_forces[(long)nkey]*ALPHA)*_dt_adapt[nkey];
 }
 
 inline std::bitset<4> get_direction(vec3 a)
@@ -774,9 +774,9 @@ void segment_function::work_around_on_boundary_vertices()
                 && vcl > EPSILON)
             {
                 auto cosA = Util::dot(vp, vc)/vpl/vcl;
-                if ( cosA < -0.8) // 150o
+                if ( cosA < -0.5) // 150o
                 {
-//                    _dt_adapt[i] /= 2.0;
+//                    _dt_adapt[i] /= 1.3;
                     _dt_adapt[i] = _dt;
                 }
                 if (cosA > 0.5)
@@ -784,8 +784,8 @@ void segment_function::work_around_on_boundary_vertices()
                     _dt_adapt[i] *= 1.05;
                 }
             }
-            
-            if(vcl < EPSILON)
+
+            if(vcl < 0.001)
                 _dt_adapt[i] = _dt;
         }
         else{
@@ -1113,10 +1113,12 @@ void segment_function::compute_internal_force_simple()
                 auto p1 = pts[(i+1)%3];
                 auto p2 = pts[(i+2)%3];
                 
-                auto h = Util::project_point_line(p, p1, p2);
+                auto h = Util::project_point_line(p, p1, p2 - p1);
                 auto n = Util::normalize(p-h);
                 
-                internal_force[nodes[i]] += n*(p2-p1).length();
+                internal_force[nodes[i]] += -n*(p2-p1).length();
+                
+                assert(!isnan(internal_force[nodes[i]].length()));
             }
         }
     }
@@ -1565,11 +1567,12 @@ void segment_function::segment()
     /**
      4. RELABEL TETRAHEDRA
      */
-//    if (iteration % 5 == 0)
-//    {
-////        face_split();
+    if (iteration % 5 == 0)
+    {
+//        face_split();
 //        relabel_tetrahedra();
-//    }
+        
+    }
     
     t.done();
     profile::close();

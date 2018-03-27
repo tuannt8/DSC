@@ -735,7 +735,7 @@ void UI::display()
     
     if(CONTINUOUS)
     {
-        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
+//        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
         _seg.segment();
         m_iters++;
     }
