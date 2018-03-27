@@ -30,6 +30,33 @@ image3d::~image3d()
 {
 
 }
+void image3d::init_raw(int dimension[3])
+{
+    _dim[X] = dimension[X];
+    _dim[Y] = dimension[Y];
+    _dim[Z] = dimension[Z];
+    
+    _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
+}
+void image3d::load_raw(int dimension[3], std::ifstream& f)
+{
+    _dim[X] = dimension[X];
+    _dim[Y] = dimension[Y];
+    _dim[Z] = dimension[Z];
+    
+    _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
+    
+    for (int i = 0; i < _dim[X]; i++)
+    {
+        for (int j = 0; j < _dim[Y]; j++)
+        {
+            for (int k = 0; k < _dim[Z]; k++)
+            {
+                f >> _voxels[index(i,j,k)];
+            }
+        }
+    }
+}
 
 extern int num_images;
 void image3d::load(std::string path)
@@ -77,7 +104,7 @@ void image3d::load(std::string path)
          _dim[Z] = (int)files.size();
          _dim[X] = im.width();
          _dim[Y] = im.height();
-         _layer_size = _dim[X]*_dim[Y];
+//         _layer_size = _dim[X]*_dim[Y];
     
          _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
     
@@ -324,7 +351,9 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
 
     if(dis < 0)dis = 0;
     double total = 0;
-    auto const a = tet_dis_coord[dis];
+    auto const & a = tet_dis_coord[dis];
+    
+    
 
     for (auto tb : a)
     {
@@ -347,6 +376,28 @@ double image3d::get_tetra_intensity(std::vector<vec3> tet_points, double * total
     return total / v;
 }
 
+double image3d::get_energy(std::vector<vec3> tet_points, double c)
+{
+    double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);
+    
+    
+    long dis = std::upper_bound(dis_coord_size.begin(), dis_coord_size.end(), v) - dis_coord_size.begin() - 1;
+    if(dis < 0) dis = 0;
+    
+    double total = 0;
+    auto const a = tet_dis_coord[dis];
+    
+    for (auto tb : a)
+    {
+        auto pt = get_coord(tet_points, tb);
+        total += (get_value(pt[0], pt[1], pt[2]) - c)*(get_value(pt[0], pt[1], pt[2]) - c);
+    }
+    
+    total = total * v / a.size();
+    
+    return total;
+}
+
 double image3d::get_variation(std::vector<vec3> tet_points, double c)
 {
     double v = Util::volume<double>(tet_points[0], tet_points[1], tet_points[2], tet_points[3]);
@@ -357,17 +408,16 @@ double image3d::get_variation(std::vector<vec3> tet_points, double c)
 
     double total = 0;
     auto const a = tet_dis_coord[dis];
-
-//    assert(a.size() < v); // The discretization should not be too small
-
+    
     for (auto tb : a)
     {
         auto pt = get_coord(tet_points, tb);
         total += std::abs(get_value(pt[0], pt[1], pt[2]) - c);
     }
 
-    total = total * v / a.size();
-    return total / v;
+    return total;
+//    total = total * v / a.size();
+//    return total / v;
 }
 
 void image3d::get_integral_recur(std::vector<vec3> const & tet_points, int loops, double * total, int deep)
