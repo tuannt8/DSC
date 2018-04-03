@@ -184,7 +184,7 @@ void UI::setup_light()
 
 int num_images;
 
-extern string config_file;
+//extern string config_file;
 
 inline string get_option(std::map<std::string, std::string> & option, string key, bool bAcceptVoid = false)
 {
@@ -218,9 +218,9 @@ if(options.find(k) != options.end()){\
 cout<<"Could not load key: " << k << endl;\
 }
 
-void UI::load_config_file()
-{
-}
+//void UI::load_config_file()
+//{
+//}
 
 void UI::update_draw_list()
 {
@@ -231,12 +231,13 @@ UI::UI()
     init_data();
 }
 
-    extern std::string config_file;
+//    extern std::string config_file;
 
 void UI::init_data()
 {
     // Load cross sections
     _seg.init();
+    
 #ifdef INTENSITY_IMAGE
     _obj_dim = _seg._img.dimension_v();
 #else
@@ -249,15 +250,16 @@ void UI::init_data()
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
     // Generate DSC
-//    init_dsc();
-    load_model("/Users/tuannt8/Desktop/5_5.dsc");
+    init_dsc();
+//    load_model("/Users/tuannt8/Desktop/5_5.dsc");
     
     dsc->set_min_edge_length(m_edge_length);
     
-//    set_dsc_boundary_layer();
+    set_dsc_boundary_layer();
+    
     _seg._dsc = &*dsc;
+    _seg.initialization_discrete_opt();
 //    _seg.estimate_time_step();
-//    _seg.pad_boundary(4);
 
     std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
     << dsc->get_no_tets() << " tets" << endl;
@@ -349,7 +351,7 @@ UI::UI(InputParser p)
     else{
         for(int i = 0; i < _seg.num_iter; i++)
         {
-            _seg.segment_probability();
+            _seg.segment();
             if(i%20==0)
                 save_model(output_path + "/iter_" + std::to_string(i) + ".dsc");
         }
@@ -400,6 +402,7 @@ UI::UI(int &argc, char** argv)
 // Label the gap between DSC boundary and image boundary to BOUND_LABEL (999)
 void UI::set_dsc_boundary_layer()
 {
+    std::vector<bool> is_tet_bound(dsc->get_no_tets_buffer(), false);
     for (auto nit =dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
     {
         if(nit->is_boundary())
@@ -407,13 +410,17 @@ void UI::set_dsc_boundary_layer()
             auto tets = dsc->get_tets(nit.key());
             for (auto t : tets)
             {
-                dsc->set_label(t, BOUND_LABEL);
+                is_tet_bound[t] = true;
             }
         }
     }
-    
-    // Padding the boundary, for adaptive mesh
-    
+    for(auto tit = dsc->tetrahedra_begin(); tit != dsc->tetrahedra_end(); tit++)
+    {
+        if (!is_tet_bound[tit.key()])
+        {
+            dsc->set_label(tit.key(), 1);
+        }
+    }
 }
 
 void UI::pad_boundary(double scale)
@@ -705,7 +712,7 @@ void UI::display()
     
     if (glut_menu::get_state("Surface curvature", 0))
     {
-        draw_helper::draw_curvature(*dsc, _seg._mean_curvature_of_each_hat, phase_draw, _seg._mean_curvature_label);
+        draw_helper::draw_curvature(*dsc, _seg._mean_curvature_of_each_hat, phase_draw+1, _seg._mean_curvature_label);
     }
 
     if (glut_menu::get_state("Transparent surface", 0))
@@ -745,7 +752,7 @@ void UI::display()
 //        glDisable(GL_CULL_FACE);
         glDisable(GL_LIGHTING);
         glColor3f(0.5, 0.3, 1.0);
-        draw_helper::dsc_draw_one_interface_edge(*dsc, phase_draw);
+        draw_helper::dsc_draw_one_interface_edge(*dsc, phase_draw+1);
     }
 
     if (glut_menu::get_state("Draw DSC single interface", 0))
@@ -755,7 +762,7 @@ void UI::display()
 //        glEnable(GL_BLEND);
 //        glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glColor4f(0.7, 0.7, 0.7, 1.0);
-        draw_helper::dsc_draw_one_interface(*dsc, phase_draw);
+        draw_helper::dsc_draw_one_interface(*dsc, phase_draw+1);
         glDisable(GL_BLEND);
     }
 
@@ -823,7 +830,7 @@ void UI::display()
 
     if (glut_menu::get_state("Interface Vertices indices", 0))
     {
-        draw_helper::draw_dsc_interface_vertices_indices(*dsc, phase_draw);
+        draw_helper::draw_dsc_interface_vertices_indices(*dsc, phase_draw+1);
     }
 
     if (glut_menu::get_state("Tets indices", 0))
@@ -879,13 +886,7 @@ void UI::display()
     
     if(CONTINUOUS)
     {
-//        draw_helper::save_painting(WIN_SIZE_X, WIN_SIZE_Y);
-        _seg.segment_probability();
-        
-//        if(m_iters % 20 ==0)
-//        {
-//            save_model(output_path + "/iter_" + std::to_string(m_iters) + ".dsc");
-//        }
+        _seg.segment();
         
         if (m_iters > _seg.num_iter)
         {
@@ -933,18 +934,13 @@ void UI::keyboard(unsigned char key, int x, int y) {
             break;
         case 'l':
         {
-            extern std::string config_file;
-            std::string file_name = std::string("./LOG/") + config_file.substr(0, config_file.size() - 11)
-            + std::string(".dsc");
-            load_model(file_name);
-            _seg._dsc = &*dsc;
         }
             break;
         case 'p':// Display time counter
             profile::close();
             break;
         case 'v':// Change surface type
-            phase_draw = (phase_draw+1) % 6;
+            phase_draw = (phase_draw+1) % _seg.NB_PHASE;
             break;
         case 'u':
 //            draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);

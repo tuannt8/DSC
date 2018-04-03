@@ -66,20 +66,16 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-config_file cement.properties"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-config_file adapt_2.properties"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-config_file square_sin.properties"
+            argument = "-edge-length 7"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-config_file square_round_arg.properties"
-            isEnabled = "NO">
+            argument = "-alpha 0.1"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-nb-phase 3"
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
       <AdditionalOptions>
