@@ -141,7 +141,7 @@ public:
     // Adaptive time step
     std::vector<vec3> _previous_dis;
     std::vector<vec3> _cur_dis;
-//    std::vector<double> _dt_adapt;
+    std::vector<double> _dt_adapt;
     
     void remove_stable_proximity(std::vector<std::vector<double>> & barry_coord, const is_mesh::SimplexSet<is_mesh::NodeKey> & nodes);
     vec3 get_node_displacement(is_mesh::NodeKey nkey);

@@ -275,6 +275,7 @@ UI::UI(InputParser p)
     _seg.NB_PHASE = stoi(p.getCmdOption("-nb-phase", "5"));
     _seg.m_alpha = stof(p.getCmdOption("-alpha", "0.01"));
     _seg.m_max_dis = stof(p.getCmdOption("-max-dis", "0.3"));
+    _seg._directory_path = p.getCmdOption("-data-path", "../Large_data/square_round");
     m_edge_length = stof(p.getCmdOption("-edge-length", "20"));
     
     if (p.cmdOptionExists("-log-path"))

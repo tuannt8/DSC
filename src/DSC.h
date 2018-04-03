@@ -225,8 +225,6 @@ namespace DSC {
             {
                 cache.edge_adapted[ek] = new bool(true);
             }
-//            if(!cache.edge_adapted[ek])
-//                return false;
             
             return cache.edge_adapted[ek];
         }
@@ -464,7 +462,9 @@ namespace DSC {
                 
                 auto eid = eit.key();
                 
-                if(!exists(eid) || is_edge_adapted(eid))
+                if(!exists(eid)
+                   || is_edge_adapted(eid)
+                   )
                     continue;
                 
                 // Check collapsable
@@ -517,8 +517,6 @@ namespace DSC {
                     assert(min_tet_quality < 100);
                 }
                 assert(!isnan(min_tet_quality));
-                    
-//                std::cout << min_tet_quality << std::endl;
                     
                 if (min_tet_quality < pars.MIN_TET_QUALITY)
                 {
@@ -3032,39 +3030,8 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
             
             if(q_max > EPSILON)
             {
-                //                t.change("collapse e - check shoudl collapse");
-                
                 if(!safe || q_max > Util::min(min_quality(get_tets(nids[0]) + get_tets(nids[1])), pars.MIN_TET_QUALITY) + EPSILON)
                 {
-//#ifdef DSC_CACHE // collapse edge
-//                    //                    t.change("collapse e - cache overhead");
-//
-//                    auto tets = get_tets(get_nodes(eid));
-//
-//                    for (auto tkey : tets)
-//                    {
-//                        cache.mark_dirty(tkey, true);
-//                    }
-//
-//                    auto faces = get_faces(tets);
-//                    for (auto fk : faces)
-//                    {
-//                        cache.mark_dirty(fk, true);
-//                    }
-//
-//                    auto edges = get_edges(faces);
-//                    for (auto ek : edges)
-//                    {
-//                        cache.mark_dirty(ek, true);
-//                    }
-//
-//                    auto dnodes = get_nodes(edges);
-//                    for(auto nk : dnodes)
-//                    {
-//                        cache.mark_dirty(nk, true);
-//                    }
-//#endif
-                    
                     collapse_cache(eid, nids[1], weight);
                     return true;
                 }

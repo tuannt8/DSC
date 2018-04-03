@@ -82,13 +82,13 @@ destination[idx] = domain_dim[idx] - 1; \
 void segment_function::init()
 {
 #ifdef INTENSITY_IMAGE
-    _img.load("../Large_data/square_round");
-    #else
-#if defined(__APPLE__) || defined(_WIN32)
-    m_prob_img.load("../Large_data/Camilla/P_map.txt");
+    _img.load(_directory_path);
 #else
-    m_prob_img.load("../../Large_data/Camilla/P_map.txt");
-#endif
+    #if defined(__APPLE__) || defined(_WIN32)
+        m_prob_img.load("../Large_data/Camilla/P_map.txt");
+    #else
+        m_prob_img.load("../../Large_data/Camilla/P_map.txt");
+    #endif
     cout << "Done loading " << _directory_path << endl;
 #endif
 }
@@ -387,6 +387,7 @@ void segment_function::update_vertex_stability()
 
 
 void segment_function::snapp_boundary(){
+    // work around boundary
     auto node_mem_size = _dsc->get_no_nodes_buffer();
     std::vector<unsigned int> is_bound_vertex(node_mem_size,0);
     std::vector<std::bitset<4>> direction_state(node_mem_size,std::bitset<4>("0000"));
@@ -447,7 +448,6 @@ void segment_function::snapp_boundary(){
                 max_dis = max(max_dis, (destination - pos).length());
             
             node_displacement[nid.key()] = destination - pos;
-//            _dsc->set_destination(nid.key(), destination);
         }
     }
     
@@ -462,9 +462,46 @@ void segment_function::snapp_boundary(){
         cout << "time step adapt to " << _dt << "; max displace " << max_dis * scale << endl;
     }
 
+    _previous_dis.resize(_dsc->get_no_nodes_buffer(), vec3(0));
+    _cur_dis.resize(_dsc->get_no_nodes_buffer(), vec3(0));
+    _dt_adapt.resize(_dsc->get_no_nodes_buffer(), 1.0);
     for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
     {
-        _dsc->set_destination(nit.key(), nit->get_pos() + node_displacement[nit.key()]*scale);
+        _dsc->set_destination(nit.key(), nit->get_pos() + node_displacement[nit.key()]*scale*_dt_adapt[nit.key()]);
+        
+        _cur_dis[nit.key()] = node_displacement[nit.key()];
+    }
+    
+    for (int i = 0; i < _dt_adapt.size(); i++)
+    {
+        is_mesh::NodeKey nk(i);
+        if (_dsc->exists(nk) && _dsc->get(nk).is_interface() && !m_vertex_bound[i])
+        {
+            static double thres_dis = _dsc->get_avg_edge_length()*0.5*0.05;
+            static double thres_minus = cos(M_PI/180.0 * 150);
+            static double thres_positive = cos(M_PI/180.0 * 30);
+            
+            if (_cur_dis[i].length() > 0.0001)
+            {
+                if(!_dsc->cache.is_clean[i])
+                {
+                    _dsc->cache.is_clean[i] = new bool(true);
+                    _dt_adapt[i] = 1.0;
+                }
+                
+                _cur_dis[i].normalize();
+                
+                auto cos_sign = Util::dot(_cur_dis[i], _previous_dis[i]);
+                
+                if(cos_sign < thres_minus)
+                    _dt_adapt[i] = max(_dt_adapt[i]*0.9, 0.1);
+                if(cos_sign > thres_positive)
+                    _dt_adapt[i] = min(_dt_adapt[i]*1.1, 2.0);
+                
+                
+                _previous_dis[i] = _cur_dis[i];
+            }
+        }
     }
 }
 
@@ -1685,93 +1722,155 @@ void segment_function::estimate_time_step()
 
 void segment_function::adapt_surface()
 {
+    
+    
 #ifdef DSC_CACHE
     long nb_collasped = 0;
     long nb_collasped_force = 0;
     for (auto nit = _dsc->nodes_begin(); nit != _dsc->nodes_end(); nit++)
     {
-        if (_dsc->exists(nit.key()) && nit->is_interface() && !nit->is_crossing() && !nit->is_boundary())
+        if (!(_dsc->exists(nit.key()) && !nit->is_crossing()
+              && (nit->is_interface() || nit->is_boundary())))
         {
-            // Compute curvature
-            is_mesh::SimplexSet<is_mesh::FaceKey> neighbor_faces;
-            std::vector<vec3> norm_faces;
-            for(auto f : *_dsc->get_faces_cache(nit.key()))
+            continue;
+        }
+        
+        // Precompute face normal
+        is_mesh::SimplexSet<is_mesh::FaceKey> neighbor_faces;
+        std::vector<vec3> norm_faces;
+        map<is_mesh::EdgeKey,vector<vec3>> edge_cobound_norm;
+        for(auto f : *_dsc->get_faces_cache(nit.key()))
+        {
+            if (_dsc->get(f).is_interface() || _dsc->get(f).is_boundary())
             {
-                if (_dsc->get(f).is_interface())
-                {
-                    neighbor_faces += f;
-                    norm_faces.push_back(_dsc->get_normal(f));
-                }
-            }
-            
-            // Check if the surface is flat
-            static double cos_flat = cos(88.*M_PI/180.); // Threshold of flat surface
-            double cos_max_angle = 1;
-            for (int i = 0; i < norm_faces.size(); i++)
-            {
-                for (int j = 0; j < norm_faces.size(); j++)
-                {
-                    double cc = Util::dot(norm_faces[i], norm_faces[j]);
-                    cos_max_angle = min(cos_max_angle, cc);
-                }
-            }
-            
-            if (cos_max_angle > cos_flat)
-            {
-                is_mesh::SimplexSet<is_mesh::EdgeKey> ring_edge, cobound_edge;
-                for(auto e : _dsc->get_edges(neighbor_faces))
-                {
-                    auto nodes = _dsc->get_nodes(e);
-                    if (nodes[0] == nit.key() || nodes[1] == nit.key())
-                    {
-                        cobound_edge += e;
-                    }else{
-                        ring_edge += e;
-                    }
-                }
+                neighbor_faces += f;
+                norm_faces.push_back(_dsc->get_normal(f));
                 
-                // find shortest edges
-                auto shortest_edge =  _dsc->shortest_edge(cobound_edge);
-                auto colapse_node =_dsc->get_nodes(shortest_edge) - nit.key();
-                assert(colapse_node.size()==1); // Hold only the opposite node of nit
-                vec3 new_pos = _dsc->get_pos(colapse_node[0]);
-                auto nid0 = colapse_node[0];
-                
-                // Check quality
-                double min_tet_quality = INFINITY;
-                auto face_link = _dsc->get_link(nit.key());
-                for(auto fid : *face_link)
+                for (auto e : _dsc->get_edges(f))
                 {
-                    auto f_pts = *_dsc->get_nodes_cache(fid);
-
-                    // The nid0 belong to the triangle
-                    if(nid0 == f_pts[0] || nid0 == f_pts[1]  || nid0 == f_pts[2])
-                        continue;
-                    
-                    auto f_pos = _dsc->get_pos(f_pts);
-                    min_tet_quality = std::min(min_tet_quality,
-                                               std::abs(Util::quality<real>(f_pos[0], f_pos[1], f_pos[2], new_pos)));
-                }
-                
-//                std::cout << min_tet_quality << std::endl;
-                
-                if (min_tet_quality < _dsc->pars.MIN_TET_QUALITY)
-                {
-                    _dsc->is_edge_adapted(shortest_edge, true);
-                }
-                else
-                {
-//                    _dsc->collapse_cache(shortest_edge, nid0, 0);
-                    if(_dsc->collapse(shortest_edge, true))
-                        nb_collasped++;
-                    else{
-                        _dsc->collapse(shortest_edge, false);
-                        nb_collasped_force ++;
-                    }
+                    edge_cobound_norm[e].push_back(norm_faces.front());
                 }
             }
         }
+        
+        // Surface flateness
+        static double cos_flat = cos(88.*M_PI/180.); // Threshold of flat surface
+        double cos_max_angle = 1;
+        for (int i = 0; i < norm_faces.size(); i++)
+        {
+            for (int j = 0; j < norm_faces.size(); j++)
+            {
+                double cc = Util::dot(norm_faces[i], norm_faces[j]);
+                cos_max_angle = min(cos_max_angle, cc);
+            }
+        }
+        bool is_flat = cos_max_angle < cos_flat;
+        
+        is_mesh::SimplexSet<is_mesh::EdgeKey> ring_edge, cobound_edge;
+        for(auto e : _dsc->get_edges(neighbor_faces))
+        {
+            auto nodes = _dsc->get_nodes(e);
+            if (nodes[0] == nit.key() || nodes[1] == nit.key())
+            {
+                cobound_edge += e;
+            }else{
+                ring_edge += e;
+            }
+        }
+        
+        is_mesh::SimplexSet<is_mesh::EdgeKey> colapse_candidate_edge;
+        if (is_flat)
+        {
+            colapse_candidate_edge = cobound_edge;
+        }
+        else if(nit->is_boundary() || m_vertex_bound[nit.key()])
+        {
+            for (auto e : cobound_edge)
+            {
+                auto e_norm = edge_cobound_norm[e];
+                assert(e_norm.size() == 2);
+                if (Util::dot(e_norm[0], e_norm[1]) < 0.1)
+                {
+                    // edge
+                    colapse_candidate_edge.push_back(e);
+                }
+            }
+
+            if (colapse_candidate_edge.size() != 2)
+            {
+                continue;
+            }
+        }
+        else
+        {
+            continue;
+        }
+
+        assert(colapse_candidate_edge.size() > 1);
+        
+        // find shortest edges
+        auto shortest_edge =  _dsc->shortest_edge(colapse_candidate_edge);
+        auto colapse_node =_dsc->get_nodes(shortest_edge) - nit.key();
+        assert(colapse_node.size()==1); // Hold only the opposite node of nit
+        auto new_pos = _dsc->get_pos(colapse_node[0]);
+        auto nid0 = colapse_node[0];
+
+        // Check quality
+        double min_tet_quality = INFINITY;
+        auto face_link = _dsc->get_link(nit.key());
+        for(auto fid : *face_link)
+        {
+            auto f_pts = *_dsc->get_nodes_cache(fid);
+
+            // The nid0 belong to the triangle
+            if(nid0 == f_pts[0] || nid0 == f_pts[1]  || nid0 == f_pts[2])
+                continue;
+            
+            auto f_pos = _dsc->get_pos(f_pts);
+            min_tet_quality = std::min(min_tet_quality,
+                                       std::abs(Util::quality<real>(f_pos[0], f_pos[1], f_pos[2], new_pos)));
+        }
+        
+        
+        if (min_tet_quality < _dsc->pars.MIN_TET_QUALITY)
+        {
+            _dsc->is_edge_adapted(shortest_edge, true);
+        }
+        else
+        {
+            // 3. If improve mesh quality, check mumford-shah energy
+            //   Should also consider the MS energy?
+            if(!(m_vertex_bound[nit.key()] || nit->is_boundary()))
+            {
+                if(_dsc->collapse(shortest_edge, true))
+                    nb_collasped++;
+                else{
+                    _dsc->collapse(shortest_edge, false);
+                    nb_collasped_force ++;
+                }
+                continue;
+                for(auto f : neighbor_faces)
+                {
+                    
+                }
+            }
+            else{
+            _dsc->collapse_cache(shortest_edge, nid0, 0.);
+
+
+//            if(_dsc->collapse(shortest_edge, true))
+//                nb_collasped++;
+//            else{
+//                _dsc->collapse(shortest_edge, false);
+//                nb_collasped_force ++;
+//            }
+            }
+        }
     }
+    
+    
+    
+    
     cout << nb_collasped << " collapsed; " << nb_collasped_force << " forced" << endl;
     _dsc->garbage_collect();
 #else
@@ -1924,6 +2023,10 @@ void segment_function::segment()
     {
         update_average_intensity();
         relabel_tetrahedra();
+        
+        update_vertex_boundary();
+        _dsc->adapt();
+        adapt_surface();
     }
     
     iter ++;
