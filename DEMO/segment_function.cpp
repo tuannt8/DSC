@@ -496,7 +496,7 @@ void segment_function::snapp_boundary(){
                 if(cos_sign < thres_minus)
                     _dt_adapt[i] = max(_dt_adapt[i]*0.9, 0.1);
                 if(cos_sign > thres_positive)
-                    _dt_adapt[i] = min(_dt_adapt[i]*1.1, 2.0);
+                    _dt_adapt[i] = min(_dt_adapt[i]*1.1, 3.0);
                 
                 
                 _previous_dis[i] = _cur_dis[i];
@@ -507,7 +507,6 @@ void segment_function::snapp_boundary(){
 
 vec3 segment_function::get_node_displacement(is_mesh::NodeKey nkey)
 {
-//    return _forces[(long)nkey]*_dt;
     return (_forces[(long)nkey]  + m_alpha*_internal_forces[(long)nkey])*_dt;
 }
 
@@ -551,7 +550,7 @@ double segment_function::get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, in
     auto nodes_pos = _dsc->get_pos(_dsc->get_nodes(tkey));
 #endif
     auto old_label = _dsc->get_label(tkey);
-    auto energy = _img.get_variation(nodes_pos, _mean_intensities[assumed_label]);
+    auto energy = _img.get_variation(nodes_pos, _mean_intensities[assumed_label-1]);
     for (auto fid : _dsc->get_faces(tkey))
     {
         auto cobound_tets = _dsc->get_tets(fid); // We assume that this face is not DSC boundary, as there is a gap between DSC boundary and the image domain
@@ -798,7 +797,7 @@ void segment_function::relabel_tetrahedra()
             if (smallest_gap > std::abs(mean_inten_tetra - _mean_intensities[i]))
             {
                 smallest_gap =  std::abs(mean_inten_tetra - _mean_intensities[i]);
-                label_of_closest_phase = i;
+                label_of_closest_phase = i+1;
             }
         }
 
@@ -809,7 +808,7 @@ void segment_function::relabel_tetrahedra()
             auto new_energy = get_energy_tetrahedron(tid.key(), label_of_closest_phase);
 
             if (new_energy < old_energy)                {
-                _dsc->set_label(tid.key(), label_of_closest_phase+1);
+                _dsc->set_label(tid.key(), label_of_closest_phase);
             }
         }
     }
@@ -1855,15 +1854,17 @@ void segment_function::adapt_surface()
                 }
             }
             else{
-            _dsc->collapse_cache(shortest_edge, nid0, 0.);
+//            _dsc->collapse_cache(shortest_edge, nid0, 0.);
 
 
-//            if(_dsc->collapse(shortest_edge, true))
-//                nb_collasped++;
-//            else{
-//                _dsc->collapse(shortest_edge, false);
-//                nb_collasped_force ++;
-//            }
+            if(_dsc->collapse(shortest_edge, true))
+                nb_collasped++;
+            else{
+                if(_dsc->collapse(shortest_edge, false))
+                    nb_collasped_force ++;
+//               else if(nit->is_boundary())
+//                   _dsc->collapse_cache(shortest_edge, nid0, 0.);
+            }
             }
         }
     }
@@ -2019,14 +2020,20 @@ void segment_function::segment()
     
     _dsc->deform();
     
-    if ( (iter % 10) == 0)
+    if ( (iter % 20) == 0)
     {
+//        for(static int dd=0; dd<1;dd++)
+        {
         update_average_intensity();
         relabel_tetrahedra();
+        }
         
+        
+        {
         update_vertex_boundary();
         _dsc->adapt();
         adapt_surface();
+        }
     }
     
     iter ++;

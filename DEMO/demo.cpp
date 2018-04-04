@@ -19,20 +19,17 @@
 #include "InputParser.h"
 
 using namespace std;
+double noise_level;
 
 //// Flag: Use original DSC in build table function
 //// We have improved the build_table function. It has better performance
 ////  but sometimes run incorrectly. At this moment, just use the old function.
 bool arg_b_build_table_origin = true;
 
-
-//string config_file = "cinema.properties";
-
-
-
 int main(int argc, char** argv)
 {
     InputParser p(argc, argv);
+    noise_level = atof( p.getCmdOption("-noise", "0").c_str());
 
     UI ui(p);
     

@@ -19,6 +19,7 @@
 #include <dirent.h>
 
 using namespace std;
+extern double noise_level;
 
 
 image3d::image3d()
@@ -104,7 +105,6 @@ void image3d::load(std::string path)
          _dim[Z] = (int)files.size();
          _dim[X] = im.width();
          _dim[Y] = im.height();
-//         _layer_size = _dim[X]*_dim[Y];
     
          _voxels.resize(_dim[X]*_dim[Y]*_dim[Z]);
     
@@ -113,14 +113,18 @@ void image3d::load(std::string path)
          {
              cimg_byte im;
              im.load(files[i].c_str());
+
+             if (noise_level > 0)
+             {
+                 im.noise(noise_level, 2);
+             }
+             
     
              for (int j = 0; j < im.height(); j++)
                  for(int i = 0; i < im.width(); i++)
                  {
-                     double aa = (double)im(i,j);
                      _voxels[idx++] = (double)im(i,j)/255.0;
-                     assert(_voxels[idx-1] < 1.01 and _voxels[idx-1] >= 0);
-    
+//                     assert(_voxels[idx-1] < 1.01 and _voxels[idx-1] >= 0);
                  }
 
          }
@@ -478,7 +482,7 @@ double image3d::get_value(const int x, const int y, const int z) const
            && x < _dim[0] && y < _dim[1] && z < _dim[2])
     {
         double f = _voxels[index(x,y,z)];
-        assert(f < 1.01 and f >= 0);
+//        assert(f < 1.01 and f >= 0);
         return f;
     }
 

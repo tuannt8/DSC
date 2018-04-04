@@ -288,12 +288,17 @@ void draw_helper::dsc_draw_face_norm(dsc_class & dsc)
 void draw_helper::dsc_draw_interface_edge(dsc_class & dsc)
 {
 
-    glColor3f(0, 0, 1);
+    
     glBegin(GL_LINES);
     for (auto eit = dsc.edges_begin(); eit != dsc.edges_end(); eit++)
     {
         if (eit->is_interface())
         {
+            glColor3f(0, 0, 1);
+            if (eit->is_crossing())
+            {
+                glColor3f(1, 0, 0);
+            }
             auto pos = dsc.get_pos(dsc.get_nodes(eit.key()));
             glVertex3dv(pos[0].get());
             glVertex3dv(pos[1].get());
