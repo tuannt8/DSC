@@ -1,0 +1,5 @@
+-edge-length 4 
+-data-path ../Large_data/fuel_cells_smaller
+-alpha 0.1 
+-nb-phase 3
+-log-path ./LOG/fuel_cell_

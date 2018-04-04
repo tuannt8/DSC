@@ -1,0 +1,5 @@
+-edge-length 4 
+-noise 5 
+-data-path ../Large_data/square_round_2 
+-alpha 0.1 
+-nb-phase 3

@@ -889,6 +889,11 @@ void UI::display()
     {
         _seg.segment();
         
+        if (m_iters %20 ==0)
+        {
+            save_model(output_path + "/iter_" + std::to_string(m_iters) + ".dsc");
+        }
+        
         if (m_iters > _seg.num_iter)
         {
             save_model(output_path +  "/output.dsc");

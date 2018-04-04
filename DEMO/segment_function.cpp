@@ -556,6 +556,7 @@ double segment_function::get_energy_tetrahedron(is_mesh::TetrahedronKey tkey, in
     auto nodes_pos = _dsc->get_pos(_dsc->get_nodes(tkey));
 #endif
     auto old_label = _dsc->get_label(tkey);
+    assert(old_label!= BOUND_LABEL);
     auto energy = _img.get_variation(nodes_pos, _mean_intensities[assumed_label-1]);
     for (auto fid : _dsc->get_faces(tkey))
     {
@@ -2032,6 +2033,7 @@ void segment_function::segment()
     if ( (iter % 20) == 0)
     {
         t.change("Relabel");
+        update_vertex_boundary();
         update_average_intensity();
         relabel_tetrahedra();
         

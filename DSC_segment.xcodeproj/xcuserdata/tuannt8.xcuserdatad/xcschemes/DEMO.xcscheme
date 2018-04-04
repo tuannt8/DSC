@@ -87,6 +87,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "square_round_2.txt"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "fuel_cell.txt"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
