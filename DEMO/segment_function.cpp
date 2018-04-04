@@ -451,10 +451,16 @@ void segment_function::snapp_boundary(){
         }
     }
     
+    static double stop_thres = 0.005*_dsc->get_avg_edge_length() * 0.5;
+    if (max_dis < stop_thres)
+    {
+        cout << "================ DONE ==================" <<endl;
+    }
+    
     // Adapt time step
     cout << "Max displacement; bound: " << max_dis << "; " << max_boundary_dis << endl;
     double scale = 1.0;
-    double max_displacement = _dsc->get_avg_edge_length() * 0.5 * 0.2;
+    double max_displacement = _dsc->get_avg_edge_length() * 0.5 * 0.4;
     if (max_dis > max_displacement)
     {
         scale = max_displacement / max_dis;
@@ -1358,7 +1364,9 @@ void segment_function::compute_external_force()
     // Loop on interface faces
     for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
     {
-        if (fid->is_interface() && !is_boundary(fid.key()))
+        if (fid->is_interface()
+//            && !is_boundary(fid.key())
+            )
         {
             auto tets = _dsc->get_tets(fid.key());
             
@@ -1367,9 +1375,6 @@ void segment_function::compute_external_force()
             
             auto phase0 = _dsc->get_label(tets[0])-1;
             auto phase1 = _dsc->get_label(tets[1])-1;
-            
-            assert(phase0 >= 0 && phase0 < NB_PHASE
-                   && phase1 >= 0 && phase1 < NB_PHASE);
             
             double c0 = phase_intensity(phase0), c1 = phase_intensity(phase1);
             
@@ -2008,35 +2013,208 @@ void segment_function::segment()
     static int iter = 0;
     cout << "Iter " << iter << " ============================" << endl;
     
+    profile t("Compute force");
+    
     update_vertex_boundary();
     
-    update_average_intensity();
+    for (static int i =0; i<1; i++)
+        update_average_intensity();
     
     compute_internal_force_2(); //
     compute_external_force();
     
+    t.change("Work around boundary");
     snapp_boundary();
     
-    
+    t.change("DSC deform");
     _dsc->deform();
     
     if ( (iter % 20) == 0)
     {
-//        for(static int dd=0; dd<1;dd++)
-        {
+        t.change("Relabel");
         update_average_intensity();
         relabel_tetrahedra();
-        }
         
-        
-        {
+        t.change("Adapt");
         update_vertex_boundary();
         _dsc->adapt();
         adapt_surface();
+        
+        t.change("average intensity");
+        update_average_intensity();
+        
+        t.change("Measure energy");
+        compute_energy();
+    }
+    t.done();
+    
+    cout << "------------------------------" <<endl;
+    profile::close();
+    cout << "------------------------------" <<endl;
+    iter ++;
+}
+
+void segment_function::compute_energy()
+{
+    // Using sum table. Much faster than normal loop
+#ifdef LOG_DEBUG
+    cout << "Computing average intensity with" << NB_PHASE << " phases " << endl;
+#endif
+    
+    int nb_phase = NB_PHASE;
+    
+    // 1. Init the buffer for intersection
+    auto dim = _img.dimension();
+    
+    std::vector<ray_z> init_rayz(dim[0] * dim[1]);
+    for (int y = 0; y < dim[1]; y++)
+    {
+        for (int x = 0; x < dim[0]; x ++)
+        {
+            int idx = y*dim[0] + x;
+            init_rayz[idx].x = x;
+            init_rayz[idx].y = y;
         }
     }
     
-    iter ++;
+    vector<std::vector<ray_z>> ray_intersect(nb_phase, init_rayz);
+    
+    // 2. Find intersection with interface
+    for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
+    {
+        if (fid->is_interface() and !fid->is_boundary())
+        {
+            auto tet = _dsc->get_tets(fid.key());
+            auto phase0 = _dsc->get_label(tet[0])-1;
+            auto phase1 = _dsc->get_label(tet[1])-1;
+            
+            // check all z-ray that intersect this triangle
+            auto pts3 = _dsc->get_pos(_dsc->get_nodes(fid.key()));
+            auto pts = pts3;
+            pts[0][2] = 0; pts[1][2] = 0; pts[2][2] = 0;
+            
+            auto n = _dsc->get_normal(fid.key(), tet[0]);
+            bool in_1 = Util::dot(n, vec3(0,0,1)) > 0;
+            
+            vec3 ld, ru;
+            bounding_box(pts, ld, ru);
+            for (int x = std::floor(ld[0]); x < std::round(ru[0]); x++)
+            {
+                for (int y = std::floor(ld[1]); y < std::round(ru[1]); y++)
+                {
+                    if(y < 0 || x < 0
+                       || y >= dim[1] || x >= dim[0])
+                        continue;
+                    
+                    try
+                    {
+                        bool bError;
+                        auto bc = Util::barycentric_coords<double>(vec3(x+0.5, y+0.5, 0), pts[0], pts[1], pts[2], &bError);
+                        
+                        if (bError)
+                        {
+                            continue;
+                        }
+                        
+                        if (bc[0] > -EPSILON && bc[1] > -EPSILON && bc[2] > -EPSILON)
+                        { // inside
+                            auto p = pts3[0]*bc[0] + pts3[1]*bc[1] + pts3[2]*bc[2];
+                            
+                            auto zz = std::nearbyint(p[2]);
+                            
+                            if(phase0 != BOUND_LABEL-1)
+                            {
+                                ray_intersect[phase0][y*dim[0] + x].intersects.push_back(intersect_pt(zz, !in_1));
+                                
+                            }
+                            if(phase1 != BOUND_LABEL-1)
+                            {
+                                ray_intersect[phase1][y*dim[0] + x].intersects.push_back(intersect_pt(zz, in_1));
+                                
+                            }
+                        }
+                    }
+                    catch (std::exception e)
+                    {
+                        
+                    }
+                }
+            }
+        }
+    }
+    
+    // 3. Compute integral
+    _d_rayz.clear();
+    
+    double difference = 0;
+    vector<double> area(nb_phase, 0.0);
+    for (int i = 0; i < nb_phase; i++)
+    {
+        int count = 0;
+        double cc = _mean_intensities[i];
+        
+        for (auto r : ray_intersect[i])
+        {
+            std::vector<intersect_pt> intersect_ps = r.intersects;
+            if (intersect_ps.size() > 1)
+            {
+                std::sort(intersect_ps.begin(), intersect_ps.end(), sort_intersect);
+                
+                // remove identical intersections
+                for (auto p = intersect_ps.begin()+1; p != intersect_ps.end(); p++)
+                {
+                    auto pre = p -1;
+                    if (p->z == pre->z and
+                        p->b_in == pre->b_in)
+                    {
+                        p = intersect_ps.erase(p);
+                        
+                        if(p == intersect_ps.end())
+                        {
+                            break;
+                        }
+                    }
+                }
+                // Now count
+                if (intersect_ps.size() % 2 == 0) // Should be even
+                {
+                    count++;
+                    auto newR = r;
+                    newR.intersects = intersect_ps;
+                    _d_rayz.push_back(newR);
+                    
+                    for (int j = 0; j < intersect_ps.size()/2; j++)
+                    {
+                        int z1 = intersect_ps[2*j].z;
+                        int z2 = intersect_ps[2*j + 1].z;
+                        
+                        if(z1 < 0) z1 = 0;
+                        if(z2 < z1)
+                            z2 = z1;
+                        
+                        area[i] += z2 - z1;
+                        for (int k = z1; k<=z2; k++)
+                        {
+                            difference += std::pow(_img.get_value(r.x, r.y, k) - cc, 2);
+                        }
+                    }
+                }
+                else{}//???
+            }
+        }
+    }
+    
+    update_vertex_boundary();
+    double areaa = 0;
+    for (auto fit = _dsc->faces_begin(); fit != _dsc->faces_end(); fit++)
+    {
+        if (fit->is_interface() && !is_boundary(fit.key()))
+        {
+            areaa += m_alpha * _dsc->area(fit.key());
+        }
+    }
+
+    cout << "=== Energy; area = " << difference << " - " << areaa << endl;
 }
 
 void segment_function::export_surface_mesh()

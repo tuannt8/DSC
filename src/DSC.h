@@ -346,7 +346,7 @@ namespace DSC {
             set_avg_edge_length();
             
             
-            cache.init(this->get_no_faces_buffer()*4);
+            cache.init(this->get_no_faces_buffer()*1.3);
         }
         
         ~DeformableSimplicialComplex()

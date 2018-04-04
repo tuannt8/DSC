@@ -26,9 +26,16 @@ double noise_level;
 ////  but sometimes run incorrectly. At this moment, just use the old function.
 bool arg_b_build_table_origin = true;
 
+
 int main(int argc, char** argv)
 {
-    InputParser p(argc, argv);
+    InputParser p;
+    
+    if(argc != 2)
+        p = InputParser(argc, argv);
+    else
+        p = InputParser(argv[1]);
+    
     noise_level = atof( p.getCmdOption("-noise", "0").c_str());
 
     UI ui(p);

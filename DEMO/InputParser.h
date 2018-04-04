@@ -12,9 +12,26 @@
 
 #include <vector>
 #include <string>
+#include <fstream>
 
 class InputParser{
 public:
+    InputParser(){};
+    InputParser(std::string path)
+    {
+        std::ifstream input;
+        input.open(path);
+        if (input.is_open())
+        {
+            std::string word;
+            while(input >> word)
+            {
+                this->tokens.push_back(word);
+            }
+        }
+        input.close();
+    }
+    
     InputParser (int &argc, char **argv){
         for (int i=1; i < argc; ++i)
             this->tokens.push_back(std::string(argv[i]));

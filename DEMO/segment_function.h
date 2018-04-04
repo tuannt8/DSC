@@ -146,7 +146,14 @@ public:
     void remove_stable_proximity(std::vector<std::vector<double>> & barry_coord, const is_mesh::SimplexSet<is_mesh::NodeKey> & nodes);
     vec3 get_node_displacement(is_mesh::NodeKey nkey);
     
-    inline double phase_intensity(int idx){return _mean_intensities[idx]; }
+    inline double phase_intensity(int idx){
+        if (idx >=0)
+        {
+            return _mean_intensities[idx];
+        }
+        else
+            return -0.3;
+            }
     
     void update_vertex_boundary();
     bool is_boundary(is_mesh::FaceKey);
@@ -160,6 +167,7 @@ public:
     void compute_internal_force_2();
     void compute_external_prob_force();
     void compute_mesh_quality_control_force();
+    void compute_energy();
     
     void work_around_on_boundary_vertices();
     void update_vertex_stability();
