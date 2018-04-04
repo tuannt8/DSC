@@ -72,7 +72,8 @@ void image3d::load(std::string path)
         /* print all the files and directories within directory */
         while ((ent = readdir (dir)) != NULL) {
             std::string filename = ent->d_name;
-            if(filename.size() < 4)
+            if(filename.size() < 4
+               || strcasecmp(filename.substr(0,1).c_str(), ".") == 0)
                 continue;
             
             auto ext = filename.substr(filename.size()-4, filename.size()-1);
