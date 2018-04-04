@@ -276,6 +276,9 @@ UI::UI(InputParser p)
     _seg.m_alpha = stof(p.getCmdOption("-alpha", "0.01"));
     _seg.m_max_dis = stof(p.getCmdOption("-max-dis", "0.3"));
     _seg._directory_path = p.getCmdOption("-data-path", "../Large_data/square_round");
+#ifdef __linux__
+    _seg._directory_path = std::string("../") + _seg._directory_path;
+#endif
     m_edge_length = stof(p.getCmdOption("-edge-length", "20"));
     
     if (p.cmdOptionExists("-log-path"))
