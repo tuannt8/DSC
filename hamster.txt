@@ -1,0 +1,5 @@
+-edge-length 2
+-data-path ../Large_data/hamster
+-alpha 0.05
+-nb-phase 2
+-log-path ./LOG/hamster_2_0.05

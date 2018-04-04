@@ -1,0 +1,5 @@
+-edge-length 3 
+-data-path ../Large_data/Cement
+-alpha 0.01 
+-nb-phase 3
+-log-path ./LOG/cement
