@@ -3,4 +3,3 @@
 -alpha 0.1 
 -nb-phase 3
 -log-path ./LOG/fuel_cell
--no-display

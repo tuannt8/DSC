@@ -238,6 +238,11 @@ void UI::init_data()
     // Load cross sections
     _seg.init();
     
+    bool test = false;
+#ifdef __APPLE__
+    test = false;
+#endif
+    
 #ifdef INTENSITY_IMAGE
     _obj_dim = _seg._img.dimension_v();
 #else
@@ -250,16 +255,22 @@ void UI::init_data()
     gl_dis_max = fmax(_obj_dim[0], fmax(_obj_dim[1], _obj_dim[2]));
     
     // Generate DSC
-    init_dsc();
-//    load_model("/Users/tuannt8/Desktop/5_5.dsc");
+    if(!test)
+        init_dsc();
+    else
+    {
+        load_model(output_path + "/iter_200.dsc");
+        dsc->cache.init(dsc->get_no_faces_buffer()*4);
+    }
     
     dsc->set_min_edge_length(m_edge_length);
     
-    set_dsc_boundary_layer();
+    if(!test)
+        set_dsc_boundary_layer();
     
     _seg._dsc = &*dsc;
-    _seg.initialization_discrete_opt();
-//    _seg.estimate_time_step();
+    if(!test)
+        _seg.initialization_discrete_opt();
 
     std::cout << "Mesh initialized: " << dsc->get_no_nodes() << " nodes; "
     << dsc->get_no_tets() << " tets" << endl;
@@ -355,9 +366,10 @@ UI::UI(InputParser p)
     else{
         for(int i = 0; i < _seg.num_iter; i++)
         {
-            _seg.segment();
             if(i%20==0)
                 save_model(output_path + "/iter_" + std::to_string(i) + ".dsc");
+            
+            _seg.segment();
         }
     }
 }
@@ -441,25 +453,7 @@ void UI::load_model(const std::string& file_name)
     std::vector<int>  tet_labels;
     is_mesh::import_tet_mesh(file_name, points, tets, tet_labels);
     
-//    for(int i = 0; i < tet_labels.size(); i++)
-//    {
-//        int l = tet_labels[i];
-//        if(l == BOUND_LABEL)
-//            l = 0;
-//        else
-//            l++;
-//        tet_labels[i] = l;
-//    }
-    
     dsc = std::unique_ptr<DeformableSimplicialComplex<>>(new DeformableSimplicialComplex<>(points, tets, tet_labels));
-    
-//    vec3 p_min(INFINITY), p_max(-INFINITY);
-//    for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++) {
-//        for (int i = 0; i < 3; i++) {
-//            p_min[i] = Util::min(nit->get_pos()[i], p_min[i]);
-//            p_max[i] = Util::max(nit->get_pos()[i], p_max[i]);
-//        }
-//    }
     
     std::cout << "Loading done" << std::endl << std::endl;
 }
@@ -890,8 +884,6 @@ void UI::display()
     
     if(CONTINUOUS)
     {
-        _seg.segment();
-        
         if (m_iters %20 ==0)
         {
             save_model(output_path + "/iter_" + std::to_string(m_iters) + ".dsc");
@@ -902,6 +894,8 @@ void UI::display()
             save_model(output_path +  "/output.dsc");
             exit(0);
         }
+     
+        _seg.segment();
         
         m_iters++;
     }
@@ -952,8 +946,10 @@ void UI::keyboard(unsigned char key, int x, int y) {
             phase_draw = (phase_draw+1) % _seg.NB_PHASE;
             break;
         case 'u':
-//            draw_helper::update_normal_vector_interface(*dsc, phase_draw, eye_pos);
-            _seg.adapt_surface();
+        {
+            _seg.update_average_intensity();
+            _seg.thickenning_surface();
+        }
             break;
         case 't':
             dsc->deform();

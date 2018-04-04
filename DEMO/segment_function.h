@@ -207,6 +207,7 @@ public:
 public: // Adaptation
     void adapt_inside();
     void adapt_surface();
+    void thickenning_surface();
     
     void pad_boundary(double scale);
     void export_surface_mesh();

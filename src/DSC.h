@@ -430,7 +430,7 @@ namespace DSC {
             set_avg_edge_length(2*min_length);
             
             pars = {
-                0.5,        //DEG_EDGE_QUALITY, ratio to AVG_LENGTH
+                0.2,        //DEG_EDGE_QUALITY, ratio to AVG_LENGTH
                 NAN,        //MIN_EDGE_QUALITY, ratio to AVG_LENGTH, not in use
                 
                 0.0038,     //DEG_FACE_QUALITY 0.0005 = 2 degree; 0.0038 = 5; 0.015 = 10 (1-cos(alpha))
@@ -513,8 +513,6 @@ namespace DSC {
                     auto f_pos = get_pos(f_pts);
                     min_tet_quality = std::min(min_tet_quality,
                        std::abs(Util::quality<real>(f_pos[0], f_pos[1], f_pos[2], new_pos)));
-                    
-                    assert(min_tet_quality < 100);
                 }
                 assert(!isnan(min_tet_quality));
                     
@@ -2535,16 +2533,16 @@ is_mesh::SimplexSet<edge_key> test_neighbour(const face_key& f, const node_key& 
         
         void resize_complex()
         {
-            {
-                thickening_interface();
-                
-                thinning_interface();
-                
-                thickening();
-                
-                thinning();
-            }
-            fix_complex();
+//            {
+//                thickening_interface();
+//
+//                thinning_interface();
+//
+//                thickening();
+//
+//                thinning();
+//            }
+//            fix_complex();
         }
         
         ////////////////////

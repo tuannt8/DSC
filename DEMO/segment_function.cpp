@@ -460,7 +460,7 @@ void segment_function::snapp_boundary(){
     // Adapt time step
     cout << "Max displacement; bound: " << max_dis << "; " << max_boundary_dis << endl;
     double scale = 1.0;
-    double max_displacement = _dsc->get_avg_edge_length() * 0.5 * 0.4;
+    double max_displacement = _dsc->get_avg_edge_length() * 0.5 * 0.2;
     if (max_dis > max_displacement)
     {
         scale = max_displacement / max_dis;
@@ -1885,6 +1885,123 @@ void segment_function::adapt_surface()
 #endif
 }
 
+struct face_analyze{
+    
+};
+void segment_function::thickenning_surface()
+{
+    auto c = _mean_intensities;
+    update_vertex_boundary();
+    
+    // Array to store temporary forces
+    // Use fixxed array for better performance. Suppose that we have less than 10000 vertices
+    std::vector<vec3> forces = std::vector<vec3>(_dsc->get_no_nodes_buffer(), vec3(0.0));
+    vector<bool> edge_to_split(_dsc->get_no_edges_buffer(), false);
+    
+    static double thres_force_split = _dsc->get_avg_edge_length()*0.5*0.01;
+    static double stable = _dsc->get_avg_edge_length()*0.5*0.1;
+
+    
+    // Loop on interface faces
+    for(auto fid = _dsc->faces_begin(); fid != _dsc->faces_end(); fid++)
+    {
+        if (fid->is_interface()
+            && !is_boundary(fid.key())
+            )
+        {
+            auto tets = _dsc->get_tets(fid.key());
+            
+            auto verts = _dsc->get_nodes(fid.key());
+            auto pts = _dsc->get_pos(verts);
+            
+            auto phase0 = _dsc->get_label(tets[0])-1;
+            auto phase1 = _dsc->get_label(tets[1])-1;
+            
+            double c0 = phase_intensity(phase0), c1 = phase_intensity(phase1);
+            
+            // get normal, from label l0 to label l1
+            vec3 Norm = _dsc->get_normal(fid.key());
+            auto l01 = _dsc->barycenter(tets[1]) - _dsc->barycenter(tets[0]);
+            Norm = Norm*dot(Norm, l01);// modify normal direction
+            Norm.normalize();
+            
+            // Discretize the face
+            double area = Util::area<double>(pts[0], pts[1], pts[2]);
+            
+            vector<double> face_forces;
+            for (auto const & c : gaussian_points::get_point(area))
+            {
+                auto p = get_coord_tri(pts, c.coord);
+                auto I = _img.get_value_f(p);
+                
+                auto magnitude =  (2*I - c0 - c1)*(c0 - c1) * c.weight * area;
+                auto f = Norm*magnitude;
+                
+                for(int ii =0; ii <3; ii++)
+                    forces[verts[ii]] += f*c.coord[ii];
+                
+                face_forces.push_back(magnitude);
+            }
+            
+            // Analyze the surface
+            double mean = 0;
+            for (auto ff : face_forces )
+            {
+                mean += ff;
+            }
+            mean /= face_forces.size();
+            double deviation = 0; // average deviation
+            for (auto ff : face_forces)
+            {
+                deviation += std::abs(ff-mean);
+            }
+            deviation /= face_forces.size();
+            
+            // compare it with force?
+            if (mean > thres_force_split || deviation > thres_force_split)
+            {
+                auto longest_e = _dsc->longest_edge(_dsc->get_edges(fid.key()));
+                edge_to_split[longest_e] = true;
+            }
+        }
+    }
+    
+    _forces = forces;
+    compute_internal_force_2();
+    
+    vector<bool> mark_to_split(_dsc->get_no_edges_buffer(), false);
+    for(auto eit = _dsc->edges_begin(); eit != _dsc->edges_end(); eit++)
+    {
+        if (edge_to_split[eit.key()])
+        {
+            auto nodes = _dsc->get_nodes(eit.key());
+            if (get_node_displacement(nodes[0]).length() < stable
+                && get_node_displacement(nodes[1]).length() < stable)
+            {
+                mark_to_split[eit.key()] = true;
+            }
+        }
+    }
+    
+    int count=0;
+    for(int i = 0; i < mark_to_split.size(); i++)
+    {
+        if (mark_to_split[i]
+            && _dsc->length(is_mesh::EdgeKey(i)) > _dsc->get_avg_edge_length())
+        {
+            is_mesh::EdgeKey ek(i);
+            if (_dsc->exists(ek))
+            {
+                _dsc->split(ek);
+                count++;
+            }
+        }
+    }
+    
+    _dsc->garbage_collect();
+    _dsc->deform();
+}
+
 #define align_bound_gap(idx) \
 if(pos[idx] < 0) pos[idx] = origin[idx]; \
 if(pos[idx] > im_bound[idx]) pos[idx] = bound[idx];
@@ -2040,13 +2157,16 @@ void segment_function::segment()
         t.change("Adapt");
         update_vertex_boundary();
         _dsc->adapt();
+        
         adapt_surface();
+//        thickenning_surface();
         
         t.change("average intensity");
         update_average_intensity();
         
         t.change("Measure energy");
         compute_energy();
+        
     }
     t.done();
     
