@@ -37,3 +37,5 @@ Generator.xcodeproj/project.xcworkspace/xcuserdata/asny.xcuserdatad/UserInterfac
 Generator.xcodeproj/project.xcworkspace/xcshareddata/Generator.xccheckout
 
 *xcuserdata*
+
+CMakeLists.txt.user

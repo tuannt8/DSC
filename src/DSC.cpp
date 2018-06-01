@@ -1127,6 +1127,11 @@ fc++;   \
             ++step;
         } while (missing > 0 && step < num_steps);
 
+#ifdef DSC_CACHE
+            is_mesh_ptr->update_cache_size();
+#endif
+//        is_mesh_ptr->garbage_collect();
+
         if (optimizeMeshStructure){
             resize_complex();
 

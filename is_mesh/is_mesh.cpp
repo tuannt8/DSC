@@ -775,7 +775,7 @@ namespace is_mesh{
         update_split(new_nid, nids[0], nids[1]);
 
 #ifdef DEBUG
-        validity_check();
+//        validity_check();
 #endif
 
         return new_nid;
@@ -834,7 +834,7 @@ namespace is_mesh{
         update_flag(get(nid).tet_keys());
 
 #ifdef DEBUG
-        validity_check();
+//        validity_check();
 #endif
     }
 
@@ -894,7 +894,7 @@ namespace is_mesh{
             set_label(t,label);
         }
 #ifdef DEBUG
-        validity_check();
+//        validity_check();
 #endif
 
         return new_fid;

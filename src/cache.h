@@ -15,10 +15,10 @@
 #include <iostream>
 #include <queue>
 
-#define BUFFER_SIZE 1.2 // Buffer of cache preserved for adding entities
+#define BUFFER_SIZE 2 // Buffer of cache preserved for adding entities
 
 // Using cache
-#define DSC_CACHE
+//#define DSC_CACHE
 
 // Parallel
 #ifdef DSC_CACHE
@@ -52,10 +52,10 @@ public:
     const key_type &  get_key_type(){return _key_type;}
     
 //    virtual void release(){};
-    virtual void * get(size_t idx){return nullptr;};
-    virtual void set(void * newdata, size_t idx){};
-    virtual void mark_dirty(size_t idx){};
-    virtual void resize(size_t new_size){};
+    virtual void * get(size_t idx){return nullptr;}
+    virtual void set(void * newdata, size_t idx){}
+    virtual void mark_dirty(size_t idx){}
+    virtual void resize(size_t new_size){}
 };
 
 template<typename type>
@@ -108,7 +108,7 @@ public:
                 delete _data[i];
         }
         
-        _data.resize(new_size);
+        _data.resize(new_size, nullptr);
     }
 };
 

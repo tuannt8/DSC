@@ -3,6 +3,11 @@ project(DSC)
 
 set(CMAKE_CXX_STANDARD 14)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG")
+endif()
+
+
 aux_source_directory(CGLA SRC_CGLA)
 aux_source_directory(SOIL SRC_SOIL)
 aux_source_directory(src SRC_DSC)
