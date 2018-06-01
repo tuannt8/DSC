@@ -599,7 +599,7 @@ namespace is_mesh {
 
     template<typename key_type, typename value_type>
     inline std::vector<key_type> ISMesh::find_par(std::function<bool(value_type&)> include){
-        std::vector<std::vector<key_type>> res_array(m_number_of_threads, {});
+        std::vector<std::vector<key_type>> res_array(m_number_of_threads, std::vector<key_type>({}));
         for_each_par<value_type>([&](value_type &value, int threadid){
             if (include(value))
             {
