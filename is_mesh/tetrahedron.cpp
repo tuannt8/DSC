@@ -63,7 +63,6 @@ namespace is_mesh
     }
 
     SimplexSet<NodeKey> Tetrahedron::node_keys() const{
-        // TUAN should be caching here
         SimplexSet<NodeKey> resKey;
         for (auto & edge : edges()){
             resKey += edge->node_keys();
