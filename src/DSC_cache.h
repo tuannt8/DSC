@@ -2333,7 +2333,7 @@ namespace DSC {
             int missing;
             int step = 0;
             do {
-//                std::cout << "\n\tMove vertices step " << step << std::endl;
+                std::cout << "\n\tMove vertices step " << step << std::endl;
                 missing = 0;
                 int movable = 0;
                 {
@@ -2350,7 +2350,7 @@ namespace DSC {
                     }
                     
                 }
-//                std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
+                std::cout << "\tVertices missing to be moved: " << missing <<"/" << movable << std::endl;
                 
                 {
                     fix_complex();

@@ -184,7 +184,7 @@ void UI::update_gl()
               head[0], head[1], head[2]);      /* up is in postivie Y direction */
     
     int size = std::min(WIN_SIZE_Y, WIN_SIZE_X);
-    glViewport((WIN_SIZE_X - size) / 2.0, (WIN_SIZE_Y - size) / 2.0, size, size);
+    glViewport((WIN_SIZE_X - size), (WIN_SIZE_Y - size) , size * 2, size * 2);
     
     glClearColor(0.1, 0.1, 0.1, 1.0);
 }
@@ -197,7 +197,7 @@ UI::UI()
 void UI::init_data()
 {
 #ifdef __APPLE__
-    bool test = true;
+    bool test = false;
 #else
     bool test = false;
 #endif
@@ -216,24 +216,13 @@ void UI::init_data()
         dsc = load_model("/Users/tuannt8/Desktop/iter.dsc");
 //        dsc->validity_check();
     }
-//    {
-//        std::vector<vec3> points;
-//        std::vector<int> faces;
-//        dsc->extract_surface_mesh(points, faces);
-//        is_mesh::export_surface_mesh("/Users/tuannt8/Desktop/iter.obj", points, faces);
-//    }
-//    dsc->validity_check();
-//    return;
     
     m_fluid.init(&*dsc);
     
     // Load first particle
     m_fluid.load_first_particle();
     
-    if(!test)
-    {
-//        m_fluid.init_mesh();
-    }
+//    m_fluid.fix_first_mesh();
     
     dsc->print_mesh_info();
 }
@@ -244,25 +233,6 @@ void UI::export_surface(const std::string& dsc_path)
     std::vector<vec3> points;
     std::vector<int> faces;
     dsc->extract_surface_mesh(points, faces);
-    
-    // snapp
-//    double epsilon = m_fluid.m_problem->m_deltap;
-//    vec3 origin(0.0);
-//    vec3 bound = m_fluid.m_problem->domain_size();
-//    for(auto & p : points)
-//    {
-//        for (int i = 0; i < 3; i++)
-//        {
-//            if (p[i] - origin[i] < epsilon)
-//            {
-//                p[i] = origin[i];
-//            }
-//            if (bound[i] - p[i] < epsilon)
-//            {
-//                p[i] = bound[i];
-//            }
-//        }
-//    }
     
     string directory = dsc_path.substr(0, dsc_path.find_last_of("\\/"));
     string name = dsc_path.substr(dsc_path.find_last_of("\\/") + 1);

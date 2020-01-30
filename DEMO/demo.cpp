@@ -41,8 +41,8 @@ string data_path = "../Large_data";
 string data_path = "../../Large_data";
 #endif
 
-string problem = "two_phase_fluid";
-//string problem = "DamBreak3D";
+//string problem = "two_phase_fluid";
+string problem = "dam_break_fluid";
 
 string g_out_path; // TO write the surface
 double g_res; // Affect DSC resolution
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     
     bool nodisplay = input.cmdOptionExists("-no_display");
     
-    g_res = atof(input.getCmdOption("-res", "3.0").c_str());
+    g_res = atof(input.getCmdOption("-res", "1.0").c_str());
     
     input.print();
     

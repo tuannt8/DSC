@@ -399,12 +399,14 @@ void anisotropic_kernel::compute_tranformation_mat_for_particle(int i)
     // Modify the strecth matrix
     mat3x3d Sigma(0.0);
     double kr = 4.0;
-//    double ks = cbrt(1 / CGLA::determinant(C));// May optimize latter
+    ks = cbrt(1 / CGLA::determinant(C));// May optimize latter
 //    cout << ks << endl;
+    ks = 1600;
     double kn = 0.35;
+    int no_nei_thres = 25;
     for (int d = 0; d < 3; d++)
     {
-        if(close_particles.size() > 25)
+        if(close_particles.size() > no_nei_thres)
         {
             Sigma[d][d] = std::max(L[d][d], L[0][0] / kr) * ks;
         }
@@ -450,7 +452,7 @@ double anisotropic_kernel::get_coeff(vec3 pos, int idx)
 
 void anisotropic_kernel::Taubin_smooth()
 {
-    double lamda = 0.93;
+    double lamda = 0.1; // closer to 1 -> more smooth
     std::vector<particle> smoothed_particles = m_particles;
     
     for (int i = 0; i < m_particles.size(); i++)

@@ -259,25 +259,40 @@ bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
     }
 
     dis = vec3(0);
+    double sum = 0;
     for (auto p : list)
     {
         auto part = m_current_particles[p];
-        auto vel = m_current_particles[p].vel;
+        auto part_next = m_next_particles[p];
+//        auto vel = m_current_particles[p].vel;
+        
+        
+        auto pdis = part_next.pos - part.pos;
         
         double r_h = (part.pos - pos).length()/h;
         
-        dis += vel * (
-                      part.mass / part.density
-                      * wendland(r_h, h)
-                      );
+        double coeff = wendland(r_h, h);
+        
+        dis += pdis * coeff;
+        sum += coeff;
+        
+//        dis += vel * (
+//                      part.mass / part.density
+//                      * wendland(r_h, h)
+//                      );
         
         
     }
+    
+    if(sum > 0)
+        dis /= sum;
+    
     return  true;
 }
 
 bool particle_manager::get_displacement_weighted_avg(vec3 pos, vec3 & dis)
 {
+    assert(0);
 //    double r = m_slength;
 //    vector<int> list;
 //    vector<vec3> pos_in_sphere;
@@ -311,6 +326,7 @@ bool particle_manager::get_displacement_weighted_avg(vec3 pos, vec3 & dis)
 
 bool particle_manager::get_displacement_avg(vec3 pos, vec3 & dis)
 {
+    assert(0);
 //    double r = m_deltap*3;
 //    vector<int> list;
 //    vector<vec3> pos_in_sphere;
@@ -386,7 +402,7 @@ void particle_manager::draw_anisotropic_kernel(double yunder, double yupper)
                 glEnable(GL_LIGHTING);
                 glEnable(GL_COLOR_MATERIAL);
                 glColor3f(0.6, 0.6, 0.6);
-                glutSolidSphere(1, 10, 10);
+                glutSolidSphere(0.3, 10, 10);
                 
                 glPopMatrix();
             }
@@ -593,23 +609,24 @@ void particle_manager::load_next(int idx, double t)
     assert(t >= 0 && t < 1);
     
     m_current_particles = m_next_particles;
+    load(idx, m_next_particles);
     
-    // Interpolate
-    if(idx == m_cache_idx+1)
-    {
-        m_cache_idx = idx;
-        m_cache_particles = m_cache_particles_next;
-        load(m_cache_idx, m_cache_particles_next);
-    }
-    
-    double max_vel = 0;
-    for (int i = 0; i < m_next_particles.size(); i++)
-    {
-        m_next_particles[i].pos = m_cache_particles[i].pos * (1-t) + m_cache_particles_next[i].pos * t;
-        m_current_particles[i].vel = m_next_particles[i].pos - m_current_particles[i].pos;
-        
-        max_vel = max(max_vel, m_current_particles[i].vel.length());
-    }
+//    // Interpolate
+//    if(idx == m_cache_idx+1)
+//    {
+//        m_cache_idx = idx;
+//        m_cache_particles = m_cache_particles_next;
+//        load(m_cache_idx, m_cache_particles_next);
+//    }
+//
+//    double max_vel = 0;
+//    for (int i = 0; i < m_next_particles.size(); i++)
+//    {
+//        m_next_particles[i].pos = m_cache_particles[i].pos * (1-t) + m_cache_particles_next[i].pos * t;
+//        m_current_particles[i].vel = m_next_particles[i].pos - m_current_particles[i].pos;
+//
+//        max_vel = max(max_vel, m_current_particles[i].vel.length());
+//    }
     
 //    cout << "Max vel: " << max_vel << endl;
 }
@@ -617,33 +634,33 @@ void particle_manager::load_next(int idx, double t)
 void particle_manager::add_ghost_particles(vec3 domain_size, double dis)
 {
     build_kd_tree(); // may not need to be build every time step
-    rebuild_density(); // Because the density output is different, and I dont know why.
+//    rebuild_density(); // Because the density output is different, and I dont know why.
     
-    // Add ghost
-    
-    for(int direct = 0; direct < 3; direct++)
-    {
-        auto current_size = m_current_particles.size();
-        for (int i = 0; i < current_size; i++)
-        {
-            auto & p = m_current_particles[i];
-            if (p.pos[direct] < dis)
-            {
-                particle new_p = p;
-                new_p.pos[direct] = -new_p.pos[direct];
-                new_p.vel[direct] = -new_p.vel[direct];
-                m_current_particles.push_back(new_p);
-            }else if(p.pos[direct] > domain_size[direct]-dis)
-            {
-                particle new_p = p;
-                new_p.pos[direct] = 2*domain_size[direct] - new_p.pos[direct];
-                new_p.vel[direct] = -new_p.vel[direct];
-                m_current_particles.push_back(new_p);
-            }
-        }
-    }
-
-    build_kd_tree(); // may not need to be build every time step
+//    // Add ghost
+//
+//    for(int direct = 0; direct < 3; direct++)
+//    {
+//        auto current_size = m_current_particles.size();
+//        for (int i = 0; i < current_size; i++)
+//        {
+//            auto & p = m_current_particles[i];
+//            if (p.pos[direct] < dis)
+//            {
+//                particle new_p = p;
+//                new_p.pos[direct] = -new_p.pos[direct];
+//                new_p.vel[direct] = -new_p.vel[direct];
+//                m_current_particles.push_back(new_p);
+//            }else if(p.pos[direct] > domain_size[direct]-dis)
+//            {
+//                particle new_p = p;
+//                new_p.pos[direct] = 2*domain_size[direct] - new_p.pos[direct];
+//                new_p.vel[direct] = -new_p.vel[direct];
+//                m_current_particles.push_back(new_p);
+//            }
+//        }
+//    }
+//
+//    build_kd_tree(); // may not need to be build every time step
 }
 
 

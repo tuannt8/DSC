@@ -232,9 +232,38 @@ DSC::DeformableSimplicialComplex<> * dam_break_fluid::init_dsc(double scale)
     vec3 fluid_ur(0.4, 0.67, 0.4);
     is_mesh::Cube c((fluid_ld+fluid_ur)/2.0, fluid_ur - fluid_ld);
     
-    dsc->set_labels(c, 1);
+    static float onethird = 1.0/3;
+    static vector<std::vector<float>> sample_point =
+    {
+        {1,0,0,0},{0,1,0,0}, {0,0,1,0}, {0,0,0,1}, // node
+        {0.5, 0.5, 0, 0}, {0,0.5,0.5,0}, {0,0,0.5,0.5}, {0.5, 0,0,0.5}, //edge
+        {0,onethird, onethird, onethird}, {onethird, 0, onethird, onethird}, {onethird, onethird, 0, onethird}, {onethird, onethird, onethird, 0} // face
+    };
     
-    // Make gap
+    for(auto tit = dsc->tetrahedra_begin(); tit != dsc->tetrahedra_end(); tit++)
+    {
+        is_mesh::SimplexSet<is_mesh::NodeKey> nids = dsc->get_nodes(tit.key());
+        auto nid_pos = dsc->get_pos(nids);
+        bool is_inside = false;
+        for(auto sp : sample_point)
+        {
+            vec3 sp_pos(0);
+            for(int i = 0; i < 4; i++)
+                sp_pos += nid_pos[i] * sp[i];
+            
+            if(c.is_inside(sp_pos))
+            {
+                is_inside = true;
+                break;
+            }
+        }
+        
+        if(is_inside)
+            dsc->set_label(tit.key(), 1);
+    }
+
+    
+//     Make gap
     for (auto nit = dsc->nodes_begin(); nit != dsc->nodes_end(); nit++)
     {
         if (nit->is_boundary())

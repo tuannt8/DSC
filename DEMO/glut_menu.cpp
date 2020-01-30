@@ -24,12 +24,13 @@
 using namespace std;
 bool glut_menu::get_state(std::string name, bool default_state)
 {
-    if (get_instance()._state_map.find(name) == get_instance()._state_map.end())
+    auto & instance = get_instance();
+    if (instance._state_map.find(name) == instance._state_map.end())
     {
         // Not exist, create
-        get_instance()._state_map.insert(std::make_pair(name, default_state));
+        instance._state_map.insert(std::make_pair(name, default_state));
         
-        get_instance().update_menu();
+        instance.update_menu();
         return default_state;
     }
     

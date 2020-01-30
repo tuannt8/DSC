@@ -103,6 +103,14 @@ void fluid_motion::load_first_particle()
     dt = 1;
 }
 
+void fluid_motion::fix_first_mesh()
+{
+    build_anisotropic_kernel();
+    
+    project_vertices();
+    project_interface();
+}
+
 void fluid_motion::make_gap()
 {
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
@@ -122,12 +130,14 @@ void fluid_motion::make_gap()
 // No anisotropic, kdtree or rebuild density
 void fluid_motion::load_next_particle()
 {
-    t += dt;
-    if (t >= 1)
-    {
-        t -= 1;
-        m_cur_global_idx++;
-    }
+//    t += dt;
+//    if (t >= 1)
+//    {
+//        t -= 1;
+//        m_cur_global_idx++;
+//    }
+    
+    m_cur_global_idx++;
     
     for (int i = 0; i < m_problem->m_nb_phases; i++)
     {
@@ -202,7 +212,7 @@ void fluid_motion::draw()
 {
     if(glut_menu::get_state("Particles point 0", 0))
     {
-        glColor3f(1, 0, 0);
+        glColor3f(0, 0, 1);
         m_particles[0]->draw(m_problem->domain_size()[1]*0, m_problem->domain_size()[1]);
     }
     
@@ -217,6 +227,19 @@ void fluid_motion::draw()
 //        m_particles[0]->draw_anisotropic_kernel(m_problem->domain_size(), vec3(1,0,0));
 //        m_particles[1]->draw_anisotropic_kernel(m_problem->domain_size(), vec3(0,1,1));
         draw_anisotropic_kernel_plane();
+        
+        auto pp = m_share_aniso_kernel.m_particles;
+        glDisable(GL_LIGHTING);
+        glPointSize(2);
+        glBegin(GL_POINTS);
+        
+        glColor3f(1, 0, 0);
+        for(int idx = 0; idx < pp.size(); idx++)
+        {
+            auto &p = pp[idx];
+                glVertex3dv(p.pos.get());
+        }
+        glEnd();
     }
     
     if ((glut_menu::get_state("Isotropic sphere", 0)))
@@ -226,7 +249,7 @@ void fluid_motion::draw()
             m_particles[0]->build_anisotropic_kernel();
             built = true;
         }
-        m_particles[0]->draw_anisotropic_kernel(m_problem->domain_size()[1]*0.1, m_problem->domain_size()[1]*0.8);
+        m_particles[0]->draw_anisotropic_kernel(m_problem->domain_size()[1]*0.7, m_problem->domain_size()[1]*0.74);
     }
 }
 
@@ -240,8 +263,6 @@ void fluid_motion::add_ghost_particles()
 
 void fluid_motion:: advect_velocity()
 {
-//    update_vertex_boundary();
-    
     vector<vec3> vertex_dis;
     compute_advection(vertex_dis);
     double max_dis = 0;
@@ -263,22 +284,12 @@ void fluid_motion:: advect_velocity()
     if (grad_max_dis.size() > 10)
         grad_max_dis.erase(grad_max_dis.begin());
 
-    // estimate new dt
-    if(grad_max_dis.size() > 1)
-    {
-        double average_grad = std::accumulate(grad_max_dis.begin(), grad_max_dis.end(), 0.0) / grad_max_dis.size();
-        dt = m_max_dsc_displacement / average_grad;
-        
-        dt = min(1.0, dt);
-        dt = max(0.01, dt);
-    }
-    // End update time step
 
     cout << "Max advection: " << max_dis << endl;
 
 //    snapp_boundary_vertices();
 
-    s_dsc->deform(20);
+    s_dsc->deform(100);
 }
 
 void export_surface(std::string path_dsc)
@@ -356,13 +367,14 @@ void fluid_motion::build_anisotropic_kernel()
 
     
     m_share_aniso_kernel.build();
+    
+    
 }
 
 void fluid_motion::project_interface_test()
 {
     // Build aniso
     build_anisotropic_kernel();
-    //    project_vertices();
 
     project_vertices();
     project_interface();
@@ -430,10 +442,17 @@ void fluid_motion::deform()
         load_next_particle();
     }
     
+    // Build aniso
+    build_anisotropic_kernel();
+    // Resolve concave surface by relabeling
+    // If tet intersect with iso kernel, label to 1
+    
+    project_vertices();
+    
     {
         if (iter %3 == 0)
         {
-            project_interface_test();
+//            project_interface_test();
         }
     }
 //    laplace_smooth(0.1);
@@ -452,14 +471,17 @@ void fluid_motion::deform()
     
     make_gap();
 
-    static double mile_stone_log = 0;
-    if(current_time > mile_stone_log)
-    {
-        log_dsc();
-        while(mile_stone_log < current_time)
-            mile_stone_log += 0.5; // Log 2 times in every step
-    }
+//    static double mile_stone_log = 0;
+//    if(current_time > mile_stone_log)
+//    {
+//        log_dsc();
+//        while(mile_stone_log < current_time)
+//            mile_stone_log += 0.5; // Log 2 times in every step
+//    }
 
+    log_dsc();
+    log_dsc_surface();
+    
     iter++;
 }
 
@@ -828,7 +850,7 @@ void fluid_motion::compute_smooth_force()
 
 void fluid_motion::log_dsc(){
     std::stringstream s;
-    s << m_out_path[0] << "/iter_" << setprecision(3) <<m_cur_global_idx+t << ".dsc";
+    s << m_out_path[0] << "/iter_" << setprecision(3) <<m_cur_global_idx << ".dsc";
     
     std::vector<vec3> points;
     std::vector<int> tets;
@@ -889,7 +911,7 @@ inline bool is_bound_point(vec3 & p, vec3 & origin, vec3 & domain_size)
 
 void fluid_motion::update_vertex_boundary()
 {
-    return;
+//    return;
     // 1. Make sure there is a layer gap
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {

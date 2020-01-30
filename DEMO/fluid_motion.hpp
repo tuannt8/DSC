@@ -65,6 +65,8 @@ public:
     void load_next_particle(); // return true if loading new file
     void add_ghost_particles();
     
+    void fix_first_mesh();
+    
     void compute_advection(std::vector<vec3> & vertex_dis);
     
     void deform();
