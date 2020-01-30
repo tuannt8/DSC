@@ -452,7 +452,7 @@ double anisotropic_kernel::get_coeff(vec3 pos, int idx)
 
 void anisotropic_kernel::Taubin_smooth()
 {
-    double lamda = 0.1; // closer to 1 -> more smooth
+    double lamda = 0.3; // closer to 1 -> more smooth
     std::vector<particle> smoothed_particles = m_particles;
     
     for (int i = 0; i < m_particles.size(); i++)

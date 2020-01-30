@@ -67,6 +67,7 @@ public:
     
     void fix_first_mesh();
     
+    void inside_outside_fix(std::vector<vec3> & vertex_dis);
     void compute_advection(std::vector<vec3> & vertex_dis);
     
     void deform();

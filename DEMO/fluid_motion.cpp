@@ -31,7 +31,9 @@ string find_name(string input)
 
 void fluid_motion::init(DSC::DeformableSimplicialComplex<> *dsc){
     s_dsc = dsc;
-    m_max_dsc_displacement = std::min(s_dsc->get_avg_edge_length()*0.15, m_problem->m_deltap*0.2) ;
+//    m_max_dsc_displacement = std::min(s_dsc->get_avg_edge_length()*0.15, m_problem->m_deltap*0.3) ;
+    
+    m_max_dsc_displacement = m_problem->m_deltap*0.1;
     
     m_max_displacement_projection = std::min(s_dsc->get_avg_edge_length()*0.15, m_problem->m_deltap*0.15) ;; // This is just a compliment
     
@@ -263,27 +265,21 @@ void fluid_motion::add_ghost_particles()
 
 void fluid_motion:: advect_velocity()
 {
-    vector<vec3> vertex_dis;
+    vector<vec3> vertex_dis, density_dis;
     compute_advection(vertex_dis);
+    inside_outside_fix(density_dis);
+    
     double max_dis = 0;
     
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
-        auto const & dis = vertex_dis[nit.key()];
+        auto const dis = vertex_dis[nit.key()] + density_dis[nit.key()];
         if (nit->is_interface() && dis.length() > 0)
         {
             s_dsc->set_destination(nit.key(), nit->get_pos() + dis);
             max_dis = max(max_dis, dis.length());
         }
     }
-    
-    // Update adaptive time step
-    static vector<double> grad_max_dis;
-    double current_grad = max_dis / dt;
-    grad_max_dis.push_back(current_grad);
-    if (grad_max_dis.size() > 10)
-        grad_max_dis.erase(grad_max_dis.begin());
-
 
     cout << "Max advection: " << max_dis << endl;
 
@@ -295,6 +291,26 @@ void fluid_motion:: advect_velocity()
 void export_surface(std::string path_dsc)
 {
     
+}
+
+void fluid_motion::inside_outside_fix(std::vector<vec3> & vertex_dis)
+{
+    vertex_dis = vector<vec3>(s_dsc->get_no_nodes_buffer(), vec3(0));
+    
+    for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
+    {
+        if (nit->is_interface())
+        {
+            auto pos = s_dsc->get_pos(nit.key());
+            if(m_share_aniso_kernel.is_inside(pos))
+            {
+                auto norm = s_dsc->get_normal(nit.key());
+                auto dis = norm*(m_max_dsc_displacement);
+                
+                vertex_dis[nit.key()] = dis;
+            }
+        }
+    }
 }
 
 void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
@@ -316,6 +332,8 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
         }
     }
     
+    float minDens = INFINITY, maxDen =  -INFINITY;
+    
     vertex_dis = vector<vec3>(s_dsc->get_no_nodes_buffer(), vec3(0));
     for (auto nit = s_dsc->nodes_begin(); nit != s_dsc->nodes_end(); nit++)
     {
@@ -325,6 +343,7 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
         {
             auto pos = nit->get_pos();
             vec3 dis(0.0);
+            float density = 0;
             bool bFound = false;
             // get max displacement
             for (int i = 0; i < m_problem->m_nb_phases; i++)
@@ -338,6 +357,8 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
                     }
                     bFound = true;
                 }
+                
+                m_particles[i]->interpolate_density(pos, density);
             }
             
             if (!bFound)
@@ -347,11 +368,29 @@ void fluid_motion::compute_advection(std::vector<vec3> & vertex_dis)
                 auto norm = s_dsc->get_normal(nit.key());
                 dis = norm*(-m_max_dsc_displacement);
             }
+            
+//            auto norm = s_dsc->get_normal(nit.key());
+//            if(density < 1)
+//            {
+//                dis += norm*(-m_max_dsc_displacement);
+//            }
+//            else if(density > 2000000)
+//            {
+//                dis += norm*(m_max_dsc_displacement);
+//            }
 
+            // What to do with density?
+            minDens = std::min(minDens, density);
+            maxDen = std::max(maxDen, density);
+            
             vertex_dis[nit.key()] = dis;
         }
     }
+    
+    cout << "Max den " << maxDen << ", min den: " << minDens << endl;
 }
+
+
 extern double scale_anisotropic;
 void fluid_motion::build_anisotropic_kernel()
 {
@@ -433,7 +472,8 @@ void fluid_motion::deform()
 
     {
         profile_temp t("Advection");
-        add_ghost_particles(); // actually compute density
+        add_ghost_particles(); // actually compute density // Only build kd tree
+        build_anisotropic_kernel();
         advect_velocity();
     }
 
@@ -443,41 +483,15 @@ void fluid_motion::deform()
     }
     
     // Build aniso
-    build_anisotropic_kernel();
+    
     // Resolve concave surface by relabeling
     // If tet intersect with iso kernel, label to 1
     
-    project_vertices();
+//    project_vertices();
     
-    {
-        if (iter %3 == 0)
-        {
-//            project_interface_test();
-        }
-    }
-//    laplace_smooth(0.1);
-
     double current_time = m_cur_global_idx + t;
-//    static double mile_stone = 0;
-//    if (current_time > mile_stone)
-//    {
-//        laplace_smooth(smooth_ratio);
-////        project_interface_one_iter();
-//        while (mile_stone < current_time)
-//        {
-//            mile_stone += 0.33; // Project three times at most in every particle load
-//        }
-//    }
     
     make_gap();
-
-//    static double mile_stone_log = 0;
-//    if(current_time > mile_stone_log)
-//    {
-//        log_dsc();
-//        while(mile_stone_log < current_time)
-//            mile_stone_log += 0.5; // Log 2 times in every step
-//    }
 
     log_dsc();
     log_dsc_surface();

@@ -96,6 +96,8 @@ public:
     bool get_displacement_WENLAND_kernel(vec3 pos, vec3 & dis);
     bool get_displacement_MLS_kernel(vec3 pos, vec3 & dis);
     
+    bool interpolate_density(vec3 pos, float &p);
+    
     enum weight_type
     {
         POLY_4 = 0

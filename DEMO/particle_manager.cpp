@@ -244,6 +244,45 @@ vec3 particle_manager::get_displacement_cubic_kernel(vec3 pos)
 //    return sum_vec;
 }
 
+bool particle_manager::interpolate_density(vec3 pos, float &density)
+{
+    double h = m_slength;
+    
+    vector<int> list;
+    vector<vec3> pos_in_sphere;
+    m_vtree.in_sphere(pos, 2*h, pos_in_sphere, list);
+    
+    density = 0;
+    
+    if (list.size() == 0) // found nothing. Cannot project
+    {
+        return false;
+    }
+
+    double sum = 0;
+    for (auto p : list)
+    {
+        auto part = m_current_particles[p];
+        
+        auto pdis = part.density;
+        
+        double r_h = (part.pos - pos).length()/h;
+        
+        double coeff = wendland(r_h, h);
+        
+        density += pdis * coeff;
+        sum += coeff;
+           
+    }
+    
+    if(sum > 0)
+       density /= list.size();
+    
+    
+    
+    return  true;
+}
+
 bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
 {
     double h = m_slength;
@@ -264,8 +303,6 @@ bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
     {
         auto part = m_current_particles[p];
         auto part_next = m_next_particles[p];
-//        auto vel = m_current_particles[p].vel;
-        
         
         auto pdis = part_next.pos - part.pos;
         
@@ -275,13 +312,7 @@ bool particle_manager::get_displacement_sph_kernel(vec3 pos, vec3 & dis)
         
         dis += pdis * coeff;
         sum += coeff;
-        
-//        dis += vel * (
-//                      part.mass / part.density
-//                      * wendland(r_h, h)
-//                      );
-        
-        
+           
     }
     
     if(sum > 0)

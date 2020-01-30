@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     
     bool nodisplay = input.cmdOptionExists("-no_display");
     
-    g_res = atof(input.getCmdOption("-res", "1.0").c_str());
+    g_res = atof(input.getCmdOption("-res", "3.0").c_str());
     
     input.print();
     
